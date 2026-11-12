@@ -1,429 +1,438 @@
 import {
-  createContext,
   useCallback,
-  useContext,
+  useEffect,
+  useId,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type ButtonHTMLAttributes,
-  type InputHTMLAttributes,
+  type ComponentPropsWithRef,
   type ReactNode,
-  type SelectHTMLAttributes,
-  type TextareaHTMLAttributes,
+  type Ref,
 } from 'react';
+import { countdown, formatClockMs } from '../lib/format';
+import { useNow } from '../hooks/useClock';
+import { IconAlert, IconCheck, IconClose, IconMinus, IconPlus, IconRefresh } from './icons';
 
-/* ---------------------------------------------------------------- Panels */
+/** useLayoutEffect warns during a server render; swap it for useEffect there. */
+const useIsoLayoutEffect =
+  typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-export function Panel({
+/* -------------------------------------------------------------------------- */
+/* Helpers                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export function cn(...parts: Array<string | false | null | undefined>): string {
+  return parts.filter(Boolean).join(' ');
+}
+
+/** IntersectionObserver reveal. Falls back to visible if IO is unavailable. */
+export function Reveal({
   children,
-  className = '',
-  tone = 'raised',
+  delay = 0,
+  className,
+  as: Tag = 'div',
 }: {
   children: ReactNode;
+  delay?: number;
   className?: string;
-  tone?: 'raised' | 'flat' | 'ink';
+  as?: 'div' | 'section' | 'li' | 'article';
 }) {
-  const tones: Record<string, string> = {
-    raised: 'bg-paper-3 border-hairline',
-    flat: 'bg-paper-2 border-hairline-soft',
-    ink: 'bg-ink text-paper border-ink',
-  };
-  return (
-    <section className={`border ${tones[tone]} rounded-card ${className}`}>{children}</section>
-  );
-}
+  const ref = useRef<HTMLElement | null>(null);
+  const [shown, setShown] = useState(false);
 
-export function PanelHead({
-  eyebrow,
-  title,
-  aside,
-  tone = 'light',
-}: {
-  eyebrow?: string;
-  title: string;
-  aside?: ReactNode;
-  tone?: 'light' | 'dark';
-}) {
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setShown(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setShown(true);
+            observer.disconnect();
+          }
+        }
+      },
+      { rootMargin: '0px 0px -8% 0px', threshold: 0.05 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const Component = Tag as 'div';
+  const setRef = ref as unknown as Ref<HTMLDivElement>;
+
   return (
-    <header
-      className={`flex flex-wrap items-end justify-between gap-3 border-b px-4 py-3 sm:px-5 ${
-        tone === 'dark' ? 'border-ink-700' : 'border-hairline-soft'
-      }`}
+    <Component
+      ref={setRef}
+      data-shown={shown}
+      className={cn('reveal', className)}
+      style={delay ? { transitionDelay: `${delay}ms` } : undefined}
     >
-      <div className="min-w-0">
-        {eyebrow ? (
-          <p
-            className={`micro mb-1 ${tone === 'dark' ? 'text-ink-300' : 'text-ink-400'}`}
-          >
-            {eyebrow}
-          </p>
-        ) : null}
-        <h2
-          className={`font-display text-[19px] leading-tight font-medium tracking-[-0.01em] ${
-            tone === 'dark' ? 'text-paper' : 'text-ink'
-          }`}
-        >
-          {title}
-        </h2>
-      </div>
-      {aside ? <div className="shrink-0">{aside}</div> : null}
-    </header>
+      {children}
+    </Component>
   );
 }
 
-export function SectionHeading({
-  index,
-  eyebrow,
-  title,
-  lede,
-  aside,
-}: {
-  index?: string;
-  eyebrow: string;
-  title: string;
-  lede?: string;
-  aside?: ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-5 border-t border-ink pt-6 sm:flex-row sm:items-end sm:justify-between">
-      <div className="max-w-2xl">
-        <p className="micro mb-2 flex items-center gap-2 text-marigold">
-          {index ? <span className="tnum text-ink-400">{index}</span> : null}
-          {eyebrow}
-        </p>
-        <h2 className="font-display text-[26px] leading-[1.15] font-medium tracking-[-0.015em] text-ink sm:text-[32px]">
-          {title}
-        </h2>
-        {lede ? <p className="mt-2 text-[13.5px] leading-relaxed text-ink-500">{lede}</p> : null}
-      </div>
-      {aside ? <div className="shrink-0">{aside}</div> : null}
-    </div>
-  );
-}
+/* -------------------------------------------------------------------------- */
+/* Buttons                                                                    */
+/* -------------------------------------------------------------------------- */
 
-/* --------------------------------------------------------------- Buttons */
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'quiet' | 'danger';
+type ButtonSize = 'sm' | 'md' | 'lg';
 
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'primary' | 'accent' | 'outline' | 'ghost' | 'danger';
-  size?: 'sm' | 'md';
-  loading?: boolean;
+const BUTTON_BASE =
+  'relative inline-flex items-center justify-center gap-2 rounded-pill font-medium tracking-tight ' +
+  'transition-[background-color,color,border-color,transform,box-shadow] duration-200 ease-out-expo ' +
+  'select-none disabled:cursor-not-allowed disabled:opacity-45 active:translate-y-px whitespace-nowrap';
+
+const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
+  primary:
+    'bg-marigold text-night-900 hover:bg-[#f0b25a] shadow-[0_10px_30px_-16px_rgba(232,163,61,0.85)]',
+  secondary:
+    'bg-night-800 text-ivory border border-line-bright hover:bg-night-750 hover:border-[#3a465c]',
+  ghost: 'text-mist hover:text-ivory hover:bg-night-850 border border-transparent',
+  quiet: 'text-mist-dim hover:text-mist border border-line hover:border-line-bright',
+  danger: 'bg-ember-veil text-ember border border-[#3d211c] hover:bg-[#341915]',
 };
 
+const BUTTON_SIZES: Record<ButtonSize, string> = {
+  sm: 'h-8 px-3 text-[12.5px]',
+  md: 'h-10 px-4 text-[13.5px]',
+  lg: 'h-12 px-6 text-[14.5px]',
+};
+
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  loading?: boolean;
+  icon?: ReactNode;
+  trailing?: ReactNode;
+  full?: boolean;
+}
+
 export function Button({
-  variant = 'primary',
+  variant = 'secondary',
   size = 'md',
   loading = false,
-  className = '',
+  icon,
+  trailing,
+  full,
+  className,
   children,
   disabled,
   ...rest
 }: ButtonProps) {
-  const variants: Record<string, string> = {
-    primary: 'bg-ink text-paper hover:bg-ink-700 border-ink',
-    accent: 'bg-marigold text-white hover:bg-marigold-bright border-marigold',
-    outline: 'bg-transparent text-ink hover:bg-paper-2 border-hairline',
-    ghost: 'bg-transparent text-ink-500 hover:text-ink hover:bg-paper-2 border-transparent',
-    danger: 'bg-surge text-white hover:brightness-110 border-surge',
-  };
-  const sizes: Record<string, string> = {
-    sm: 'h-8 px-3 text-[12px]',
-    md: 'h-10 px-4 text-[13px]',
-  };
   return (
     <button
-      {...rest}
+      type="button"
+      className={cn(BUTTON_BASE, BUTTON_VARIANTS[variant], BUTTON_SIZES[size], full && 'w-full', className)}
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 rounded-card border font-semibold tracking-[-0.005em] transition-all duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45 disabled:active:translate-y-0 ${variants[variant]} ${sizes[size]} ${className}`}
+      aria-busy={loading || undefined}
+      {...rest}
     >
-      {loading ? (
-        <span className="h-3 w-3 animate-spin rounded-full border-[1.5px] border-current border-t-transparent" />
-      ) : null}
-      {children}
+      {loading ? <Spinner size={size === 'sm' ? 12 : 14} /> : icon}
+      <span className={cn(loading && 'opacity-70')}>{children}</span>
+      {!loading && trailing}
     </button>
   );
 }
 
-/* ---------------------------------------------------------------- Fields */
+export function Spinner({ size = 14, className }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      className={cn('animate-spin', className)}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.4" opacity="0.22" fill="none" />
+      <path
+        d="M21 12a9 9 0 0 0-9-9"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Surfaces                                                                   */
+/* -------------------------------------------------------------------------- */
+
+export function Panel({
+  children,
+  className,
+  as: Tag = 'div',
+  hover = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  as?: 'div' | 'section' | 'article' | 'li';
+  hover?: boolean;
+}) {
+  return (
+    <Tag
+      className={cn(
+        'rounded-card border border-line bg-night-900/85 shadow-panel',
+        hover &&
+          'transition-[border-color,background-color,transform] duration-300 ease-out-expo hover:border-line-bright hover:bg-night-850',
+        className,
+      )}
+    >
+      {children}
+    </Tag>
+  );
+}
+
+export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
+  return <span className={cn('micro text-mist-dim', className)}>{children}</span>;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Chips & tones                                                              */
+/* -------------------------------------------------------------------------- */
+
+export type Tone = 'marigold' | 'jade' | 'ember' | 'lagoon' | 'clay' | 'neutral';
+
+const TONE_CLASSES: Record<Tone, string> = {
+  marigold: 'bg-marigold-veil text-marigold border-[#3b2d17]',
+  jade: 'bg-jade-veil text-jade border-[#1b3627]',
+  ember: 'bg-ember-veil text-ember border-[#3d211c]',
+  lagoon: 'bg-lagoon-veil text-lagoon border-[#1a2f3f]',
+  clay: 'bg-clay-veil text-clay border-[#3a2619]',
+  neutral: 'bg-night-800 text-mist border-line-bright',
+};
+
+export function Chip({
+  children,
+  tone = 'neutral',
+  className,
+  dot = false,
+  title,
+}: {
+  children: ReactNode;
+  tone?: Tone;
+  className?: string;
+  dot?: boolean;
+  title?: string;
+}) {
+  return (
+    <span
+      title={title}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 micro-md',
+        TONE_CLASSES[tone],
+        className,
+      )}
+    >
+      {dot && (
+        <span
+          className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current"
+          aria-hidden="true"
+        >
+          <span className="animate-pulse-ring absolute inset-0 rounded-full bg-current" />
+        </span>
+      )}
+      {children}
+    </span>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Form controls                                                              */
+/* -------------------------------------------------------------------------- */
+
+const FIELD_SHELL =
+  'w-full rounded-card border bg-night-850 text-ivory placeholder:text-mist-faint ' +
+  'transition-[border-color,background-color,box-shadow] duration-200 ease-out-expo ' +
+  'focus:outline-none focus:border-marigold/70 focus:bg-night-800 focus:shadow-[0_0_0_3px_rgba(232,163,61,0.12)]';
 
 export function Field({
   label,
   hint,
   error,
   children,
-  className = '',
+  htmlFor,
+  className,
+  required,
 }: {
   label: string;
-  hint?: string;
-  error?: string;
+  hint?: ReactNode;
+  error?: string | null;
   children: ReactNode;
+  htmlFor?: string;
   className?: string;
+  required?: boolean;
 }) {
   return (
-    <label className={`block ${className}`}>
-      <span className="micro mb-1.5 flex items-baseline justify-between gap-2 text-ink-400">
-        <span>{label}</span>
-        {hint ? <span className="normal-case tracking-normal text-[10.5px] text-ink-300">{hint}</span> : null}
-      </span>
+    <div className={cn('flex flex-col gap-1.5', className)}>
+      <label
+        htmlFor={htmlFor}
+        className="micro flex items-center justify-between gap-3 text-mist-dim"
+      >
+        <span>
+          {label}
+          {required && <span className="text-marigold"> *</span>}
+        </span>
+        {hint ? <span className="normal-case tracking-normal font-sans text-[11px]">{hint}</span> : null}
+      </label>
       {children}
-      {error ? <span className="mt-1 block text-[11.5px] font-medium text-surge">{error}</span> : null}
-    </label>
+      {error ? (
+        <p role="alert" className="flex items-start gap-1.5 text-[11.5px] leading-snug text-ember">
+          <IconAlert size={12} className="mt-px shrink-0" />
+          <span>{error}</span>
+        </p>
+      ) : null}
+    </div>
   );
 }
 
-const controlBase =
-  'w-full rounded-card border border-hairline bg-paper-3 px-3 text-[13.5px] text-ink placeholder:text-ink-300 transition-colors focus:border-marigold focus:outline-none';
-
 export function TextInput({
-  className = '',
+  className,
   invalid,
   ...rest
-}: InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }) {
+}: ComponentPropsWithRef<'input'> & { invalid?: boolean }) {
   return (
     <input
+      className={cn(
+        FIELD_SHELL,
+        'h-10 px-3 text-[13.5px]',
+        invalid ? 'border-ember/60' : 'border-line',
+        className,
+      )}
+      aria-invalid={invalid || undefined}
       {...rest}
-      className={`${controlBase} h-10 ${invalid ? 'border-surge' : ''} ${className}`}
     />
   );
 }
 
-export function Select({
-  className = '',
-  children,
+export function TextArea({
+  className,
+  invalid,
   ...rest
-}: SelectHTMLAttributes<HTMLSelectElement>) {
+}: ComponentPropsWithRef<'textarea'> & { invalid?: boolean }) {
   return (
-    <select
+    <textarea
+      className={cn(
+        FIELD_SHELL,
+        'px-3 py-2.5 text-[13.5px] leading-relaxed resize-y min-h-[84px]',
+        invalid ? 'border-ember/60' : 'border-line',
+        className,
+      )}
+      aria-invalid={invalid || undefined}
       {...rest}
-      className={`${controlBase} h-10 appearance-none bg-[length:10px] pr-8 ${className}`}
-      style={{
-        backgroundImage:
-          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%237b8494' stroke-width='1.4'/%3E%3C/svg%3E\")",
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'right 12px center',
-      }}
-    >
-      {children}
-    </select>
+    />
   );
 }
 
-export function Textarea({
-  className = '',
-  ...rest
-}: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea {...rest} className={`${controlBase} py-2.5 leading-relaxed ${className}`} />;
-}
-
-/* ------------------------------------------------------------------ Tags */
-
-export type TagTone = 'neutral' | 'marigold' | 'verdant' | 'surge' | 'sky' | 'road' | 'ink';
-
-export function Tag({
+export function SelectInput({
+  className,
+  invalid,
   children,
-  tone = 'neutral',
-  className = '',
-}: {
-  children: ReactNode;
-  tone?: TagTone;
-  className?: string;
-}) {
-  const tones: Record<TagTone, string> = {
-    neutral: 'bg-paper-2 text-ink-500 border-hairline',
-    marigold: 'bg-marigold-soft text-marigold border-marigold/25',
-    verdant: 'bg-verdant-soft text-verdant border-verdant/25',
-    surge: 'bg-surge-soft text-surge border-surge/25',
-    sky: 'bg-sky-soft text-sky border-sky/25',
-    road: 'bg-road-soft text-road border-road/25',
-    ink: 'bg-ink text-paper border-ink',
-  };
+  ...rest
+}: ComponentPropsWithRef<'select'> & { invalid?: boolean }) {
   return (
-    <span
-      className={`micro inline-flex items-center gap-1 rounded-[2px] border px-1.5 py-[3px] whitespace-nowrap ${tones[tone]} ${className}`}
-    >
-      {children}
-    </span>
-  );
-}
-
-export function StatusDot({ tone = 'verdant', pulse = false }: { tone?: TagTone; pulse?: boolean }) {
-  const colors: Record<TagTone, string> = {
-    neutral: 'bg-ink-300',
-    marigold: 'bg-marigold',
-    verdant: 'bg-verdant',
-    surge: 'bg-surge',
-    sky: 'bg-sky',
-    road: 'bg-road',
-    ink: 'bg-ink',
-  };
-  return (
-    <span className="relative inline-flex h-1.5 w-1.5 shrink-0">
-      <span className={`h-1.5 w-1.5 rounded-full ${colors[tone]} ${pulse ? 'animate-pulse-dot' : ''}`} />
-    </span>
-  );
-}
-
-/* ----------------------------------------------------------------- Meter */
-
-export function TierMeter({
-  pledged,
-  total,
-  gates,
-  compact = false,
-}: {
-  pledged: number;
-  total: number;
-  gates: number[];
-  compact?: boolean;
-}) {
-  const filled = total > 0 ? Math.min(1, pledged / total) : 0;
-  return (
-    <div className="w-full">
-      <div
-        className={`relative w-full overflow-hidden rounded-[2px] bg-paper-2 ring-1 ring-hairline-soft ring-inset ${
-          compact ? 'h-1.5' : 'h-2'
-        }`}
+    <div className="relative">
+      <select
+        className={cn(
+          FIELD_SHELL,
+          'h-10 appearance-none pl-3 pr-9 text-[13.5px]',
+          invalid ? 'border-ember/60' : 'border-line',
+          className,
+        )}
+        aria-invalid={invalid || undefined}
+        {...rest}
       >
-        <div
-          className="absolute inset-y-0 left-0 bg-ink transition-[width] duration-500 ease-out"
-          style={{ width: `${filled * 100}%` }}
-        />
-        {gates.map((gate) => {
-          const at = total > 0 ? Math.min(1, gate / total) : 0;
-          const passed = pledged >= gate;
-          return (
-            <span
-              key={gate}
-              className={`absolute inset-y-0 w-px ${passed ? 'bg-paper/60' : 'bg-marigold'}`}
-              style={{ left: `${at * 100}%` }}
-            />
-          );
-        })}
-      </div>
+        {children}
+      </select>
+      <svg
+        viewBox="0 0 24 24"
+        width="14"
+        height="14"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-mist-dim"
+      >
+        <path d="m6 9 6 6 6-6" />
+      </svg>
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ Stat */
-
-export function Stat({
-  label,
+export function Stepper({
   value,
-  sub,
-  tone = 'ink',
-  className = '',
+  min,
+  max,
+  onChange,
+  label,
+  disabled,
 }: {
+  value: number;
+  min: number;
+  max: number;
+  onChange: (next: number) => void;
   label: string;
-  value: ReactNode;
-  sub?: ReactNode;
-  tone?: 'ink' | 'marigold' | 'verdant' | 'surge' | 'paper';
-  className?: string;
+  disabled?: boolean;
 }) {
-  const colors: Record<string, string> = {
-    ink: 'text-ink',
-    marigold: 'text-marigold',
-    verdant: 'text-verdant',
-    surge: 'text-surge',
-    paper: 'text-paper',
-  };
-  return (
-    <div className={className}>
-      <p className="micro text-ink-400">{label}</p>
-      <p className={`tnum font-display mt-1 text-[22px] leading-none font-medium ${colors[tone]}`}>
-        {value}
-      </p>
-      {sub ? <p className="mt-1 text-[11.5px] leading-snug text-ink-400">{sub}</p> : null}
-    </div>
+  const clamp = useCallback(
+    (n: number) => Math.min(max, Math.max(min, Math.trunc(n) || min)),
+    [min, max],
   );
-}
-
-/* -------------------------------------------------------------- Skeleton */
-
-export function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`animate-pulse rounded-[2px] bg-hairline-soft ${className}`} />;
-}
-
-/* ---------------------------------------------------------------- Toasts */
-
-export interface ToastItem {
-  id: number;
-  title: string;
-  body?: string;
-  tone: 'ok' | 'warn' | 'error';
-}
-
-interface ToastApi {
-  push: (t: Omit<ToastItem, 'id'>) => void;
-}
-
-const ToastContext = createContext<ToastApi>({ push: () => {} });
-
-export function useToast() {
-  return useContext(ToastContext);
-}
-
-export function ToastProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<ToastItem[]>([]);
-
-  const push = useCallback((t: Omit<ToastItem, 'id'>) => {
-    const id = Date.now() + Math.random();
-    setItems((prev) => [...prev.slice(-2), { ...t, id }]);
-    window.setTimeout(() => {
-      setItems((prev) => prev.filter((i) => i.id !== id));
-    }, 6200);
-  }, []);
-
-  const api = useMemo(() => ({ push }), [push]);
+  const atMin = value <= min;
+  const atMax = value >= max;
 
   return (
-    <ToastContext.Provider value={api}>
-      {children}
-      <div className="pointer-events-none fixed right-3 bottom-3 z-[70] flex w-[min(360px,calc(100vw-24px))] flex-col gap-2 sm:right-5 sm:bottom-5">
-        {items.map((item) => {
-          const tones = {
-            ok: 'border-verdant/35 bg-paper-3',
-            warn: 'border-marigold/40 bg-paper-3',
-            error: 'border-surge/40 bg-paper-3',
-          } as const;
-          const bars = { ok: 'bg-verdant', warn: 'bg-marigold', error: 'bg-surge' } as const;
-          return (
-            <div
-              key={item.id}
-              role="status"
-              className={`animate-rise pointer-events-auto flex overflow-hidden rounded-card border shadow-[0_10px_30px_-18px_rgba(11,14,20,0.55)] ${tones[item.tone]}`}
-            >
-              <span className={`w-[3px] shrink-0 ${bars[item.tone]}`} />
-              <div className="px-3 py-2.5">
-                <p className="text-[12.5px] font-semibold text-ink">{item.title}</p>
-                {item.body ? (
-                  <p className="mt-0.5 text-[11.5px] leading-relaxed text-ink-500">{item.body}</p>
-                ) : null}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </ToastContext.Provider>
-  );
-}
-
-/* ----------------------------------------------------------------- Misc */
-
-export function KeyValue({
-  k,
-  v,
-  mono = false,
-  tone,
-}: {
-  k: string;
-  v: ReactNode;
-  mono?: boolean;
-  tone?: string;
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-hairline-soft py-1.5 last:border-b-0">
-      <span className="micro shrink-0 text-ink-400">{k}</span>
-      <span className={`text-right text-[12.5px] ${mono ? 'tnum font-mono' : ''} ${tone ?? 'text-ink'}`}>
-        {v}
-      </span>
+    <div
+      className={cn(
+        'inline-flex items-center gap-1 rounded-pill border border-line bg-night-850 p-1',
+        disabled && 'opacity-50',
+      )}
+      role="group"
+      aria-label={label}
+    >
+      <button
+        type="button"
+        aria-label={`Decrease ${label}`}
+        disabled={disabled || atMin}
+        onClick={() => onChange(clamp(value - 1))}
+        className="grid h-8 w-8 place-items-center rounded-pill text-mist transition-colors duration-200 hover:bg-night-750 hover:text-ivory disabled:opacity-30 disabled:hover:bg-transparent"
+      >
+        <IconMinus size={14} />
+      </button>
+      <input
+        type="number"
+        inputMode="numeric"
+        aria-label={label}
+        value={value}
+        min={min}
+        max={max}
+        disabled={disabled}
+        onChange={(e) => onChange(clamp(Number(e.target.value)))}
+        className="tnum h-8 w-11 border-0 bg-transparent text-center text-[14px] font-medium text-ivory focus:outline-none disabled:cursor-not-allowed"
+      />
+      <button
+        type="button"
+        aria-label={`Increase ${label}`}
+        disabled={disabled || atMax}
+        onClick={() => onChange(clamp(value + 1))}
+        className="grid h-8 w-8 place-items-center rounded-pill text-mist transition-colors duration-200 hover:bg-night-750 hover:text-ivory disabled:opacity-30 disabled:hover:bg-transparent"
+      >
+        <IconPlus size={14} />
+      </button>
     </div>
   );
 }
@@ -432,41 +441,482 @@ export function Segmented<T extends string>({
   options,
   value,
   onChange,
-  ariaLabel,
+  label,
+  className,
 }: {
-  options: { value: T; label: string; count?: number }[];
+  options: Array<{ value: T; label: string; icon?: ReactNode }>;
   value: T;
-  onChange: (v: T) => void;
-  ariaLabel: string;
+  onChange: (next: T) => void;
+  label: string;
+  className?: string;
 }) {
   return (
     <div
-      role="tablist"
-      aria-label={ariaLabel}
-      className="inline-flex items-center gap-0.5 rounded-card border border-hairline bg-paper-2 p-0.5"
+      role="radiogroup"
+      aria-label={label}
+      className={cn(
+        'inline-flex items-center gap-0.5 rounded-pill border border-line bg-night-900 p-0.5',
+        className,
+      )}
     >
-      {options.map((opt) => {
-        const active = opt.value === value;
+      {options.map((option) => {
+        const active = option.value === value;
         return (
           <button
-            key={opt.value}
-            role="tab"
-            aria-selected={active}
+            key={option.value}
             type="button"
-            onClick={() => onChange(opt.value)}
-            className={`micro h-7 rounded-[2px] px-2.5 transition-colors ${
-              active ? 'bg-ink text-paper' : 'text-ink-500 hover:text-ink'
-            }`}
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-[12.5px] transition-colors duration-200 ease-out-expo',
+              active
+                ? 'bg-night-750 text-ivory shadow-[0_1px_0_0_rgba(244,241,234,0.06)_inset]'
+                : 'text-mist-dim hover:text-mist',
+            )}
           >
-            {opt.label}
-            {typeof opt.count === 'number' ? (
-              <span className={`tnum ml-1.5 ${active ? 'text-paper/60' : 'text-ink-300'}`}>
-                {opt.count}
-              </span>
-            ) : null}
+            {option.icon}
+            {option.label}
           </button>
         );
       })}
     </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Data display                                                               */
+/* -------------------------------------------------------------------------- */
+
+export function Stat({
+  label,
+  value,
+  sub,
+  tone,
+  className,
+}: {
+  label: string;
+  value: ReactNode;
+  sub?: ReactNode;
+  tone?: Tone;
+  className?: string;
+}) {
+  const valueTone =
+    tone === 'jade'
+      ? 'text-jade'
+      : tone === 'marigold'
+        ? 'text-marigold'
+        : tone === 'ember'
+          ? 'text-ember'
+          : tone === 'lagoon'
+            ? 'text-lagoon'
+            : 'text-ivory';
+  return (
+    <div className={cn('flex flex-col gap-1', className)}>
+      <span className="micro text-mist-faint">{label}</span>
+      <span className={cn('tnum text-[22px] leading-none font-medium tracking-tight', valueTone)}>
+        {value}
+      </span>
+      {sub ? <span className="text-[11.5px] leading-snug text-mist-dim">{sub}</span> : null}
+    </div>
+  );
+}
+
+/**
+ * Fill meter. The track is the carrier's allotment; the fill is pledged seats,
+ * and the three tier marks sit at their seat thresholds so the reader can see
+ * exactly how far the cohort is from the next price break.
+ */
+export function Meter({
+  filled,
+  total,
+  marks = [],
+  tone = 'marigold',
+  className,
+  label,
+}: {
+  filled: number;
+  total: number;
+  marks?: Array<{ at: number; label: string }>;
+  tone?: 'marigold' | 'jade' | 'lagoon';
+  className?: string;
+  label?: string;
+}) {
+  const ratio = total > 0 ? Math.min(100, (filled / total) * 100) : 0;
+  const barTone =
+    tone === 'jade' ? 'bg-jade' : tone === 'lagoon' ? 'bg-lagoon' : 'bg-marigold';
+
+  return (
+    <div className={cn('w-full', className)}>
+      <div
+        className="relative h-[6px] w-full overflow-hidden rounded-pill bg-night-750"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={Math.min(filled, total)}
+        aria-label={label ?? 'Seats pledged against allotment'}
+      >
+        <div
+          className={cn('h-full rounded-pill transition-[width] duration-500 ease-out-expo', barTone)}
+          style={{ width: `${ratio}%` }}
+        />
+      </div>
+      {marks.length > 0 && (
+        <div className="relative mt-0 h-2 w-full" aria-hidden="true">
+          {marks.map((mark) => {
+            const pos = total > 0 ? Math.min(100, (mark.at / total) * 100) : 0;
+            const passed = filled >= mark.at;
+            return (
+              <span
+                key={mark.label}
+                title={`${mark.label} at ${mark.at} seats`}
+                className={cn(
+                  'absolute top-0 h-2 w-px',
+                  passed ? 'bg-marigold/70' : 'bg-line-bright',
+                )}
+                style={{ left: `${pos}%` }}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function Divider({ className, label }: { className?: string; label?: string }) {
+  if (!label) return <div className={cn('h-px w-full bg-line', className)} />;
+  return (
+    <div className={cn('flex items-center gap-3', className)}>
+      <span className="h-px flex-1 bg-line" />
+      <span className="micro text-mist-faint">{label}</span>
+      <span className="h-px flex-1 bg-line" />
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Feedback                                                                   */
+/* -------------------------------------------------------------------------- */
+
+export function Skeleton({ className }: { className?: string }) {
+  return (
+    <div className={cn('relative overflow-hidden rounded-card bg-night-800', className)} aria-hidden="true">
+      <span
+        className="animate-sweep absolute inset-0"
+        style={{
+          backgroundImage:
+            'linear-gradient(90deg, transparent 0%, rgba(43,53,72,0.75) 50%, transparent 100%)',
+        }}
+      />
+    </div>
+  );
+}
+
+export function EmptyState({
+  title,
+  body,
+  action,
+  icon,
+}: {
+  title: string;
+  body: string;
+  action?: ReactNode;
+  icon?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-card border border-dashed border-line-bright bg-night-900/40 px-6 py-12 text-center">
+      {icon ? <span className="text-mist-faint">{icon}</span> : null}
+      <div className="flex flex-col gap-1.5">
+        <h3 className="display text-[22px] text-ivory">{title}</h3>
+        <p className="mx-auto max-w-sm text-[13px] leading-relaxed text-mist-dim">{body}</p>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+export function ErrorState({
+  title = 'The ledger is unreachable',
+  body,
+  onRetry,
+  retrying,
+}: {
+  title?: string;
+  body: string;
+  onRetry?: () => void;
+  retrying?: boolean;
+}) {
+  return (
+    <div
+      role="alert"
+      className="flex flex-col gap-3 rounded-card border border-[#3d211c] bg-ember-veil/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div className="flex items-start gap-3">
+        <IconAlert size={16} className="mt-0.5 shrink-0 text-ember" />
+        <div className="flex flex-col gap-1">
+          <p className="text-[13.5px] font-medium text-ember">{title}</p>
+          <p className="max-w-xl text-[12.5px] leading-relaxed text-mist">{body}</p>
+        </div>
+      </div>
+      {onRetry ? (
+        <Button size="sm" variant="secondary" onClick={onRetry} loading={retrying} icon={<IconRefresh size={13} />}>
+          Retry
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+export type ToastTone = 'success' | 'error' | 'info';
+export interface ToastItem {
+  id: number;
+  tone: ToastTone;
+  message: string;
+}
+
+export function ToastStack({
+  toasts,
+  onDismiss,
+}: {
+  toasts: ToastItem[];
+  onDismiss: (id: number) => void;
+}) {
+  return (
+    <div
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-70 flex flex-col items-center gap-2 px-4 pb-5 sm:items-end sm:px-6"
+      role="region"
+      aria-label="Notifications"
+    >
+      {toasts.map((toast) => {
+        const tone =
+          toast.tone === 'success'
+            ? 'border-[#1b3627] bg-jade-veil text-jade'
+            : toast.tone === 'error'
+              ? 'border-[#3d211c] bg-ember-veil text-ember'
+              : 'border-line-bright bg-night-800 text-mist';
+        return (
+          <div
+            key={toast.id}
+            className={cn(
+              'animate-sheet pointer-events-auto flex max-w-md items-start gap-2.5 rounded-card border px-3.5 py-2.5 shadow-lift backdrop-blur-md',
+              tone,
+            )}
+            role="status"
+            aria-live="polite"
+          >
+            <span className="mt-px shrink-0">
+              {toast.tone === 'success' ? <IconCheck size={14} /> : toast.tone === 'error' ? <IconAlert size={14} /> : <IconRefresh size={14} />}
+            </span>
+            <p className="flex-1 text-[12.5px] leading-snug">{toast.message}</p>
+            <button
+              type="button"
+              onClick={() => onDismiss(toast.id)}
+              aria-label="Dismiss notification"
+              className="shrink-0 rounded-pill p-0.5 text-current opacity-55 transition-opacity duration-200 hover:opacity-100"
+            >
+              <IconClose size={13} />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** useToasts: appends a toast and auto-dismisses it. Ids are monotonic. */
+export function useToasts(timeout = 4600) {
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const seq = useRef(0);
+
+  const dismiss = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const push = useCallback(
+    (message: string, tone: ToastTone = 'info') => {
+      seq.current += 1;
+      const id = seq.current;
+      setToasts((prev) => [...prev.slice(-3), { id, tone, message }]);
+      window.setTimeout(() => dismiss(id), timeout);
+    },
+    [dismiss, timeout],
+  );
+
+  return { toasts, push, dismiss };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Clock leaves                                                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Live countdown. This is the only component that re-renders every second, so a
+ * grid of cards can each carry one without the grid re-rendering with them.
+ */
+export function Countdown({
+  iso,
+  className,
+  closedLabel = 'closed',
+  suffix,
+}: {
+  iso: string;
+  className?: string;
+  closedLabel?: string;
+  suffix?: string;
+}) {
+  const now = useNow();
+  const text = countdown(iso, now);
+  return (
+    <time className={cn('tnum', className)} dateTime={iso}>
+      {text === 'closed' ? closedLabel : text}
+      {suffix}
+    </time>
+  );
+}
+
+/** Ticking IST wall clock, for "synced at" stamps. */
+export function ClockStamp({ className }: { className?: string }) {
+  const now = useNow();
+  return <span className={cn('tnum', className)}>{formatClockMs(now)}</span>;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Sheet (accessible modal)                                                   */
+/* -------------------------------------------------------------------------- */
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+export function Sheet({
+  open,
+  onClose,
+  title,
+  description,
+  children,
+  footer,
+  width = 'max-w-lg',
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  description?: string;
+  children: ReactNode;
+  footer?: ReactNode;
+  width?: string;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const restoreRef = useRef<HTMLElement | null>(null);
+  const titleId = useId();
+  const descId = useId();
+
+  useIsoLayoutEffect(() => {
+    if (!open) return;
+    restoreRef.current = document.activeElement as HTMLElement | null;
+    const panel = panelRef.current;
+    const first = panel?.querySelector<HTMLElement>(FOCUSABLE);
+    (first ?? panel)?.focus();
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      restoreRef.current?.focus?.();
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const nodes = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+        (n) => n.offsetParent !== null || n === document.activeElement,
+      );
+      if (nodes.length === 0) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (!first || !last) return;
+      const active = document.activeElement as HTMLElement | null;
+      if (event.shiftKey && (active === first || !panel.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
+  }, [open, onClose]);
+
+  const labelId = useMemo(() => titleId.replace(/:/g, ''), [titleId]);
+  const describedId = useMemo(() => descId.replace(/:/g, ''), [descId]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-80 flex items-end justify-center sm:items-center">
+      <div
+        className="animate-fade absolute inset-0 bg-night/80 backdrop-blur-[3px]"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={labelId}
+        aria-describedby={description ? describedId : undefined}
+        tabIndex={-1}
+        className={cn(
+          'animate-sheet relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[10px] border border-line-bright bg-night-900 shadow-lift sm:rounded-card',
+          width,
+        )}
+      >
+        <header className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+          <div className="flex flex-col gap-1">
+            <h2 id={labelId} className="display text-[21px] leading-tight text-ivory">
+              {title}
+            </h2>
+            {description ? (
+              <p id={describedId} className="text-[12.5px] leading-snug text-mist-dim">
+                {description}
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close dialog"
+            className="-mr-1 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-pill text-mist-dim transition-colors duration-200 hover:bg-night-800 hover:text-ivory"
+          >
+            <IconClose size={15} />
+          </button>
+        </header>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+        {footer ? (
+          <footer className="border-t border-line bg-night/40 px-5 py-3.5">{footer}</footer>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Keyboard hint                                                              */
+/* -------------------------------------------------------------------------- */
+
+export function Kbd({ children }: { children: ReactNode }) {
+  return (
+    <kbd className="rounded-[3px] border border-line-bright bg-night-800 px-1.5 py-0.5 font-mono text-[10px] leading-none text-mist-dim">
+      {children}
+    </kbd>
   );
 }
