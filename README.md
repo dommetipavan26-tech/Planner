@@ -1,5 +1,7 @@
 # UtsavAir — festival corridor desk
 
+[![CI](https://github.com/dommetipavan26-tech/Planner/actions/workflows/ci.yml/badge.svg)](https://github.com/dommetipavan26-tech/Planner/actions/workflows/ci.yml)
+
 Pooled group allotment for the routes that surge hardest during Indian festival
 travel. A carrier contracts a block of seats for one departure; travellers pledge
 into it; the moment the cohort crosses a threshold, **every** pledged seat
@@ -182,6 +184,15 @@ npm run preview    # serve the production build
 npm run typecheck  # tsc --noEmit
 npm run verify     # typecheck + SSR render check (see below)
 ```
+
+All five of those steps run in CI on every pull request and every push to `main`
+(`.github/workflows/ci.yml`), together with two gates that are easy to let slip by
+hand: a **bundle budget** that fails the build if any JS or CSS chunk passes
+260 kB — the same limit `vite.config.ts` only warns at — and a **no-literal-colour
+rule** that fails if a hex or `rgba()` value appears anywhere in `src/**`, because
+the whole palette is supposed to live in `src/index.css`. The workflow needs no
+secrets and no network beyond npm: the render checks read the bundled snapshot, so
+CI cannot go red because the database is unreachable.
 
 `npm run verify` builds `scripts/ssr-check.tsx` for Node and renders the whole
 tree — every view, every corridor detail page, empty states, unknown codes,
