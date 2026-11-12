@@ -20,14 +20,17 @@ Protection is on, so the alias asks you to sign in).
 |---|---|
 | **Block** | A carrier contracts N seats/berths for one festival departure at a net group fare, with a hold window and a contract reference. |
 | **Pledge** | A traveller reserves 1–8 seats in the cohort. Free today: no card is charged, names swap free until T‑72h (air) or T‑6h (coach). |
-| **Tier slab** | Three contractual thresholds (typically 15 / 30 / 45 seats). Crossing one reprices the whole cohort, not just the newest pledge. |
+| **Tier slab** | Three contractual thresholds — 15 / 30 / 45 seats on air, 15 / 30 / 40 on coach. Crossing one reprices the whole cohort, not just the newest pledge. |
 | **Lock deadline** | If Tier I is never reached, every pledge is released and the allotment goes back to the carrier. Nothing to refund, because nothing moved. |
 | **Platform fee** | 4.5% of the carrier net fare on air, 4.0% on coach. Shown as its own line everywhere; never netted off the carrier's rate. |
 
-Eight corridors are live: five air blocks out of Vijayawada, Visakhapatnam,
-Rajahmundry, Tirupati and Delhi, and two coach blocks on Bengaluru→Guntur and
-Hyderabad→Amaravati, plus the Kartika Purnima winter-peak block. Festival surge
-fares on them run **2.5×–3.8×** the off-season fare.
+Eight corridors are live. **Six air blocks** — two out of Vijayawada (the
+Sankranti flagship on AI‑460 and the Kartika Purnima / winter-wedding-peak block),
+one inbound Delhi→Vijayawada, and one each from Visakhapatnam, Rajahmundry and
+Tirupati — plus **two coach blocks**, Bengaluru→Guntur and Hyderabad→Vijayawada.
+Festival surge fares across them run **2.48×–3.78×** the off-season fare
+(`surgeMultiple()` on every row; the coach blocks surge hardest because a berth on
+the night of Sankranti is the one thing nobody will discount).
 
 ---
 
@@ -52,11 +55,16 @@ page rather than a blank one.
 - **Vite 7 + React 19 + TypeScript** (`strict`, `noUncheckedIndexedAccess`,
   `verbatimModuleSyntax`, `noUnusedLocals/Parameters`).
 - **Tailwind CSS 4** with a hand-authored `@theme` design system in
-  `src/index.css`. Components carry no literal colours — every colour, radius and
-  easing curve is a token.
+  `src/index.css`. **No component carries a literal colour** — not in a class, not
+  in an inline style, not in an SVG attribute. Every hue, radius, easing curve and
+  shadow is a token; glows and shadows are `color-mix()`ed from the palette rather
+  than restated as `rgba()`, so changing `--color-marigold` recolours the button
+  glow, the focus ring and the chart arcs together. (Lightning CSS statically
+  resolves each `color-mix` at build time and ships a literal fallback alongside
+  it, so this costs nothing at runtime.)
 - **Supabase Postgres** as the ledger: tables, RLS, `SECURITY DEFINER` functions
   and Realtime. No backend of our own.
-- **No router dependency.** `src/lib/router.tsx` is ~120 lines: path matching,
+- **No router dependency.** `src/lib/router.tsx` is 129 lines: path matching,
   `<Link>` that preserves cmd/middle-click, and scroll restoration.
 
 ```
@@ -128,9 +136,9 @@ source. **Do not re-apply them to the live project.**
   (banner + *Snapshot* pill + a note on any receipt written locally).
 - **The Supabase SDK is lazy-loaded** (~59 kB gzip) and therefore off the critical
   path: first paint never waits for it.
-- **Chunking:** `react` 221 kB / 69 kB gzip · app 199 kB / 53 kB gzip ·
-  `ledger` 226 kB / 59 kB gzip (on demand) · CSS 49 kB / 10 kB gzip. Nothing
-  exceeds the 260 kB warning limit.
+- **Chunking:** `react` 221.70 kB / 68.96 gzip · app 198.15 kB / 52.61 gzip ·
+  `ledger` 226.47 kB / 59.57 gzip (on demand) · CSS 53.46 kB / 10.46 gzip.
+  Nothing exceeds the 260 kB warning limit.
 - **Two clocks.** A 1 Hz tick is right for a countdown and wrong for a grid of
   cards, so `useNow()` is consumed only by small leaf components (`<Countdown>`,
   `<ClockStamp>`) while cards and lists read a 30 s `useCoarseNow()`. A board of
@@ -143,8 +151,14 @@ source. **Do not re-apply them to the live project.**
 
 ## Accessibility
 
-- Every text token clears **4.5:1** against its surface: ivory 15.9:1, mist 8.7:1,
-  mist‑dim 6.2:1, mist‑faint 4.6:1 (the tiers are documented in `src/index.css`).
+- Every text token clears **4.5:1** on *every* surface that carries text —
+  `night`, `night-900`, `night-850` and `night-800`. Quoting the worst case
+  (against `night-800`, the lightest of the four): ivory 15.5:1, mist 7.9:1,
+  mist‑dim 5.7:1, mist‑faint 4.6:1, marigold 8.1:1, jade 7.4:1, lagoon 6.8:1,
+  clay 6.3:1, ember 4.9:1. Placeholders are included, because a placeholder is
+  text a traveller has to read. The full audit is a comment next to the tokens in
+  `src/index.css`; `night-750` and `night-700` are hover states and non-text
+  fills (seat dots, meter tracks), which is why they are not in it.
 - Skip link, landmark regions, `aria-current` on nav, `aria-pressed` on toggles,
   `role="progressbar"` with real values on meters, `role="img"` + label on the
   routing diagram and the allotment map, table `caption`s and row/column headers

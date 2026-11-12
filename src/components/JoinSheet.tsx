@@ -246,7 +246,7 @@ export function JoinSheet({
               <Link
                 to="/trips"
                 onClick={onClose}
-                className="inline-flex h-8 items-center justify-center rounded-pill bg-marigold px-3 text-[12.5px] font-medium text-night-900 transition-colors duration-200 hover:bg-[#f0b25a]"
+                className="inline-flex h-8 items-center justify-center rounded-pill bg-marigold px-3 text-[12.5px] font-medium text-night-900 transition-colors duration-200 hover:bg-marigold-bright"
               >
                 View my trips
               </Link>
@@ -461,10 +461,7 @@ function Receipt({
 
   return (
     <div className="flex flex-col gap-4">
-      <div
-        className="animate-rise overflow-hidden rounded-card border border-line-bright bg-night-850"
-        style={{ backgroundImage: 'radial-gradient(120% 80% at 100% 0%, rgba(232,163,61,0.10), transparent 60%)' }}
-      >
+      <div className="sheet-glow animate-rise overflow-hidden rounded-card border border-line-bright bg-night-850">
         <div className="flex items-start justify-between gap-4 px-4 py-3.5">
           <div className="flex items-center gap-3">
             <span className="grid h-10 w-10 place-items-center rounded-pill border border-marigold/40 bg-marigold-veil text-[13px] font-medium text-marigold">
@@ -554,7 +551,7 @@ function Receipt({
       </div>
 
       {activeTier(corridor) === 0 ? (
-        <p className="flex items-start gap-2 rounded-card border border-[#3b2d17] bg-marigold-veil/70 px-3.5 py-2.5 text-[11.5px] leading-snug text-marigold">
+        <p className="flex items-start gap-2 rounded-card border border-marigold-line bg-marigold-veil/70 px-3.5 py-2.5 text-[11.5px] leading-snug text-marigold">
           <IconAlert size={14} className="mt-px shrink-0" />
           <span>
             The corridor is still below Tier I. Your seat is reserved in the cohort and the price

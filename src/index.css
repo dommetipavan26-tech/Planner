@@ -27,12 +27,19 @@
   --color-line-bright: #2b3548;
 
   /* --- Text --------------------------------------------------------------- */
-  /* Every text token below clears 4.5:1 against night-900 (#0a0e17):
-     ivory 15.9:1 · mist 8.7:1 · mist-dim 6.2:1 · mist-faint 4.6:1 */
+  /* Ratios below are the worst case for each token across every surface that
+     carries text: night #06080e, night-900 #0a0e17, night-850 #0e131e and
+     night-800 #131a26 — so the number quoted is against night-800, the
+     lightest of the four. All of them clear WCAG AA 4.5:1, placeholders
+     included, because a placeholder is text a traveller has to read.
+       ivory 15.5:1 · mist 7.9:1 · mist-dim 5.7:1 · mist-faint 4.6:1
+       marigold 8.1:1 · jade 7.4:1 · lagoon 6.8:1 · clay 6.3:1 · ember 4.9:1
+     night-750 and night-700 appear only as hover states and non-text fills
+     (seat dots, meter tracks), which is why they are not in the audit. */
   --color-ivory: #f4f1ea;
   --color-mist: #a9aebc;
   --color-mist-dim: #8b93a5;
-  --color-mist-faint: #767c8c;
+  --color-mist-faint: #7c8392;
 
   /* --- Signal ------------------------------------------------------------- */
   --color-marigold: #e8a33d;
@@ -46,6 +53,30 @@
   --color-lagoon-veil: #10202c;
   --color-clay: #d08a6a;
   --color-clay-veil: #261811;
+
+  /* --- Hairlines & interaction states ------------------------------------- */
+  /* Hover and border variants of the signal palette. They live here rather
+     than in the components, so a hue change is one edit and no component ever
+     carries a literal colour. */
+  --color-line-brightest: #3a465c;
+  --color-marigold-bright: #f0b25a;
+  --color-marigold-line: #3b2d17;
+  --color-marigold-veil-bright: #33260f;
+  --color-jade-line: #1b3627;
+  --color-ember-line: #3d211c;
+  --color-ember-deep: #341915;
+  --color-lagoon-line: #1a2f3f;
+  --color-clay-line: #3a2619;
+  --color-clay-veil-bright: #33210f;
+
+  /* --- Shadows ------------------------------------------------------------ */
+  /* Colour-mixed from the palette rather than restated as rgba(), so the glow
+     on a marigold button tracks --color-marigold automatically. */
+  --shadow-marigold: 0 10px 30px -16px color-mix(in srgb, var(--color-marigold) 85%, transparent);
+  --shadow-marigold-lift: 0 12px 34px -18px
+    color-mix(in srgb, var(--color-marigold) 90%, transparent);
+  --shadow-ring-marigold: 0 0 0 3px color-mix(in srgb, var(--color-marigold) 12%, transparent);
+  --shadow-tab-inset: 0 1px 0 0 color-mix(in srgb, var(--color-ivory) 6%, transparent) inset;
 
   --radius-card: 4px;
   --radius-pill: 999px;
@@ -73,7 +104,7 @@
 
   ::selection {
     background-color: var(--color-marigold);
-    color: #0a0e17;
+    color: var(--color-night-900);
   }
 
   :focus-visible {
@@ -226,26 +257,75 @@
     background:
       radial-gradient(
         58rem 30rem at 78% -8%,
-        rgba(232, 163, 61, 0.13),
+        color-mix(in srgb, var(--color-marigold) 13%, transparent),
         transparent 62%
       ),
       radial-gradient(
         40rem 24rem at 4% 12%,
-        rgba(99, 169, 214, 0.07),
+        color-mix(in srgb, var(--color-lagoon) 7%, transparent),
         transparent 60%
       );
   }
 
+  /* Survey grid behind the hero. Tailwind cannot express a layered grid plus a
+     radial mask without restating palette values in the component, so the
+     surface is defined here. */
+  .grid-veil {
+    background-image:
+      linear-gradient(
+        to right,
+        color-mix(in srgb, var(--color-line) 50%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--color-line) 50%, transparent) 1px,
+        transparent 1px
+      );
+    background-size: 72px 72px;
+    mask-image: radial-gradient(80% 60% at 50% 0%, black 30%, transparent 100%);
+    -webkit-mask-image: radial-gradient(80% 60% at 50% 0%, black 30%, transparent 100%);
+  }
+
+  /* Shimmer crossing a skeleton */
+  .sheen {
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--color-line-bright) 75%, transparent) 50%,
+      transparent 100%
+    );
+  }
+
+  /* Fade lifting the routing-diagram legend off the chart */
+  .map-veil {
+    background-image: linear-gradient(
+      to top,
+      var(--color-night-900) 8%,
+      color-mix(in srgb, var(--color-night-900) 90%, transparent) 45%,
+      transparent 100%
+    );
+  }
+
+  /* Marigold wash in the corner of the receipt */
+  .sheet-glow {
+    background-image: radial-gradient(
+      120% 80% at 100% 0%,
+      color-mix(in srgb, var(--color-marigold) 10%, transparent),
+      transparent 60%
+    );
+  }
+
   .shadow-panel {
     box-shadow:
-      0 1px 0 0 rgba(244, 241, 234, 0.03) inset,
-      0 24px 60px -40px rgba(0, 0, 0, 0.9);
+      0 1px 0 0 color-mix(in srgb, var(--color-ivory) 3%, transparent) inset,
+      0 24px 60px -40px color-mix(in srgb, black 90%, transparent);
   }
 
   .shadow-lift {
     box-shadow:
-      0 1px 0 0 rgba(244, 241, 234, 0.05) inset,
-      0 30px 70px -46px rgba(0, 0, 0, 0.95);
+      0 1px 0 0 color-mix(in srgb, var(--color-ivory) 5%, transparent) inset,
+      0 30px 70px -46px color-mix(in srgb, black 95%, transparent);
   }
 }
 

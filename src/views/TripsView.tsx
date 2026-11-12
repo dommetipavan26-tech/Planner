@@ -334,7 +334,7 @@ export function TripsView({
               action={
                 <Link
                   to="/"
-                  className="inline-flex h-9 items-center gap-2 rounded-pill bg-marigold px-4 text-[12.5px] font-medium text-night-900 transition-colors duration-200 hover:bg-[#f0b25a]"
+                  className="inline-flex h-9 items-center gap-2 rounded-pill bg-marigold px-4 text-[12.5px] font-medium text-night-900 transition-colors duration-200 hover:bg-marigold-bright"
                 >
                   Browse live corridors <IconArrow size={13} />
                 </Link>
@@ -414,7 +414,7 @@ export function TripsView({
                         <button
                           type="button"
                           onClick={() => onWatch(corridor)}
-                          className="grid h-8 w-8 place-items-center rounded-pill border border-marigold/40 bg-marigold-veil text-marigold transition-colors duration-200 hover:bg-[#33260f]"
+                          className="grid h-8 w-8 place-items-center rounded-pill border border-marigold/40 bg-marigold-veil text-marigold transition-colors duration-200 hover:bg-marigold-veil-bright"
                           aria-label={`Stop watching ${corridor.code}`}
                           title="Stop watching"
                         >

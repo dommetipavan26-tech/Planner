@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { cn } from './ui';
 import { Link, corridorPath } from '../lib/router';
 import { fillPct } from '../lib/format';
 import type { Corridor } from '../lib/types';
@@ -14,6 +15,12 @@ const VIEW_H = 360;
 const PAD_X = 46;
 const PAD_TOP = 30;
 const PAD_BOTTOM = 34;
+
+/* SVG presentation attributes do not resolve var(), so chart ink is set as an
+   inline style against the palette instead of restating hex values here. */
+const AIR_STOP = { stopColor: 'var(--color-marigold)' } as const;
+const ROAD_STOP = { stopColor: 'var(--color-lagoon)' } as const;
+const HALO_STOP = { stopColor: 'var(--color-ivory)' } as const;
 
 const LON_MIN = 74;
 const LON_MAX = 86;
@@ -115,20 +122,20 @@ export function NetworkMap({
         >
           <defs>
             <linearGradient id="utsav-arc-air" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#e8a33d" stopOpacity="0.22" />
-              <stop offset="100%" stopColor="#e8a33d" stopOpacity="0.95" />
+              <stop offset="0%" stopOpacity="0.22" style={AIR_STOP} />
+              <stop offset="100%" stopOpacity="0.95" style={AIR_STOP} />
             </linearGradient>
             <linearGradient id="utsav-arc-road" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#63a9d6" stopOpacity="0.22" />
-              <stop offset="100%" stopColor="#63a9d6" stopOpacity="0.95" />
+              <stop offset="0%" stopOpacity="0.22" style={ROAD_STOP} />
+              <stop offset="100%" stopOpacity="0.95" style={ROAD_STOP} />
             </linearGradient>
             <radialGradient id="utsav-node-halo" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#f4f1ea" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="#f4f1ea" stopOpacity="0" />
+              <stop offset="0%" stopOpacity="0.2" style={HALO_STOP} />
+              <stop offset="100%" stopOpacity="0" style={HALO_STOP} />
             </radialGradient>
           </defs>
 
-          <g stroke="#1b2331" strokeWidth="0.6" aria-hidden="true">
+          <g className="stroke-line" strokeWidth="0.6" aria-hidden="true">
             {meridians.map((lon) => {
               const { x } = project(LAT_MIN, lon);
               return (
@@ -143,7 +150,7 @@ export function NetworkMap({
             })}
           </g>
 
-          <g fill="#4e5464" fontSize="7" aria-hidden="true">
+          <g className="fill-mist-faint" fontSize="7" aria-hidden="true">
             {meridians.map((lon) => {
               const { x } = project(LAT_MIN, lon);
               return (
@@ -194,11 +201,13 @@ export function NetworkMap({
                   {corridor.pledged_seats >= corridor.tier1_min ? (
                     <path
                       d={path}
-                      stroke={corridor.mode === 'bus' ? '#63a9d6' : '#e8a33d'}
+                      className={cn(
+                        'animate-dash',
+                        corridor.mode === 'bus' ? 'stroke-lagoon' : 'stroke-marigold',
+                      )}
                       strokeWidth={Math.max(1.1, weight * 0.45)}
                       strokeDasharray="3 9"
                       opacity="0.7"
-                      className="animate-dash"
                     />
                   ) : null}
                 </g>
@@ -224,10 +233,11 @@ export function NetworkMap({
                 <circle r="7.5" fill="transparent" />
                 <circle
                   r={hub ? 4 : 3}
-                  fill={active ? '#f4f1ea' : hub ? '#e8a33d' : '#a9aebc'}
-                  stroke="#06080e"
                   strokeWidth="1.2"
-                  style={{ transition: 'fill .2s ease' }}
+                  className={cn(
+                    'stroke-night transition-[fill] duration-200',
+                    active ? 'fill-ivory' : hub ? 'fill-marigold' : 'fill-mist',
+                  )}
                 />
                 <text
                   x="0"
@@ -235,8 +245,11 @@ export function NetworkMap({
                   textAnchor="middle"
                   fontSize="8.5"
                   letterSpacing="0.14em"
-                  fill={active ? '#f4f1ea' : '#a9aebc'}
-                  style={{ fontFamily: 'var(--font-mono)', transition: 'fill .2s ease' }}
+                  className={cn(
+                    'transition-[fill] duration-200',
+                    active ? 'fill-ivory' : 'fill-mist',
+                  )}
+                  style={{ fontFamily: 'var(--font-mono)' }}
                 >
                   {node.code}
                 </text>
@@ -246,16 +259,12 @@ export function NetworkMap({
         </svg>
 
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-3 px-4 pb-3 pt-12"
-          style={{
-            backgroundImage:
-              'linear-gradient(to top, #0a0e17 8%, rgba(10,14,23,0.9) 45%, rgba(10,14,23,0) 100%)',
-          }}
+          className="map-veil pointer-events-none absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-3 px-4 pb-3 pt-12"
         >
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-            <LegendLine color="#e8a33d" label="Air corridor" />
-            <LegendLine color="#63a9d6" label="Coach corridor" />
-            <LegendLine color="#f4f1ea" label="Dashed = tier locked" dashed />
+            <LegendLine stroke="stroke-marigold" label="Air corridor" />
+            <LegendLine stroke="stroke-lagoon" label="Coach corridor" />
+            <LegendLine stroke="stroke-ivory" label="Dashed = tier locked" dashed />
           </div>
           <p className="micro text-mist-faint">
             {nodes.length} nodes · {arcs.length} routes
@@ -298,7 +307,7 @@ export function NetworkMap({
   );
 }
 
-function LegendLine({ color, label, dashed }: { color: string; label: string; dashed?: boolean }) {
+function LegendLine({ stroke, label, dashed }: { stroke: string; label: string; dashed?: boolean }) {
   return (
     <span className="flex items-center gap-1.5">
       <svg width="22" height="6" viewBox="0 0 22 6" aria-hidden="true">
@@ -307,7 +316,7 @@ function LegendLine({ color, label, dashed }: { color: string; label: string; da
           y1="3"
           x2="21"
           y2="3"
-          stroke={color}
+          className={stroke}
           strokeWidth={dashed ? 1.4 : 2}
           strokeLinecap="round"
           strokeDasharray={dashed ? '3 4' : undefined}
