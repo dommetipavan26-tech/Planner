@@ -282,7 +282,7 @@ export function QuoteBreakdown({
           {rupees(Math.round(total))}
         </span>
       </div>
-      <div className="flex items-center justify-between gap-3 rounded-card border border-[#1b3627] bg-jade-veil px-3 py-2">
+      <div className="flex items-center justify-between gap-3 rounded-card border border-jade-line bg-jade-veil px-3 py-2">
         <span className="inline-flex items-center gap-1.5 text-[12px] text-jade">
           <IconSpark size={13} />
           Saved against surge

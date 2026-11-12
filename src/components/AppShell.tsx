@@ -18,16 +18,16 @@ export function Wordmark({ compact = false }: { compact?: boolean }) {
   return (
     <span className="flex items-center gap-2.5">
       <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
-        <circle cx="12" cy="12" r="11" stroke="#2b3548" strokeWidth="1" fill="none" />
+        <circle cx="12" cy="12" r="11" className="stroke-line-bright" strokeWidth="1" fill="none" />
         <path
           d="M4.6 15.4c3.1-5.6 8-8.6 14.2-9.1"
-          stroke="#e8a33d"
+          className="stroke-marigold"
           strokeWidth="1.4"
           strokeLinecap="round"
           fill="none"
         />
-        <circle cx="18.6" cy="6.4" r="1.9" fill="#e8a33d" />
-        <circle cx="5.4" cy="15" r="1.3" fill="#a9aebc" />
+        <circle cx="18.6" cy="6.4" r="1.9" className="fill-marigold" />
+        <circle cx="5.4" cy="15" r="1.3" className="fill-mist" />
       </svg>
       <span className="flex flex-col leading-none">
         <span className="micro-md text-[12px] tracking-[0.22em] text-ivory">UTSAVAIR</span>

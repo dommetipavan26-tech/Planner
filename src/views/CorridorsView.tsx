@@ -249,17 +249,7 @@ function Hero({
   return (
     <section className="relative overflow-hidden border-b border-line">
       <div className="glow-marigold pointer-events-none absolute inset-0" aria-hidden="true" />
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.35]"
-        aria-hidden="true"
-        style={{
-          backgroundImage:
-            'linear-gradient(to right, rgba(27,35,49,0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(27,35,49,0.5) 1px, transparent 1px)',
-          backgroundSize: '72px 72px',
-          maskImage: 'radial-gradient(80% 60% at 50% 0%, #000 30%, transparent 100%)',
-          WebkitMaskImage: 'radial-gradient(80% 60% at 50% 0%, #000 30%, transparent 100%)',
-        }}
-      />
+      <div className="grid-veil pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden="true" />
 
       <div className="relative mx-auto grid w-full max-w-[1400px] gap-10 px-4 pt-12 pb-14 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:pt-16 lg:pb-20">
         <div className="flex flex-col gap-6">
@@ -288,14 +278,14 @@ function Hero({
           <div className="flex flex-wrap items-center gap-3">
             <a
               href="#board"
-              className="inline-flex h-11 items-center gap-2 rounded-pill bg-marigold px-5 text-[13.5px] font-medium text-night-900 shadow-[0_12px_34px_-18px_rgba(232,163,61,0.9)] transition-colors duration-200 hover:bg-[#f0b25a]"
+              className="inline-flex h-11 items-center gap-2 rounded-pill bg-marigold px-5 text-[13.5px] font-medium text-night-900 shadow-marigold-lift transition-colors duration-200 hover:bg-marigold-bright"
             >
               See the live board
               <IconArrow size={14} />
             </a>
             <a
               href="#how"
-              className="inline-flex h-11 items-center gap-2 rounded-pill border border-line-bright px-5 text-[13.5px] text-mist transition-colors duration-200 hover:border-[#3a465c] hover:text-ivory"
+              className="inline-flex h-11 items-center gap-2 rounded-pill border border-line-bright px-5 text-[13.5px] text-mist transition-colors duration-200 hover:border-line-brightest hover:text-ivory"
             >
               How a pledge works
             </a>

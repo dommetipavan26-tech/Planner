@@ -31,7 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return (
       <div className="grid min-h-dvh place-items-center bg-night px-4">
-        <div className="flex w-full max-w-md flex-col gap-4 rounded-card border border-[#3d211c] bg-night-900 p-6 shadow-lift">
+        <div className="flex w-full max-w-md flex-col gap-4 rounded-card border border-ember-line bg-night-900 p-6 shadow-lift">
           <span className="micro text-ember">Unexpected error</span>
           <h1 className="display text-[26px] leading-tight text-ivory">
             The desk hit something it could not render
@@ -54,7 +54,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="h-10 flex-1 rounded-pill bg-marigold px-4 text-[13px] font-medium text-night-900 transition-colors duration-200 hover:bg-[#f0b25a]"
+              className="h-10 flex-1 rounded-pill bg-marigold px-4 text-[13px] font-medium text-night-900 transition-colors duration-200 hover:bg-marigold-bright"
             >
               Reload the desk
             </button>

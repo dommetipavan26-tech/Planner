@@ -760,7 +760,7 @@ function UnknownCorridor({ code, corridors }: { code: string; corridors: Corrido
           <div className="mt-2 flex flex-col items-center gap-3">
             <Link
               to="/"
-              className="inline-flex h-9 items-center gap-2 rounded-pill bg-marigold px-4 text-[12.5px] font-medium text-night-900 transition-colors duration-200 hover:bg-[#f0b25a]"
+              className="inline-flex h-9 items-center gap-2 rounded-pill bg-marigold px-4 text-[12.5px] font-medium text-night-900 transition-colors duration-200 hover:bg-marigold-bright"
             >
               Back to the board
             </Link>

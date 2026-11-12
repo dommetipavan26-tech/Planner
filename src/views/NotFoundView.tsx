@@ -25,7 +25,7 @@ export function NotFoundView({ corridors }: { corridors: Corridor[] }) {
         action={
           <Link
             to="/"
-            className="inline-flex h-10 items-center gap-2 rounded-pill bg-marigold px-5 text-[13px] font-medium text-night-900 transition-colors duration-200 hover:bg-[#f0b25a]"
+            className="inline-flex h-10 items-center gap-2 rounded-pill bg-marigold px-5 text-[13px] font-medium text-night-900 transition-colors duration-200 hover:bg-marigold-bright"
           >
             Back to the board <IconArrow size={13} />
           </Link>

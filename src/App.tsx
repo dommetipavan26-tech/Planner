@@ -78,7 +78,7 @@ export default function App() {
         {showSnapshotBanner ? (
           <div
             role="status"
-            className="border-b border-[#3a2619] bg-clay-veil/95 backdrop-blur-md"
+            className="border-b border-clay-line bg-clay-veil/95 backdrop-blur-md"
           >
             <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 sm:px-6">
               <IconAlert size={14} className="shrink-0 text-clay" />
@@ -95,7 +95,7 @@ export default function App() {
                   type="button"
                   onClick={() => setBannerDismissed(true)}
                   aria-label="Dismiss snapshot notice"
-                  className="grid h-7 w-7 place-items-center rounded-pill text-clay transition-colors duration-200 hover:bg-[#33210f]"
+                  className="grid h-7 w-7 place-items-center rounded-pill text-clay transition-colors duration-200 hover:bg-clay-veil-bright"
                 >
                   <IconClose size={13} />
                 </button>

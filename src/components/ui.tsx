@@ -93,12 +93,12 @@ const BUTTON_BASE =
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary:
-    'bg-marigold text-night-900 hover:bg-[#f0b25a] shadow-[0_10px_30px_-16px_rgba(232,163,61,0.85)]',
+    'bg-marigold text-night-900 hover:bg-marigold-bright shadow-marigold',
   secondary:
-    'bg-night-800 text-ivory border border-line-bright hover:bg-night-750 hover:border-[#3a465c]',
+    'bg-night-800 text-ivory border border-line-bright hover:bg-night-750 hover:border-line-brightest',
   ghost: 'text-mist hover:text-ivory hover:bg-night-850 border border-transparent',
   quiet: 'text-mist-dim hover:text-mist border border-line hover:border-line-bright',
-  danger: 'bg-ember-veil text-ember border border-[#3d211c] hover:bg-[#341915]',
+  danger: 'bg-ember-veil text-ember border border-ember-line hover:bg-ember-deep',
 };
 
 const BUTTON_SIZES: Record<ButtonSize, string> = {
@@ -205,11 +205,11 @@ export function Eyebrow({ children, className }: { children: ReactNode; classNam
 export type Tone = 'marigold' | 'jade' | 'ember' | 'lagoon' | 'clay' | 'neutral';
 
 const TONE_CLASSES: Record<Tone, string> = {
-  marigold: 'bg-marigold-veil text-marigold border-[#3b2d17]',
-  jade: 'bg-jade-veil text-jade border-[#1b3627]',
-  ember: 'bg-ember-veil text-ember border-[#3d211c]',
-  lagoon: 'bg-lagoon-veil text-lagoon border-[#1a2f3f]',
-  clay: 'bg-clay-veil text-clay border-[#3a2619]',
+  marigold: 'bg-marigold-veil text-marigold border-marigold-line',
+  jade: 'bg-jade-veil text-jade border-jade-line',
+  ember: 'bg-ember-veil text-ember border-ember-line',
+  lagoon: 'bg-lagoon-veil text-lagoon border-lagoon-line',
+  clay: 'bg-clay-veil text-clay border-clay-line',
   neutral: 'bg-night-800 text-mist border-line-bright',
 };
 
@@ -255,7 +255,7 @@ export function Chip({
 const FIELD_SHELL =
   'w-full rounded-card border bg-night-850 text-ivory placeholder:text-mist-faint ' +
   'transition-[border-color,background-color,box-shadow] duration-200 ease-out-expo ' +
-  'focus:outline-none focus:border-marigold/70 focus:bg-night-800 focus:shadow-[0_0_0_3px_rgba(232,163,61,0.12)]';
+  'focus:outline-none focus:border-marigold/70 focus:bg-night-800 focus:shadow-ring-marigold';
 
 export function Field({
   label,
@@ -471,7 +471,7 @@ export function Segmented<T extends string>({
             className={cn(
               'inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-[12.5px] transition-colors duration-200 ease-out-expo',
               active
-                ? 'bg-night-750 text-ivory shadow-[0_1px_0_0_rgba(244,241,234,0.06)_inset]'
+                ? 'bg-night-750 text-ivory shadow-tab-inset'
                 : 'text-mist-dim hover:text-mist',
             )}
           >
@@ -602,13 +602,7 @@ export function Divider({ className, label }: { className?: string; label?: stri
 export function Skeleton({ className }: { className?: string }) {
   return (
     <div className={cn('relative overflow-hidden rounded-card bg-night-800', className)} aria-hidden="true">
-      <span
-        className="animate-sweep absolute inset-0"
-        style={{
-          backgroundImage:
-            'linear-gradient(90deg, transparent 0%, rgba(43,53,72,0.75) 50%, transparent 100%)',
-        }}
-      />
+      <span className="sheen animate-sweep absolute inset-0" />
     </div>
   );
 }
@@ -650,7 +644,7 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      className="flex flex-col gap-3 rounded-card border border-[#3d211c] bg-ember-veil/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+      className="flex flex-col gap-3 rounded-card border border-ember-line bg-ember-veil/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="flex items-start gap-3">
         <IconAlert size={16} className="mt-0.5 shrink-0 text-ember" />
@@ -691,9 +685,9 @@ export function ToastStack({
       {toasts.map((toast) => {
         const tone =
           toast.tone === 'success'
-            ? 'border-[#1b3627] bg-jade-veil text-jade'
+            ? 'border-jade-line bg-jade-veil text-jade'
             : toast.tone === 'error'
-              ? 'border-[#3d211c] bg-ember-veil text-ember'
+              ? 'border-ember-line bg-ember-veil text-ember'
               : 'border-line-bright bg-night-800 text-mist';
         return (
           <div
