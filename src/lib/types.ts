@@ -45,17 +45,30 @@ export interface Corridor {
   lock_deadline: string;
   contract_ref: string;
   baggage_allowance: string;
+  cabin_or_berth: string;
+  boarding_points: string[];
+  manifest_deadline: string | null;
+  refund_rule: string;
+  amenities: string[];
+  lat: number | null;
+  lon: number | null;
+  dest_lat: number | null;
+  dest_lon: number | null;
   created_at?: string;
+  updated_at?: string;
 }
 
-export interface Pledge {
+/**
+ * What the public activity feed is allowed to show. `utsav_public_pledges`
+ * projects exactly these columns — no phone number, no boarding point, no device
+ * id — so a snapshot of the feed can never carry more than the live one does.
+ */
+export interface PublicPledge {
   id: string;
   corridor_id: string;
   booking_ref: string;
   passenger_name: string;
-  passenger_phone: string;
   passenger_cohort: string;
-  boarding_point: string;
   seats: number;
   max_willing_fare: number;
   locked_unit_fare: number;
@@ -64,6 +77,14 @@ export interface Pledge {
   estimated_saving: number;
   status: PledgeStatus;
   created_at: string;
+}
+
+/** The owner's own row, read back through `utsav_my_pledges`. */
+export interface Pledge extends PublicPledge {
+  passenger_phone: string;
+  boarding_point: string;
+  device_id?: string | null;
+  fare_locked_at?: string;
 }
 
 export interface CarrierBid {
@@ -94,21 +115,29 @@ export interface CorridorRequest {
   created_at: string;
 }
 
-export type DeskSource = 'live' | 'snapshot';
+export interface Watch {
+  id: string;
+  device_id: string;
+  corridor_id: string;
+  created_at: string;
+}
 
-export type DeskStatus = 'connecting' | 'ready' | 'offline';
+export type LedgerSource = 'live' | 'snapshot';
 
-export interface TierBreakdown {
+export type LedgerStatus = 'connecting' | 'ready' | 'offline';
+
+export interface Tier {
+  id: 1 | 2 | 3;
   label: string;
   min: number;
-  fare: number;
+  net: number;
   fee: number;
   landed: number;
   reached: boolean;
   next: boolean;
 }
 
-export interface PledgeQuote {
+export interface Quote {
   unitFare: number;
   feePerSeat: number;
   landedPerSeat: number;
@@ -116,7 +145,8 @@ export interface PledgeQuote {
   savingPerSeat: number;
   totalSaving: number;
   surgeTotal: number;
-  tierReached: number;
+  tierReached: 1 | 2 | 3;
   seatsToNextTier: number;
+  nextTierLanded: number | null;
   nextTierSaving: number;
 }

@@ -2,20 +2,83 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>UtsavAir — Festival Bulk Corridor Desk</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>UtsavAir — Festival corridor desk</title>
     <meta
       name="description"
-      content="UtsavAir aggregates festival travel demand on high-surge Indian corridors and clears seats through airline group desks and chartered coach fleets, so travelers pay wholesale instead of surge."
+      content="Festival fares run 2.5x to 3.8x off-season. UtsavAir pools travellers into contracted airline and coach blocks — cross a tier threshold and every pledged seat reprices down."
     />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="UtsavAir" />
+    <meta property="og:title" content="UtsavAir — festival corridor desk" />
+    <meta
+      property="og:description"
+      content="Pooled group allotment for Sankranti, Ugadi and wedding-peak travel out of Andhra Pradesh. Live tier slabs, disclosed platform fee, nothing charged until a block confirms."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="theme-color" content="#06080E" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="format-detection" content="telephone=no" />
+
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B0E14'/%3E%3Cpath d='M7 21.5 25 9l-4.2 13.2-3.1-4.4-4.6 3.4 1.1-5.6z' fill='%23F5F2EC'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306080E'/%3E%3Cpath d='M8.5 22.5C14 21 18.5 17 23.5 9' stroke='%23E8A33D' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='8.5' cy='22.5' r='2.6' fill='%23F4F1EA'/%3E%3Ccircle cx='23.5' cy='9' r='2.6' fill='%23E8A33D'/%3E%3C/svg%3E"
     />
-    <meta name="theme-color" content="#0B0E14" />
+
+    <!-- Ledger lives in ap-south-1; warm the connection before first paint -->
+    <link rel="preconnect" href="https://txbgovhxqxvlioszevbe.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://txbgovhxqxvlioszevbe.supabase.co" />
+
+    <style>
+      /* First-paint shell so there is never a white flash before hydration */
+      html,
+      body {
+        margin: 0;
+        background: #06080e;
+        color: #f4f1ea;
+      }
+      #boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font: 500 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #767c8c;
+      }
+      #boot span {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #e8a33d;
+        animation: bootpulse 1.4s ease-in-out infinite;
+      }
+      #boot span:nth-child(2) {
+        animation-delay: 0.18s;
+      }
+      #boot span:nth-child(3) {
+        animation-delay: 0.36s;
+      }
+      @keyframes bootpulse {
+        0%,
+        100% {
+          opacity: 0.25;
+          transform: scale(0.8);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot" aria-hidden="true"><span></span><span></span><span></span></div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

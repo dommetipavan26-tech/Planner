@@ -1,19 +1,20 @@
 {
-  "name": "utsavair-corridor-desk",
+  "name": "utsavair",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
-  "description": "UtsavAir — festival bulk corridor desk: aggregated group allotment for flights and coaches on high-demand Indian festival routes.",
+  "description": "UtsavAir — festival corridor desk. Pooled group allotment for flights and coaches on India's highest-surge festival routes.",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify": "tsc --noEmit && vite build --ssr scripts/ssr-check.tsx --outDir dist-ssr --logLevel warn && node dist-ssr/ssr-check.js"
   },
   "dependencies": {
-    "@fontsource-variable/inter": "^5.2.8",
-    "@fontsource-variable/jetbrains-mono": "^5.2.5",
-    "@fontsource-variable/newsreader": "^5.2.5",
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@fontsource/instrument-serif": "^5.3.0",
     "@supabase/supabase-js": "^2.58.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
