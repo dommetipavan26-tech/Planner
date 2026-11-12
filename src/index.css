@@ -1,0 +1,195 @@
+@import 'tailwindcss';
+
+@theme {
+  /* Type */
+  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Newsreader Variable', 'Newsreader', ui-serif, Georgia, serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Ink */
+  --color-ink: #0b0e14;
+  --color-ink-900: #0b0e14;
+  --color-ink-800: #141922;
+  --color-ink-700: #1e2530;
+  --color-ink-600: #333c4b;
+  --color-ink-500: #566072;
+  --color-ink-400: #7b8494;
+  --color-ink-300: #a6adb9;
+
+  /* Paper */
+  --color-paper: #f5f2ec;
+  --color-paper-2: #faf8f4;
+  --color-paper-3: #ffffff;
+  --color-hairline: #ded8cc;
+  --color-hairline-soft: #ebe6dc;
+
+  /* Signal */
+  --color-marigold: #b8560b;
+  --color-marigold-bright: #d97414;
+  --color-marigold-soft: #f7e8d5;
+  --color-verdant: #1c6b48;
+  --color-verdant-soft: #e0eee5;
+  --color-surge: #9d2b21;
+  --color-surge-soft: #f6e3df;
+  --color-sky: #23557f;
+  --color-sky-soft: #e2ebf3;
+  --color-road: #4a4376;
+  --color-road-soft: #e7e5f1;
+
+  --radius-card: 3px;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: var(--color-marigold);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-marigold);
+    outline-offset: 2px;
+  }
+
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+@layer utilities {
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  .micro {
+    font-size: 10px;
+    line-height: 1.2;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .micro-lg {
+    font-size: 11px;
+    line-height: 1.3;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .rule-dotted {
+    background-image: linear-gradient(
+      to right,
+      var(--color-hairline) 0 3px,
+      transparent 3px 7px
+    );
+    background-size: 7px 1px;
+    background-repeat: repeat-x;
+  }
+
+  .grain {
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      rgba(11, 14, 20, 0.045) 1px,
+      transparent 0
+    );
+    background-size: 22px 22px;
+  }
+}
+
+/* Scrollbars — restrained, ledger-like */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-hairline) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-hairline);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+
+@keyframes utsav-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes utsav-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes utsav-pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.82);
+  }
+}
+
+@keyframes utsav-flash {
+  0% {
+    background-color: var(--color-marigold-soft);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.animate-rise {
+  animation: utsav-rise 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-sheet-in {
+  animation: utsav-sheet-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-pulse-dot {
+  animation: utsav-pulse-dot 2s ease-in-out infinite;
+}
+.animate-flash {
+  animation: utsav-flash 1.1s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
