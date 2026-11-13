@@ -72,12 +72,29 @@ for (const route of DOCUMENT_ROUTES) {
     );
     expect(summary, `axe violations on ${route.path}`).toEqual([]);
 
-    const unresolved = result.incomplete
-      .map((entry) => entry.id)
-      .filter((id) => id === 'color-contrast');
+    // axe cannot compute a ratio against a gradient or an image background —
+    // there is no single colour to divide against — so corridor heroes over the
+    // decorative gradient come back `incomplete`, not passed. That is a property
+    // of the rule, not a doubt about the tokens: every gradient stop is a night
+    // surface, and the token audit in src/index.css quotes the worst text-on-
+    // surface ratio on the board. What is NOT acceptable is an unresolved ratio
+    // on anything else, so the gate reads the computed background of every
+    // incomplete node and fails whichever one is not a gradient.
+    const unresolved = result.incomplete.filter((entry) => entry.id === 'color-contrast');
+    const unexplained: string[] = [];
+    for (const entry of unresolved) {
+      for (const node of entry.nodes) {
+        const selector = node.target.join(' ');
+        const background = await page
+          .locator(selector)
+          .first()
+          .evaluate((el) => window.getComputedStyle(el).backgroundImage);
+        if (!/gradient/.test(background)) unexplained.push(`${selector} → ${background.slice(0, 60)}`);
+      }
+    }
     expect(
-      unresolved,
-      'elements axe could not resolve a contrast ratio for should be rare and explained',
+      unexplained,
+      'contrast axe could not resolve should only ever be the gradient heroes',
     ).toEqual([]);
   });
 }

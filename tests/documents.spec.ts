@@ -158,7 +158,7 @@ test('client-side navigation keeps one heading and one main landmark', async ({ 
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('h1')).toHaveCount(1);
 
-  await page.getByRole('link', { name: /Carrier desk/i }).first().click();
+  await page.getByRole('link', { name: /^Carriers$/i }).first().click();
   await expect(page).toHaveURL(/\/carriers$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Carrier desk/);
   await expect(page.locator('h1')).toHaveCount(1);
