@@ -28,8 +28,17 @@ document it finds; if the marker disagrees with the URL it renders from
 scratch instead of mutating someone else's markup. A `sitemap.xml` falls out of
 the same pass.
 
-Rendering happens through `renderToPipeableStream` with `onAllReady`, because
-the views are lazy and `renderToString` cannot await them. Determinism is a
+Rendering happens through `react-dom/static`'s `prerenderToNodeStream` against
+a static-only App variant whose views are imported eagerly (`src/AppStatic.tsx`,
+imported by nothing else, so route splitting in the browser bundle is untouched):
+`renderToString` cannot await a lazy import, and a render that suspends — even
+for a microtask — makes the renderer flush the shell first and write the
+completed view in the streaming shape (pending marker, hidden completion div,
+inline `$RC` swap script). In a browser that swap runs at parse time, ahead of
+the deferred bundle, and hydration rebuilds the page rather than adopting it; a
+`settle()` pass in the prerender therefore collapses any such instructions into
+finished markup, and `npm run audit` fails a document that still carries them.
+Determinism is a
 requirement, not a nicety: anything that differs between build and browser —
 the clock, the live ledger, sessionStorage — is gated behind
 `useIsoLayoutEffect`/`useMounted` or read in an effect, and `npm run audit`

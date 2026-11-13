@@ -294,6 +294,18 @@ function assertDocument(url: string, html: string, dom: JSDOM): string[] {
   if (html.includes('id="boot"')) fail('the pre-hydration boot loader is still in the document');
   if (html.includes('<!--utsavair:app-->')) fail('the app anchor was not replaced');
 
+  // --- a document on disk must be finished markup, not streaming instructions ---
+  // A pending boundary marker, a hidden completion div or a `$RC` swap script is
+  // the right shape for a socket and a trap in a file: the browser runs the swap
+  // at parse time, before the deferred bundle hydrates, and hydration then
+  // repaints the page instead of adopting it. scripts/prerender.tsx settles any
+  // such instructions at build time; this asserts it stayed that way.
+  for (const leftover of ['$RC(', '<!--$?-->', 'hidden id="S:']) {
+    if (html.includes(leftover)) {
+      fail(`document carries streaming completion instructions (${leftover})`);
+    }
+  }
+
   // --- copy hygiene: nothing unresolved reached the reader ---
   const body = text(doc.body);
   for (const leak of ['undefined', 'NaN', '[object Object]', 'null seats', '₹NaN']) {
