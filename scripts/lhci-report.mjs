@@ -272,6 +272,16 @@ function main() {
       'log',
       `All ${results.length} route(s) hold every error-level budget on the median of their runs.`,
     );
+    // Job logs are not always retrievable, and the artifact lives on blob storage
+    // that a sandbox cannot reach — so on a green build the annotations are the
+    // only channel the numbers travel by. One notice carrying every route's
+    // median, rather than one per route, to stay well inside the cap.
+    say(
+      'notice',
+      'Lighthouse medians — ' +
+        results.map((r) => `${r.url.replace(/^https?:\/\/[^/]+/, '') || '/'}: ${r.scores}`).join(' · ') +
+        ` (${results[0].runs} run(s) each; every error-level budget holds)`,
+    );
   }
   if (asJson) console.log(JSON.stringify({ reports: files.length, urls: results.length, broken, results }, null, 2));
   process.exitCode = 0;
