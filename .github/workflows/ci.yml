@@ -166,6 +166,14 @@ jobs:
           # while uploading nothing at all.
           if [ -d .lighthouseci ]; then
             node scripts/lhci-report.mjs
+            # Copy the reports somewhere the artifact action will actually pick
+            # them up. `.lighthouseci/` is hidden *and* gitignored, and the upload
+            # step has been reporting success while archiving nothing at all —
+            # nine reports were sitting in that directory on a run whose artifact
+            # came back empty.
+            mkdir -p lighthouse-reports
+            cp .lighthouseci/lhr-*.json .lighthouseci/links.json lighthouse-reports/ 2>/dev/null || true
+            echo "kept $(ls -1 lighthouse-reports | wc -l) report file(s) for upload"
           else
             echo "::warning::lhci wrote no .lighthouseci directory, so no scores can be recorded here and the report artifact will be empty"
           fi
@@ -194,7 +202,7 @@ jobs:
           path: |
             playwright-report/
             test-results/
-            .lighthouseci/
+            lighthouse-reports/
           retention-days: 14
           # `ignore` let this step report success while uploading nothing, which
           # is how an empty artifact came to look like a normal outcome rather
