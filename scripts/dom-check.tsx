@@ -21,8 +21,9 @@
  *
  * Run after a build: npm run audit
  */
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { readFile, readdir } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { JSDOM, VirtualConsole } from 'jsdom';
 import { SNAPSHOT_CORRIDORS } from '../src/data/snapshot';
@@ -134,6 +135,57 @@ function assertCoverage(found: string[]): string[] {
 }
 
 /** The sitemap has to list the same set of URLs, or it is a lie to a crawler. */
+/**
+ * The manifest is a file in dist/, not a document, so it cannot be part of any one
+ * document's report. It is checked as a property of the build: parseable JSON,
+ * the shapes a browser install prompt requires, and every icon it names actually
+ * present and non-trivially large — a manifest pointing at a missing PNG installs
+ * as a blank tile, which looks worse than not being installable.
+ */
+function assertInstallable(): string[] {
+  const failures: string[] = [];
+  const manifestPath = join(DIST, 'manifest.webmanifest');
+  if (!existsSync(manifestPath)) {
+    return ['dist/manifest.webmanifest is missing'];
+  }
+
+  let manifest: unknown;
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  } catch (error) {
+    return [`manifest.webmanifest is not parseable JSON: ${String(error)}`];
+  }
+
+  const row = manifest as Record<string, unknown>;
+  for (const key of ['name', 'short_name', 'start_url', 'display', 'background_color', 'theme_color']) {
+    if (typeof row[key] !== 'string' || row[key] === '') failures.push(`manifest has no ${key}`);
+  }
+  if (row.display !== 'standalone' && row.display !== 'minimal-ui' && row.display !== 'fullscreen') {
+    failures.push(`manifest display is "${String(row.display)}"`);
+  }
+
+  const icons = Array.isArray(row.icons) ? (row.icons as Array<Record<string, unknown>>) : [];
+  if (icons.length === 0) failures.push('manifest lists no icons');
+  const sizes = new Set(icons.map((icon) => String(icon.sizes)));
+  for (const wanted of ['192x192', '512x512']) {
+    if (!sizes.has(wanted)) failures.push(`manifest has no ${wanted} icon`);
+  }
+  if (!icons.some((icon) => String(icon.purpose).includes('maskable'))) {
+    failures.push('manifest has no maskable icon');
+  }
+  for (const icon of icons) {
+    const src = String(icon.src ?? '').replace(/^\//, '');
+    const file = join(DIST, src);
+    if (!existsSync(file)) {
+      failures.push(`manifest icon ${src} is not in dist/`);
+    } else if (statSync(file).size < 512) {
+      failures.push(`manifest icon ${src} is ${statSync(file).size} bytes — probably empty`);
+    }
+  }
+
+  return failures;
+}
+
 async function assertSitemap(found: string[]): Promise<string[]> {
   const failures: string[] = [];
   let xml: string;
@@ -218,6 +270,14 @@ function assertDocument(url: string, html: string, dom: JSDOM): string[] {
     if (!doc.querySelector(`meta[property="${property}"]`)) fail(`missing ${property}`);
   }
   if (!doc.querySelector('meta[name="theme-color"]')) fail('missing theme-color');
+
+  // --- installability: the manifest and the touch icon every document carries ---
+  const manifestHref =
+    doc.querySelector<HTMLLinkElement>('link[rel="manifest"]')?.getAttribute('href') ?? '';
+  if (manifestHref !== '/manifest.webmanifest') {
+    fail('manifest link is ' + (manifestHref === '' ? '(missing)' : manifestHref) + ', expected /manifest.webmanifest');
+  }
+  if (!doc.querySelector('link[rel="apple-touch-icon"]')) fail('missing apple-touch-icon');
 
   // --- the hydration guard: this document must claim to be the route it is ---
   const marker = html.match(/__UTSAVAIR_ROUTE__=("[^"]*")/);
@@ -332,10 +392,14 @@ async function main(): Promise<void> {
 
   // Coverage and the sitemap are properties of the set of documents, not of any
   // one of them, so they are reported as their own entry.
-  const coverage = [...assertCoverage(docs.map((d) => d.url)), ...(await assertSitemap(docs.map((d) => d.url)))];
+  const coverage = [
+    ...assertCoverage(docs.map((d) => d.url)),
+    ...(await assertSitemap(docs.map((d) => d.url))),
+    ...assertInstallable(),
+  ];
   if (coverage.length > 0) {
     reports.push({
-      path: 'coverage',
+      path: 'coverage + installability',
       failures: coverage,
       violations: [],
       incomplete: [],

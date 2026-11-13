@@ -3,7 +3,7 @@ import { Link, corridorPath } from '../lib/router';
 import { useNow } from '../hooks/useClock';
 import type { Ledger, BidInput, Result } from '../hooks/useLedger';
 import { compactRupees, number, pct, relativeTime, rupees } from '../lib/format';
-import type { CarrierBid } from '../lib/types';
+import type { CarrierBid, DeskSession } from '../lib/types';
 import {
   Button,
   Chip,
@@ -33,22 +33,28 @@ import {
 
 type StatusFilter = 'all' | CarrierBid['bid_status'];
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
 export function CarriersView({
   ledger,
   onToast,
+  sheetOpen: sheetOpenProp,
 }: {
   ledger: Ledger;
   onToast: (message: string, tone?: 'success' | 'error' | 'info') => void;
+  /**
+   * Opens the bid sheet on first render. Nothing in the app passes it: it exists
+   * so the render check can assert on the gated sheet as a document, in both the
+   * signed-out and signed-in state, instead of only on the page behind it.
+   */
+  sheetOpen?: boolean;
 }) {
   const now = useNow();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [query, setQuery] = useState('');
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(sheetOpenProp ?? false);
   const [submitting, setSubmitting] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
 
-  const { bids, corridors } = ledger;
+  const { bids, corridors, desk } = ledger;
 
   const airFees = corridors.filter((c) => c.mode === 'flight').map((c) => c.platform_fee_pct);
   const coachFees = corridors.filter((c) => c.mode === 'bus').map((c) => c.platform_fee_pct);
@@ -86,7 +92,7 @@ export function CarriersView({
         q
           ? b.carrier_name.toLowerCase().includes(q) ||
             b.corridor_code.toLowerCase().includes(q) ||
-            b.desk_contact.toLowerCase().includes(q)
+            (b.desk_ref ?? '').toLowerCase().includes(q)
           : true,
       )
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -98,14 +104,17 @@ export function CarriersView({
     setSubmitting(false);
     if (result.ok && result.data) {
       setSheetOpen(false);
-      onToast(
-        result.simulated
-          ? 'Bid recorded locally — Postgres is unreachable from this browser'
-          : `Bid logged for ${result.data.corridor_code}`,
-        result.simulated ? 'info' : 'success',
-      );
+      if (result.simulated) {
+        // Not the same as a logged bid: this row never reached Postgres and no
+        // other desk will ever see it.
+        onToast('Bid kept on this device only — it did not reach Postgres', 'info');
+      } else if (result.duplicate) {
+        onToast(`That bid was already logged for ${result.data.corridor_code}`, 'info');
+      } else {
+        onToast(`Bid logged for ${result.data.corridor_code}`, 'success');
+      }
     } else {
-      onToast(result.error ?? 'The ledger rejected that bid.', 'error');
+      onToast(result.error ?? 'The ledger rejected that bid.', result.throttled ? 'info' : 'error');
     }
     return result;
   };
@@ -123,9 +132,26 @@ export function CarriersView({
             traced to the bid that produced it.
           </p>
         </div>
-        <Button variant="primary" onClick={() => setSheetOpen(true)} icon={<IconHandshake size={14} />}>
-          Log a bid
-        </Button>
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          {desk ? (
+            <p className="micro max-w-xs text-right text-mist-faint">
+              Signed in as{' '}
+              <span className="text-jade">{desk.deskRef || desk.carrierName}</span> · session ends{' '}
+              {untilLabel(desk.expiresAt, now)}
+            </p>
+          ) : (
+            <p className="micro max-w-xs text-right text-mist-faint">
+              Bids are written by an authenticated desk. Signing in is the first step.
+            </p>
+          )}
+          <Button
+            variant="primary"
+            onClick={() => setSheetOpen(true)}
+            icon={<IconHandshake size={14} />}
+          >
+            {desk ? 'Log a bid' : 'Sign in to the carrier desk'}
+          </Button>
+        </div>
       </header>
 
       <dl className="mt-8 grid gap-px overflow-hidden rounded-card border border-line bg-line sm:grid-cols-2 lg:grid-cols-5">
@@ -200,7 +226,7 @@ export function CarriersView({
                   </Button>
                 ) : null}
                 <Button size="sm" variant="primary" onClick={() => setSheetOpen(true)}>
-                  Log a bid
+                  {desk ? 'Log a bid' : 'Sign in to the carrier desk'}
                 </Button>
               </div>
             }
@@ -216,7 +242,9 @@ export function CarriersView({
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 flex-col gap-1">
                       <span className="truncate text-[14px] text-ivory">{bid.carrier_name}</span>
-                      <span className="micro truncate text-mist-faint">{bid.desk_contact}</span>
+                      <span className="micro truncate text-mist-faint">
+                        {bid.desk_ref ? `Desk ${bid.desk_ref}` : 'Desk attribution pending'}
+                      </span>
                     </div>
                     <Chip
                       tone={
@@ -408,6 +436,23 @@ export function CarriersView({
       </div>
 
       <BidSheet
+        desk={desk}
+        onSignIn={async (deskCode, passcode) => {
+          setSigningIn(true);
+          const result = await ledger.signInDesk(deskCode, passcode);
+          setSigningIn(false);
+          if (result.ok && result.data) {
+            onToast(`Signed in as ${result.data.carrierName}`, 'success');
+          } else {
+            onToast(result.error ?? 'That sign-in was refused.', 'error');
+          }
+          return result;
+        }}
+        onSignOut={async () => {
+          await ledger.signOutDesk();
+          onToast('Signed out of the carrier desk', 'info');
+        }}
+        signingIn={signingIn}
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         corridors={corridors}
@@ -471,21 +516,52 @@ function MiniCell({
   );
 }
 
+/**
+ * How long a desk session has left, as a label.
+ *
+ * Not `relativeTime`: that helper only speaks about the past ("4 min ago"), and a
+ * session expiry is in the future for as long as it is usable.
+ */
+function untilLabel(iso: string, now: number): string {
+  const ms = new Date(iso).getTime() - now;
+  if (Number.isNaN(ms)) return 'unknown';
+  if (ms <= 0) return 'now';
+  const mins = Math.round(ms / 60_000);
+  if (mins < 60) return `in ${mins} min`;
+  const hours = Math.floor(mins / 60);
+  const rest = mins % 60;
+  return rest > 0 ? `in ${hours} hr ${rest} min` : `in ${hours} hr`;
+}
+
 interface FormErrors {
+  deskCode?: string;
+  passcode?: string;
   corridorCode?: string;
-  carrierName?: string;
-  deskContact?: string;
   offeredSeats?: string;
   netGroupFare?: string;
   holdWindowHours?: string;
 }
 
+/**
+ * The bid sheet, gated on a desk session.
+ *
+ * Signed out, it asks for a desk code and a passcode. Signed in, it asks for the
+ * block. Neither state has a carrier-name or desk-contact field, because
+ * `utsav_submit_bid` takes both from the session it is handed: a bid cannot claim
+ * to come from a desk that did not log it. That is what the anonymous insert this
+ * replaced allowed — any browser with the publishable key could write a row in any
+ * carrier's name, already marked accepted.
+ */
 function BidSheet({
   open,
   onClose,
   corridors,
+  desk,
   onSubmit,
+  onSignIn,
+  onSignOut,
   submitting,
+  signingIn,
 }: {
   open: boolean;
   onClose: () => void;
@@ -495,12 +571,17 @@ function BidSheet({
     dest_city: string;
     platform_fee_pct: number;
   }>;
+  desk: DeskSession | null;
   onSubmit: (input: BidInput) => Promise<Result<CarrierBid>>;
+  onSignIn: (deskCode: string, passcode: string) => Promise<Result<DeskSession>>;
+  onSignOut: () => Promise<void>;
   submitting: boolean;
+  signingIn: boolean;
 }) {
+  const now = useNow();
+  const [deskCode, setDeskCode] = useState('');
+  const [passcode, setPasscode] = useState('');
   const [corridorCode, setCorridorCode] = useState('');
-  const [carrierName, setCarrierName] = useState('');
-  const [deskContact, setDeskContact] = useState('');
   const [offeredSeats, setOfferedSeats] = useState(45);
   const [netGroupFare, setNetGroupFare] = useState(7200);
   const [baggageTerms, setBaggageTerms] = useState('');
@@ -511,9 +592,126 @@ function BidSheet({
   const selected = corridors.find((c) => c.code === corridorCode);
   const feePct = selected?.platform_fee_pct ?? 4.5;
 
+  /* ------------------------------------------------------------ signed out */
+
+  if (!desk) {
+    const signIn = async () => {
+      const found: FormErrors = {};
+      if (deskCode.trim().length < 3) found.deskCode = 'The desk code operations issued you.';
+      if (!passcode) found.passcode = 'The desk passcode.';
+      setErrors(found);
+      if (found.deskCode) {
+        document.getElementById('desk-code')?.focus();
+        return;
+      }
+      if (found.passcode) {
+        document.getElementById('desk-passcode')?.focus();
+        return;
+      }
+      const result = await onSignIn(deskCode, passcode);
+      if (result.ok) {
+        setPasscode('');
+        setErrors({});
+      }
+    };
+
+    return (
+      <Sheet
+        open={open}
+        onClose={onClose}
+        title="Sign in to the carrier desk"
+        description="Bids are written by an authenticated desk. The ledger checks the passcode against its hash and mints a session that ends with this tab."
+        width="max-w-lg"
+        footer={
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[11.5px] leading-snug text-mist-dim">
+              Five wrong passcodes lock a desk for fifteen minutes.
+            </p>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button variant="primary" size="md" loading={signingIn} onClick={() => void signIn()}>
+                Sign in
+              </Button>
+            </div>
+          </div>
+        }
+      >
+        <form
+          className="grid gap-4"
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            void signIn();
+          }}
+        >
+          <Field label="Desk code" htmlFor="desk-code" required error={errors.deskCode}>
+            <TextInput
+              id="desk-code"
+              value={deskCode}
+              autoComplete="username"
+              autoCapitalize="characters"
+              spellCheck={false}
+              placeholder="AI-SOUTH"
+              invalid={Boolean(errors.deskCode)}
+              onChange={(e) => setDeskCode(e.target.value)}
+            />
+          </Field>
+
+          <Field
+            label="Passcode"
+            htmlFor="desk-passcode"
+            required
+            error={errors.passcode}
+            hint="never stored in the browser"
+          >
+            <TextInput
+              id="desk-passcode"
+              type="password"
+              value={passcode}
+              autoComplete="current-password"
+              invalid={Boolean(errors.passcode)}
+              onChange={(e) => setPasscode(e.target.value)}
+            />
+          </Field>
+
+          <Divider label="what signing in proves" />
+          <ul className="flex list-none flex-col gap-2 text-[12px] leading-relaxed text-mist-dim">
+            <li className="flex gap-2">
+              <IconShield size={14} className="mt-0.5 shrink-0 text-jade" />
+              <span>
+                Your bids carry your desk&rsquo;s name and code from the ledger, not from a text
+                field anybody could type into.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <IconClock size={14} className="mt-0.5 shrink-0 text-marigold" />
+              <span>
+                The session lasts eight hours and lives in this tab only. Closing the tab signs the
+                desk out.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <IconCheck size={14} className="mt-0.5 shrink-0 text-lagoon" />
+              <span>
+                Every bid you log lands as <span className="text-ivory">under review</span>.
+                Accepting a block stays an operations decision on the ledger.
+              </span>
+            </li>
+          </ul>
+
+          <button type="submit" className="sr-only" tabIndex={-1} aria-hidden="true">
+            Sign in
+          </button>
+        </form>
+      </Sheet>
+    );
+  }
+
+  /* ------------------------------------------------------------- signed in */
+
   const reset = () => {
-    setCarrierName('');
-    setDeskContact('');
     setBaggageTerms('');
     setNotes('');
     setErrors({});
@@ -522,8 +720,6 @@ function BidSheet({
   const validate = (): FormErrors => {
     const found: FormErrors = {};
     if (!corridorCode) found.corridorCode = 'Pick the corridor this bid prices.';
-    if (carrierName.trim().length < 3) found.carrierName = 'Carrier or desk name, at least 3 characters.';
-    if (!EMAIL_RE.test(deskContact.trim())) found.deskContact = 'A reachable desk email address.';
     if (!Number.isFinite(offeredSeats) || offeredSeats < 10 || offeredSeats > 400)
       found.offeredSeats = 'Blocks run from 10 to 400 seats.';
     if (!Number.isFinite(netGroupFare) || netGroupFare < 100 || netGroupFare > 200000)
@@ -542,8 +738,6 @@ function BidSheet({
     const firstInvalid = (
       [
         ['corridorCode', 'bid-corridor'],
-        ['carrierName', 'bid-carrier'],
-        ['deskContact', 'bid-contact'],
         ['offeredSeats', 'bid-seats'],
         ['netGroupFare', 'bid-fare'],
         ['holdWindowHours', 'bid-hold'],
@@ -555,8 +749,6 @@ function BidSheet({
     }
     const result = await onSubmit({
       corridorCode,
-      carrierName,
-      deskContact,
       offeredSeats: Math.round(offeredSeats),
       netGroupFare: Math.round(netGroupFare),
       baggageTerms,
@@ -571,7 +763,7 @@ function BidSheet({
       open={open}
       onClose={onClose}
       title="Log a carrier bid"
-      description="Offers are written to utsav_carrier_bids and appear on every open desk in realtime."
+      description="Written to utsav_carrier_bids against your desk session, and visible on every open desk in realtime."
       width="max-w-2xl"
       footer={
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -591,8 +783,20 @@ function BidSheet({
         </div>
       }
     >
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-night-900 px-4 py-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="truncate text-[13.5px] text-ivory">{desk.carrierName}</span>
+          <span className="micro truncate text-mist-faint">
+            Desk {desk.deskRef} · {desk.deskContact} · session ends {untilLabel(desk.expiresAt, now)}
+          </span>
+        </div>
+        <Button variant="secondary" size="sm" onClick={() => void onSignOut()}>
+          Sign out
+        </Button>
+      </div>
+
       <form
-        className="grid gap-4 sm:grid-cols-2"
+        className="mt-4 grid gap-4 sm:grid-cols-2"
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
@@ -619,34 +823,6 @@ function BidSheet({
               </option>
             ))}
           </SelectInput>
-        </Field>
-
-        <Field label="Carrier / desk" htmlFor="bid-carrier" required error={errors.carrierName}>
-          <TextInput
-            id="bid-carrier"
-            value={carrierName}
-            placeholder="Air India Group Desk (South)"
-            invalid={Boolean(errors.carrierName)}
-            onChange={(e) => setCarrierName(e.target.value)}
-          />
-        </Field>
-
-        <Field
-          label="Desk contact"
-          htmlFor="bid-contact"
-          required
-          error={errors.deskContact}
-          hint="not published"
-        >
-          <TextInput
-            id="bid-contact"
-            type="email"
-            autoComplete="email"
-            value={deskContact}
-            placeholder="groups.south@carrier.in"
-            invalid={Boolean(errors.deskContact)}
-            onChange={(e) => setDeskContact(e.target.value)}
-          />
         </Field>
 
         <Field label="Seats offered" htmlFor="bid-seats" required error={errors.offeredSeats}>
@@ -691,7 +867,11 @@ function BidSheet({
           />
         </Field>
 
-        <Field label="Baggage & terms" htmlFor="bid-baggage" hint="one line">
+        <Field
+          label="Baggage & terms"
+          htmlFor="bid-baggage"
+          hint="one line"
+        >
           <TextInput
             id="bid-baggage"
             value={baggageTerms}

@@ -27,8 +27,10 @@ import {
 } from '../src/data/snapshot';
 import { activeNetFare, feeOn, landedPerSeat } from '../src/lib/format';
 import { routeDescription, routeTitle } from '../src/lib/meta';
+import { redact, reportEvent } from '../src/lib/telemetry';
+import { teluguCoverage, teluguFestival, teluguFor } from '../src/lib/telugu';
 import type { RouteMatch } from '../src/lib/router';
-import type { Pledge } from '../src/lib/types';
+import type { DeskSession, Pledge } from '../src/lib/types';
 
 /**
  * The public feed projection carries no phone number or boarding point, so the
@@ -154,7 +156,10 @@ function mockLedger(overrides: Partial<Ledger> = {}): Ledger {
       deepestSaving,
     },
     device: 'f0e1d2c3-b4a5-4697-8899-aabbccddeeff',
+    desk: DESK_FIXTURE,
     isWatched: (id: string) => id === first.id,
+    signInDesk: async () => ({ ok: true, data: DESK_FIXTURE }),
+    signOutDesk: async () => undefined,
     join: async () => ({ ok: true, data: firstPledge }),
     toggleWatch: async () => ({ ok: true, data: true }),
     upvote: async () => ({ ok: true, data: firstRequest }),
@@ -164,6 +169,20 @@ function mockLedger(overrides: Partial<Ledger> = {}): Ledger {
     ...overrides,
   };
 }
+
+/**
+ * A signed-in carrier desk. The token is the 64 hex characters the ledger mints;
+ * the fixture never needs to be valid, only shaped like one, because nothing in
+ * the render path calls the ledger with it.
+ */
+const DESK_FIXTURE: DeskSession = {
+  token: 'a'.repeat(64),
+  carrierId: '42775634-5a33-4538-a89a-d27b00f16673',
+  carrierName: 'Air India Group Desk (South)',
+  deskRef: 'AI-SOUTH',
+  deskContact: 'groups.south@airindia-desk.in',
+  expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+};
 
 function render(node: ReactElement): string {
   return renderToString(
@@ -263,6 +282,41 @@ function main(): void {
   check(
     'Carrier desk lists every bid carrier',
     SNAPSHOT_BIDS.every((b) => plain(carriers).includes(b.carrier_name)),
+  );
+
+  // The bid sheet is gated on a desk session, and the two states are different
+  // documents: signed out asks for credentials, signed in asks for the block.
+  const carriersSignedOut = render(
+    <CarriersView ledger={mockLedger({ desk: null })} onToast={() => {}} sheetOpen />,
+  );
+  contains('Carrier desk signed out', carriersSignedOut, [
+    'Sign in to the carrier desk',
+    'Desk code',
+    'Passcode',
+  ]);
+  check(
+    'Signed-out desk cannot reach the bid form',
+    !plain(carriersSignedOut).includes('Net group fare per seat') &&
+      !plain(carriersSignedOut).includes('Submit bid'),
+  );
+
+  const carriersSignedIn = render(
+    <CarriersView ledger={mockLedger()} onToast={() => {}} sheetOpen />,
+  );
+  contains('Carrier desk signed in', carriersSignedIn, [
+    'Air India Group Desk (South)',
+    'Net group fare per seat',
+    'Hold window (hours)',
+  ]);
+  check(
+    'The signed-in sheet does not ask the desk to retype its own identity',
+    !plain(carriersSignedIn).includes('Carrier / desk') &&
+      !plain(carriersSignedIn).includes('Desk contact'),
+  );
+  check(
+    'A bid is attributed to its desk code, not to a desk email',
+    SNAPSHOT_BIDS.every((b) => (b.desk_ref ? plain(carriers).includes(b.desk_ref) : true)) &&
+      !plain(carriers).includes('@airindia-desk.in'),
   );
 
   const requests = render(
@@ -385,6 +439,88 @@ function main(): void {
     <CorridorsView ledger={deterministicLedger} onHold={() => {}} onWatch={() => {}} />,
   );
   check('the board renders identically twice', firstPass === secondPass);
+
+  // 13. Telemetry redaction. This is the only thing standing between an error
+  //     message and a destination outside this app, so it is checked as directly
+  //     as the rest of the render path: nothing identifying may survive it, and a
+  //     message with nothing to hide must survive intact, or the telemetry is
+  //     useless for debugging.
+  const dirty =
+    'pledge failed for ravi.kumar@example.com on 9849123456, device f0e1d2c3-b4a5-4697-8899-aabbccddeeff, token aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, ref UTV-AP9041';
+  const cleaned = redact(dirty);
+  check('telemetry strips an email address', !cleaned.includes('ravi.kumar@example.com'));
+  check('telemetry strips a mobile number', !cleaned.includes('9849123456'));
+  check('telemetry strips a device uuid', !cleaned.includes('f0e1d2c3-b4a5'));
+  check('telemetry strips a session token', !cleaned.includes('aaaaaaaaaaaaaaaa'));
+  check('telemetry strips a booking reference', !cleaned.includes('UTV-AP9041'));
+  check(
+    'telemetry keeps the shape of what happened',
+    cleaned.includes('pledge failed for') &&
+      cleaned.includes('[email]') &&
+      cleaned.includes('[digits]') &&
+      cleaned.includes('[id]') &&
+      cleaned.includes('[token]') &&
+      cleaned.includes('[ref]'),
+    cleaned,
+  );
+  check(
+    'telemetry leaves an ordinary message alone',
+    redact('A block must offer between 10 and 400 seats.') ===
+      'A block must offer between 10 and 400 seats.',
+  );
+  check(
+    'telemetry caps what it sends',
+    redact('x'.repeat(4000)).length === 180,
+    `length ${redact('x'.repeat(4000)).length}`,
+  );
+  check(
+    'telemetry is inert during a server render',
+    (() => {
+      // reportEvent must not throw or write anything when window is absent, which
+      // is exactly the condition this script runs under.
+      reportEvent('render_check_probe', { detail: 'no window here' });
+      return true;
+    })(),
+  );
+
+  // 14. Telugu place names. The dictionary is the only thing standing between a
+  //     reader and a half-translated label, so both halves of its contract are
+  //     checked: every city on the board has a Telugu name, and a label it does
+  //     not know completely renders as nothing at all rather than partly.
+  const cityLabels = [
+    ...new Set(SNAPSHOT_CORRIDORS.flatMap((c) => [c.origin_city, c.dest_city])),
+  ];
+  const coverage = teluguCoverage(cityLabels);
+  check(
+    'every city on the board has a Telugu name',
+    coverage.missing.length === 0,
+    coverage.missing.length > 0 ? `missing: ${coverage.missing.join(', ')}` : `${coverage.covered.length} covered`,
+  );
+  check(
+    'Telugu keeps the shape of the English label',
+    teluguFor('Vijayawada (Amaravati)') === 'విజయవాడ (అమరావతి)' &&
+      teluguFor('Guntur / Amaravati') === 'గుంటూరు / అమరావతి' &&
+      teluguFor('New Delhi') === 'న్యూ ఢిల్లీ',
+    String(teluguFor('Vijayawada (Amaravati)')),
+  );
+  check(
+    'a half-known place name renders as nothing',
+    teluguFor('Vijayawada (Nowhere)') === null && teluguFor('Nowhere') === null,
+  );
+  check(
+    'every festival on the board has a Telugu name',
+    SNAPSHOT_CORRIDORS.every((c) => teluguFestival(c.festival) !== null),
+    SNAPSHOT_CORRIDORS.map((c) => `${c.festival}=${teluguFestival(c.festival)}`).join(' · '),
+  );
+  check(
+    'the board renders Telugu under a lang attribute',
+    board.includes('lang="te"') && board.includes('విజయవాడ'),
+  );
+  // detailHtml is the first corridor's own page, rendered in section 3 above.
+  check(
+    'a corridor page renders its endpoints in Telugu too',
+    detailHtml.includes('lang="te"') && detailHtml.includes('విజయవాడ'),
+  );
 
   console.log(
     `\n${checks - failures}/${checks} checks passed${failures ? ` · ${failures} FAILED` : ''}`,

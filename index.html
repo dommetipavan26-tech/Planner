@@ -32,6 +32,15 @@
     <!--/utsavair:meta-->
     <meta name="theme-color" content="#06080E" />
     <meta name="color-scheme" content="dark" />
+
+    <!-- Installable, not offline. There is deliberately no service worker: a
+         cache in front of this ledger would be able to serve a stale seat count
+         or a stale fare, which is the one thing this product must not do. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="UtsavAir" />
     <meta name="format-detection" content="telephone=no" />
 
     <link

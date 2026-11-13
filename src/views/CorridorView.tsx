@@ -26,6 +26,7 @@ import {
   surgeMultiple,
 } from '../lib/format';
 import type { Corridor } from '../lib/types';
+import { teluguFor } from '../lib/telugu';
 import {
   Button,
   Chip,
@@ -423,7 +424,9 @@ export function CorridorView({
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="flex flex-col gap-1">
                         <span className="text-[13.5px] text-ivory">{bid.carrier_name}</span>
-                        <span className="micro text-mist-faint">{bid.desk_contact}</span>
+                        <span className="micro text-mist-faint">
+                          {bid.desk_ref ? `Desk ${bid.desk_ref}` : 'Desk attribution pending'}
+                        </span>
                       </div>
                       <Chip
                         tone={
@@ -578,6 +581,7 @@ function Endpoint({
   time: string;
   align: 'left' | 'right';
 }) {
+  const telugu = teluguFor(city);
   return (
     <div className={cn('flex min-w-0 flex-col gap-1', align === 'right' && 'items-end text-right')}>
       <span className="tnum display text-[clamp(2.4rem,6vw,3.6rem)] leading-none text-ivory">
@@ -585,6 +589,11 @@ function Endpoint({
       </span>
       <span className="tnum micro-md text-marigold">{time} IST</span>
       <span className="text-[12.5px] text-mist">{city}</span>
+      {telugu ? (
+        <span className="telugu text-[12px] text-mist-dim" lang="te">
+          {telugu}
+        </span>
+      ) : null}
       <span className="text-[11px] text-mist-faint">{state}</span>
     </div>
   );

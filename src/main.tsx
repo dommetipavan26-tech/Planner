@@ -16,6 +16,10 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { RouterProvider } from './lib/router';
 import { ClockProvider } from './hooks/useClock';
 import { PRERENDERED_ROUTE } from './lib/buildTime';
+import { installErrorTelemetry } from './lib/telemetry';
+
+// Before the first render, so an error thrown while mounting is still caught.
+installErrorTelemetry();
 
 const container = document.getElementById('root');
 

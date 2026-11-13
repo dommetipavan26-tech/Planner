@@ -1,10 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FN, TABLE, isConnectivityError, isThrottleError, ledgerClient } from '../lib/supabase';
+import {
+  FN,
+  TABLE,
+  THROTTLED_SQLSTATE,
+  isAuthError,
+  isConnectivityError,
+  isMissingFunctionError,
+  isThrottleError,
+  ledgerClient,
+} from '../lib/supabase';
 import {
   toBid,
   toBids,
   toCorridors,
   toPledge,
+  toDeskSession,
   toPledges,
   toPublicPledges,
   toRequest,
@@ -13,11 +23,13 @@ import {
   toWatches,
 } from '../lib/normalise';
 import { activeNetFare, feeOn, landedPerSeat } from '../lib/format';
-import { deviceId } from '../lib/device';
+import { clearDeskSession, deviceId, readDeskSession, writeDeskSession } from '../lib/device';
+import { reportEvent, reportLedgerOutcome } from '../lib/telemetry';
 import type {
   CarrierBid,
   Corridor,
   CorridorRequest,
+  DeskSession,
   LedgerSource,
   LedgerStatus,
   Pledge,
@@ -81,10 +93,13 @@ export interface JoinInput {
   seats: number;
 }
 
+/**
+ * A bid, as the desk typed it. There is no carrier name and no desk contact in
+ * here on purpose: `utsav_submit_bid` takes both from the session it was handed,
+ * so a bid cannot claim to be from a desk that did not log it.
+ */
 export interface BidInput {
   corridorCode: string;
-  carrierName: string;
-  deskContact: string;
   offeredSeats: number;
   netGroupFare: number;
   baggageTerms: string;
@@ -102,6 +117,9 @@ export interface RequestInput {
   groupSize: number;
 }
 
+/** The writes telemetry classifies. One label per ledger mutation. */
+export type LedgerAction = 'join' | 'bid' | 'request' | 'upvote' | 'watch' | 'signin';
+
 export interface Ledger {
   corridors: Corridor[];
   bids: CarrierBid[];
@@ -115,7 +133,11 @@ export interface Ledger {
   events: LedgerEvent[];
   totals: LedgerTotals;
   device: string;
+  /** The signed-in carrier desk, or null. Only ever set from a ledger answer. */
+  desk: DeskSession | null;
   isWatched: (corridorId: string) => boolean;
+  signInDesk: (deskCode: string, passcode: string) => Promise<Result<DeskSession>>;
+  signOutDesk: () => Promise<void>;
   join: (input: JoinInput) => Promise<Result<Pledge>>;
   toggleWatch: (corridor: Corridor) => Promise<Result<boolean>>;
   upvote: (requestId: string) => Promise<Result<CorridorRequest>>;
@@ -125,6 +147,12 @@ export interface Ledger {
 }
 
 const NO_EVENTS: LedgerEvent[] = [];
+
+/**
+ * Said when the browser cannot reach Postgres at all. Distinct from a refusal:
+ * nothing was written, and nothing was mirrored locally either.
+ */
+const OFFLINE_MESSAGE = 'Cannot reach the ledger from this browser right now.';
 
 /**
  * The ledger hook. One channel, one device id, one source of truth.
@@ -143,6 +171,7 @@ export function useLedger(): Ledger {
   const [roster, setRoster] = useState<PublicPledge[]>(SNAPSHOT_ROSTER);
   const [mine, setMine] = useState<Pledge[]>([]);
   const [watches, setWatches] = useState<Watch[]>([]);
+  const [desk, setDesk] = useState<DeskSession | null>(null);
   const [status, setStatus] = useState<LedgerStatus>('connecting');
   const [source, setSource] = useState<LedgerSource>('snapshot');
   const [events, setEvents] = useState<LedgerEvent[]>(NO_EVENTS);
@@ -170,6 +199,127 @@ export function useLedger(): Ledger {
       [{ id: Date.now() + Math.random(), at: Date.now(), text, tone }, ...prev].slice(0, 7),
     );
   }, []);
+
+  /* ------------------------------------------------------ carrier desk */
+
+  /**
+   * Restore the desk session this tab stored, then ask the ledger whether it is
+   * still live.
+   *
+   * It runs in an effect rather than in the state initialiser so that the server
+   * render and the first client render both see `desk === null`: reading
+   * sessionStorage during render would make hydration depend on browser state the
+   * prerendered document cannot have.
+   *
+   * Only the ledger saying "that session has ended" clears it. An unreachable
+   * ledger leaves the desk signed in, because logging a desk out over a dropped
+   * connection would be the browser making a decision that belongs to Postgres.
+   */
+  useEffect(() => {
+    const stored = readDeskSession();
+    if (!stored) return;
+    setDesk(stored);
+
+    let cancelled = false;
+    void (async () => {
+      const client = await getClient();
+      if (!client || cancelled) return;
+      const { data, error } = await client.rpc(FN.carrierSession, {
+        p_session_token: stored.token,
+      });
+      if (cancelled) return;
+      if (error) {
+        if (isAuthError(error)) {
+          clearDeskSession();
+          setDesk(null);
+        }
+        return;
+      }
+      const session = toDeskSession(data as Record<string, unknown>);
+      if (!session) {
+        clearDeskSession();
+        setDesk(null);
+        return;
+      }
+      writeDeskSession(session);
+      setDesk(session);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getClient]);
+
+  /**
+   * Sign a desk in.
+   *
+   * `utsav_carrier_desk_signin` returns its refusals as data rather than raising
+   * them, because raising would roll back the failed-attempt counter that drives
+   * the fifteen-minute lockout after five failures. So `error` being null does not
+   * mean success here — the `ok` flag in the payload does.
+   */
+  const signInDesk = useCallback(
+    async (deskCode: string, passcode: string): Promise<Result<DeskSession>> => {
+      const code = deskCode.trim();
+      if (code.length < 3) return { ok: false, error: 'Enter the desk code operations issued.' };
+      if (!passcode) return { ok: false, error: 'Enter the desk passcode.' };
+
+      const client = await getClient();
+      if (!client) return { ok: false, error: OFFLINE_MESSAGE };
+
+      const { data, error } = await client.rpc(FN.carrierSignin, {
+        p_desk_code: code,
+        p_passcode: passcode,
+        p_device_id: device,
+      });
+
+      if (error) {
+        if (isConnectivityError(error.message ?? '') || isMissingFunctionError(error))
+          return { ok: false, error: OFFLINE_MESSAGE };
+        return { ok: false, error: humanise(error.message ?? 'That sign-in was refused.') };
+      }
+
+      const answer = (data ?? {}) as Record<string, unknown>;
+      if (answer.ok !== true) {
+        const message = typeof answer.error === 'string' ? answer.error : 'That sign-in was refused.';
+        return {
+          ok: false,
+          error: humanise(message),
+          throttled: answer.code === THROTTLED_SQLSTATE,
+        };
+      }
+
+      const session = toDeskSession(answer);
+      if (!session) return { ok: false, error: 'The ledger returned a session this desk cannot use.' };
+
+      writeDeskSession(session);
+      setDesk(session);
+      emit(`${session.carrierName} signed in to the carrier desk`, 'supply');
+      return { ok: true, data: session };
+    },
+    [device, emit, getClient],
+  );
+
+  /**
+   * Sign the desk out. The local session goes first, so a failed revoke can never
+   * leave this browser believing it is signed in; the ledger row is revoked on a
+   * best-effort call and expires eight hours after issue either way.
+   */
+  const signOutDesk = useCallback(async () => {
+    const current = desk;
+    clearDeskSession();
+    setDesk(null);
+    if (!current) return;
+    emit(`${current.carrierName} signed out of the carrier desk`, 'supply');
+
+    const client = await getClient();
+    if (!client) return;
+    try {
+      await client.rpc(FN.carrierSignout, { p_session_token: current.token });
+    } catch {
+      /* the token is gone locally and expires on the ledger regardless */
+    }
+  }, [desk, emit, getClient]);
 
   /* ------------------------------------------------------------- reads */
 
@@ -236,6 +386,11 @@ export function useLedger(): Ledger {
       await Promise.all([readBids(), readRequests(), readRoster(), readMine(), readWatches()]);
     }
     if (!alive.current) return;
+    if (!ok) {
+      // The reader still gets the snapshot and a status pill, but nobody looking
+      // at the desk would otherwise know the ledger was unreachable.
+      reportEvent('ledger_offline', { detail: 'corridor read failed; serving snapshot' });
+    }
     setStatus(ok ? 'ready' : 'offline');
     setSource(ok ? 'live' : 'snapshot');
   }, [readCorridors, readBids, readRequests, readRoster, readMine, readWatches]);
@@ -296,6 +451,7 @@ export function useLedger(): Ledger {
           if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT') {
             if (channel && owner) void owner.removeChannel(channel);
             setStatus('offline');
+            reportEvent('realtime_channel_error', { state });
           }
         });
     })();
@@ -461,15 +617,35 @@ export function useLedger(): Ledger {
       const client = await getClient();
 
       if (client) {
-        const { data, error } = await client.rpc(FN.upvoteRequest, { p_request_id: requestId });
+        // Two arguments since utsav_carrier_desk_v2_3: the vote is recorded per
+        // (request, device), so a second press is a no-op the caller is told about
+        // rather than another increment. The old one-argument version had no voter
+        // identity and no limit, so one caller in a loop could manufacture demand
+        // and re-order this board, which is what it ranks on.
+        const { data, error } = await client.rpc(FN.upvoteRequest, {
+          p_request_id: requestId,
+          p_device_id: device,
+        });
         if (!error) {
-          const row = toRequest(data as Record<string, unknown>);
+          const answer = (data ?? {}) as Record<string, unknown>;
+          const row = toRequest((answer.request ?? {}) as Record<string, unknown>);
+          if (!row.id) {
+            return { ok: false, error: 'Could not register that upvote.' };
+          }
+          const already = answer.already_voted === true;
           setRequests((prev) =>
             [...prev.map((r) => (r.id === row.id ? row : r))].sort((a, b) => b.upvotes - a.upvotes),
           );
-          return { ok: true, data: row };
+          return { ok: true, data: row, duplicate: already };
         }
-        if (!isConnectivityError(error.message ?? '')) {
+        if (isThrottleError(error)) {
+          return {
+            ok: false,
+            error: humanise(error.message ?? 'Wait a moment before upvoting another request.'),
+            throttled: true,
+          };
+        }
+        if (!isConnectivityError(error.message ?? '') && !isMissingFunctionError(error)) {
           return { ok: false, error: humanise(error.message ?? 'Could not register that upvote.') };
         }
       }
@@ -482,43 +658,76 @@ export function useLedger(): Ledger {
       );
       return { ok: true, data: bumped, simulated: true };
     },
-    [getClient, requests],
+    [device, getClient, requests],
   );
 
   const submitBid = useCallback(
     async (input: BidInput): Promise<Result<CarrierBid>> => {
-      const corridor = corridors.find((c) => c.code === input.corridorCode);
-      const payload = {
-        corridor_id: corridor?.id ?? null,
-        corridor_code: input.corridorCode,
-        carrier_name: input.carrierName.trim(),
-        desk_contact: input.deskContact.trim(),
+      if (!desk) {
+        return { ok: false, error: 'Sign in to the carrier desk before logging a bid.' };
+      }
+
+      const client = await getClient();
+      if (client) {
+        const { data, error } = await client.rpc(FN.submitBid, {
+          p_session_token: desk.token,
+          p_corridor_code: input.corridorCode,
+          p_offered_seats: input.offeredSeats,
+          p_net_group_fare: input.netGroupFare,
+          p_baggage_terms: input.baggageTerms.trim(),
+          p_hold_window_hours: input.holdWindowHours,
+          p_notes: input.notes.trim(),
+        });
+
+        if (!error) {
+          const row = toBid(data as Record<string, unknown>);
+          // A repeat of the same block inside two minutes comes back as the row the
+          // ledger already wrote, so it replaces rather than duplicates.
+          const known = bids.some((b) => b.id === row.id);
+          setBids((prev) => (known ? prev.map((b) => (b.id === row.id ? row : b)) : [row, ...prev]));
+          return { ok: true, data: row, duplicate: known };
+        }
+
+        if (isAuthError(error)) {
+          // The ledger decides when a desk session ends, not this browser.
+          clearDeskSession();
+          setDesk(null);
+          return { ok: false, error: 'That desk session has ended. Sign in again.' };
+        }
+        if (isThrottleError(error)) {
+          return {
+            ok: false,
+            error: humanise(error.message ?? 'Wait a moment before logging another bid.'),
+            throttled: true,
+          };
+        }
+        if (!isConnectivityError(error.message ?? '') && !isMissingFunctionError(error)) {
+          return { ok: false, error: humanise(error.message ?? 'The ledger rejected that bid.') };
+        }
+      }
+
+      // Offline, or the ledger this browser reached does not have the function.
+      // The row keeps the signed-in desk's own attribution and is reported as
+      // simulated, so nobody reads a local mirror for a confirmed block.
+      const local: CarrierBid = {
+        id: `local-bid-${Date.now()}`,
+        corridor_id: corridors.find((c) => c.code === input.corridorCode)?.id ?? null,
+        corridor_code: input.corridorCode.trim().toUpperCase(),
+        carrier_name: desk.carrierName,
+        carrier_id: desk.carrierId,
+        desk_ref: desk.deskRef || null,
         offered_seats: input.offeredSeats,
         net_group_fare: input.netGroupFare,
         baggage_terms: input.baggageTerms.trim() || 'Standard allowance',
         hold_window_hours: input.holdWindowHours,
         notes: input.notes.trim() || null,
-        bid_status: 'under_review' as const,
+        bid_status: 'under_review',
+        created_at: new Date().toISOString(),
       };
-
-      const client = await getClient();
-      if (client) {
-        const { data, error } = await client.from(TABLE.bid).insert(payload).select('*').single();
-        if (!error) {
-          const row = toBid(data as Record<string, unknown>);
-          setBids((prev) => [row, ...prev]);
-          return { ok: true, data: row };
-        }
-        if (!isConnectivityError(error.message ?? '')) {
-          return { ok: false, error: humanise(error.message ?? 'The ledger rejected that bid.') };
-        }
-      }
-
-      const local: CarrierBid = { ...payload, id: `local-bid-${Date.now()}`, created_at: new Date().toISOString() };
       setBids((prev) => [local, ...prev]);
       return { ok: true, data: local, simulated: true };
     },
-    [corridors, getClient],
+    [bids, corridors, desk, getClient],
   );
 
   const submitRequest = useCallback(
@@ -531,18 +740,39 @@ export function useLedger(): Ledger {
         travel_window: input.travelWindow.trim(),
         requester_name: input.requesterName.trim(),
         group_size: input.groupSize,
+        // The asker is the first person asking for it. The ledger forces this to
+        // the submitter's own single vote: it used to be a client-supplied number
+        // on an anon-insertable row, so a direct POST could list a request already
+        // carrying whatever demand its author wanted it to appear to have.
         upvotes: 1,
       };
 
       const client = await getClient();
       if (client) {
-        const { data, error } = await client.from(TABLE.request).insert(payload).select('*').single();
+        const { data, error } = await client.rpc(FN.submitRequest, {
+          p_device_id: device,
+          p_origin_city: payload.origin_city,
+          p_dest_city: payload.dest_city,
+          p_festival: payload.festival,
+          p_mode: payload.mode,
+          p_travel_window: payload.travel_window,
+          p_requester_name: payload.requester_name,
+          p_group_size: payload.group_size,
+        });
         if (!error) {
           const row = toRequest(data as Record<string, unknown>);
-          setRequests((prev) => [row, ...prev]);
-          return { ok: true, data: row };
+          const known = requests.some((r) => r.id === row.id);
+          setRequests((prev) => (known ? prev : [row, ...prev]));
+          return { ok: true, data: row, duplicate: known };
         }
-        if (!isConnectivityError(error.message ?? '')) {
+        if (isThrottleError(error)) {
+          return {
+            ok: false,
+            error: humanise(error.message ?? 'Wait a moment before posting another request.'),
+            throttled: true,
+          };
+        }
+        if (!isConnectivityError(error.message ?? '') && !isMissingFunctionError(error)) {
           return { ok: false, error: humanise(error.message ?? 'The ledger rejected that request.') };
         }
       }
@@ -555,13 +785,35 @@ export function useLedger(): Ledger {
       setRequests((prev) => [local, ...prev]);
       return { ok: true, data: local, simulated: true };
     },
-    [getClient],
+    [device, getClient, requests],
   );
 
   const reload = useCallback(async () => {
     setStatus('connecting');
     await hydrate();
   }, [hydrate]);
+
+  /* -------------------------------------------------------- telemetry */
+
+  /**
+   * Send every write outcome past telemetry on its way to the caller.
+   *
+   * Wrapping the returned functions rather than each `return` inside them means
+   * a new failure path cannot forget to be reported: whatever a mutation resolves
+   * to is classified here once. The refusals matter for support, but the
+   * `simulated` ones matter more — that is the case where the desk looks like it
+   * took a pledge and Postgres never heard about it.
+   */
+  const note = useCallback(<T,>(action: LedgerAction, result: Result<T>): Result<T> => {
+    if (!result.ok) {
+      reportLedgerOutcome(action, result.throttled ? 'throttled' : 'refused', result.error);
+    } else if (result.simulated) {
+      reportLedgerOutcome(action, 'simulated');
+    } else if (result.duplicate) {
+      reportLedgerOutcome(action, 'duplicate');
+    }
+    return result;
+  }, []);
 
   /* ------------------------------------------------------------ totals */
 
@@ -610,12 +862,15 @@ export function useLedger(): Ledger {
     events,
     totals,
     device,
+    desk,
     isWatched,
-    join,
-    toggleWatch,
-    upvote,
-    submitBid,
-    submitRequest,
+    signInDesk: (deskCode, passcode) => signInDesk(deskCode, passcode).then((r) => note('signin', r)),
+    signOutDesk,
+    join: (input) => join(input).then((r) => note('join', r)),
+    toggleWatch: (corridor) => toggleWatch(corridor).then((r) => note('watch', r)),
+    upvote: (requestId) => upvote(requestId).then((r) => note('upvote', r)),
+    submitBid: (input) => submitBid(input).then((r) => note('bid', r)),
+    submitRequest: (input) => submitRequest(input).then((r) => note('request', r)),
     reload,
   };
 }
@@ -640,6 +895,32 @@ function toFeedRow(p: Pledge): PublicPledge {
 }
 
 function humanise(message: string): string {
+  /* Carrier desk. */
+  if (/desk credentials were not recognised/i.test(message))
+    return 'Those desk credentials were not recognised. Check the desk code and the passcode.';
+  if (/locked after repeated failed sign-ins/i.test(message))
+    return 'That desk is locked after repeated failed sign-ins. Try again in 15 minutes.';
+  if (/desk is suspended/i.test(message))
+    return 'That desk is suspended. Contact UtsavAir operations.';
+  if (/desk session has ended/i.test(message)) return 'That desk session has ended. Sign in again.';
+  if (/before logging another bid/i.test(message))
+    return 'Give it a minute — this desk just logged a bid.';
+  if (/has logged \d+ bids in the last hour/i.test(message))
+    return 'This desk has logged six bids in the last hour. Wait before logging another.';
+
+  /* Demand board. */
+  if (/before posting another request/i.test(message))
+    return 'Give it a minute — this device just posted a request.';
+  if (/has posted \d+ requests in the last 24 hours/i.test(message))
+    return 'This device has posted three requests in the last 24 hours. Upvote an existing one instead.';
+  if (/before upvoting another request/i.test(message))
+    return 'Give it a few seconds between upvotes.';
+  if (/has upvoted \d+ requests in the last hour/i.test(message))
+    return 'This device has upvoted twenty requests in the last hour. Come back later.';
+  if (/group size must be between/i.test(message))
+    return 'A request can be for between 1 and 200 travellers.';
+
+  /* Pledges. */
   if (/wait a moment before holding again/i.test(message))
     return 'Give it a few seconds — this device just held a seat.';
   if (/already holds \d+ live pledges/i.test(message))

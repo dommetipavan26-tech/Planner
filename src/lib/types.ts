@@ -92,7 +92,17 @@ export interface CarrierBid {
   corridor_id: string | null;
   corridor_code: string;
   carrier_name: string;
-  desk_contact: string;
+  /**
+   * The desk that logged this bid, set by `utsav_submit_bid` from its session and
+   * never taken from the caller. Null on rows logged before desks existed.
+   */
+  carrier_id: string | null;
+  /**
+   * Public desk code, e.g. `AI-SOUTH`. This replaced `desk_contact`, a desk email
+   * address that sat in a table whose SELECT policy is `true` — world-readable —
+   * while the bid form told the carrier the field was not published.
+   */
+  desk_ref: string | null;
   offered_seats: number;
   net_group_fare: number;
   baggage_terms: string;
@@ -120,6 +130,24 @@ export interface Watch {
   device_id: string;
   corridor_id: string;
   created_at: string;
+}
+
+/**
+ * A signed-in carrier desk.
+ *
+ * The token is a bearer credential for that desk's own writes and nothing else.
+ * It lives in sessionStorage, so a desk session ends with the tab rather than
+ * outliving a shared machine, and it is validated against the ledger on load —
+ * being stored is not evidence of being live. `deskContact` is returned to the
+ * signed-in desk by `utsav_carrier_desk_signin` and is not on any public row.
+ */
+export interface DeskSession {
+  token: string;
+  carrierId: string;
+  carrierName: string;
+  deskRef: string;
+  deskContact: string;
+  expiresAt: string;
 }
 
 export type LedgerSource = 'live' | 'snapshot';

@@ -33,7 +33,7 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      # Renders every view in Node with no DOM and asserts 87 properties:
+      # Renders every view in Node with no DOM and asserts 101 properties:
       # no NaN or bare undefined reaching the reader, no phone number in the
       # public feed, internal consistency of every snapshot corridor, one h1 and
       # no skipped heading level in any view, route titles and descriptions
@@ -91,3 +91,66 @@ jobs:
             exit 1
           fi
           echo 'no literal colours in src/**'
+
+      # Nothing above this line depends on the lockfile being free of known-vulnerable
+      # packages, and a green build says nothing about it. --omit=dev is the scope
+      # that matters: it is what ships to a browser. The dev tree is audited in the
+      # same step and reported, but only the production scope can fail the build.
+      - name: Dependency audit
+        run: |
+          echo '--- production dependencies (must be clean) ---'
+          npm audit --omit=dev --audit-level=high
+          echo '--- full tree, reported not enforced ---'
+          npm audit --audit-level=high || true
+
+  browser:
+    name: Browser smoke · contrast · Lighthouse budgets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # The browser binaries are the reason this is its own job: they are a
+      # few hundred MB, and the Node job above should not pay for them.
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Production build and prerender
+        run: npm run build
+
+      # Real navigation, real hydration, the ledger cut at the network layer, and
+      # axe-core with colour-contrast enabled — the one WCAG rule the jsdom audit
+      # in the job above has to skip, because contrast needs a layout engine.
+      # The ledger is stubbed, so this never writes to the production project.
+      - name: Browser smoke tests
+        run: npx playwright test
+
+      # Lighthouse is fetched at run time rather than added to the lockfile. Its
+      # dependency tree (lighthouse → puppeteer-core → extract-zip, basic-ftp,
+      # tmp) currently carries nine high-severity advisories with no fixed release
+      # in the 0.15 line, and none of it belongs in a browser. Pinning the exact
+      # version here keeps that out of `npm ci` while still failing the build on a
+      # budget regression. It reuses the Chromium Playwright just installed.
+      - name: Lighthouse budgets
+        run: |
+          echo "CHROME_PATH=$(node -e 'process.stdout.write(require("playwright-core").chromium.executablePath())')" >> "$GITHUB_ENV"
+          npx --yes @lhci/cli@0.16.1 autorun
+
+      - name: Upload browser and Lighthouse reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-and-lighthouse-reports
+          path: |
+            playwright-report/
+            test-results/
+            .lighthouseci/
+          retention-days: 14
+          if-no-files-found: ignore
