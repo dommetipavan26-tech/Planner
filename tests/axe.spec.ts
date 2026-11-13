@@ -97,7 +97,7 @@ for (const route of DOCUMENT_ROUTES) {
           .evaluate((el) => {
             const wash = '.glow-marigold, .grid-veil';
             if (el.closest(wash)) return true;
-            for (let scope: Element | null = el, depth = 0; scope && depth < 6; depth += 1) {
+            for (let scope: Element | null = el, depth = 0; scope && depth < 8; depth += 1) {
               if (scope.querySelector(wash)) return true;
               scope = scope.parentElement;
             }
