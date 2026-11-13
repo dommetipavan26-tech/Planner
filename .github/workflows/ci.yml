@@ -153,6 +153,22 @@ jobs:
           echo "CHROME_PATH=$(node -e 'process.stdout.write(require("playwright-core").chromium.executablePath())')" >> "$GITHUB_ENV"
           npx --yes @lhci/cli@0.16.1 autorun
 
+      # A Lighthouse failure has to be readable from outside the runner: job logs
+      # are not always retrievable, and the artifact below is empty when lhci dies
+      # before it writes anything — which is exactly the case that looks like a
+      # budget regression and is not one. So on failure this says which of the two
+      # happened, and emits the specifics as annotations, where they can be read
+      # back through the API.
+      # A Lighthouse failure has to be readable from outside the runner: job logs
+      # are not always retrievable, and the artifact below is empty when lhci dies
+      # before it collects anything — so "a budget regressed" and "Lighthouse never
+      # ran" look identical in the checks list while needing opposite responses.
+      # The script says which one happened, and re-judges any reports that do exist
+      # against the budgets in .lighthouserc.json.
+      - name: Surface Lighthouse failures
+        if: failure()
+        run: node scripts/lhci-report.mjs
+
       - name: Upload browser and Lighthouse reports
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
