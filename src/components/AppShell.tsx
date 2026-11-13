@@ -33,16 +33,11 @@ export function Wordmark({ compact = false }: { compact?: boolean }) {
       <span className="flex flex-col leading-none">
         <span className="micro-md text-[12px] tracking-[0.22em] text-ivory">UTSAVAIR</span>
         {compact ? null : (
-          // Decoration, not content: the accessible name of the home link is
-          // "UtsavAir home", and label-content-name-mismatch requires the visible
-          // text to sit inside it. The tagline would make the visible text longer
-          // than the name, so it stays out of the accessibility tree.
-          <span
-            className="mt-1 text-[10px] leading-none text-mist-faint"
-            aria-hidden="true"
-          >
-            festival corridor desk
-          </span>
+          // The home link's accessible name carries the whole wordmark, tagline
+          // included: label-content-name-mismatch compares against what a sighted
+          // reader sees, and hiding the tagline from assistive tech would leave
+          // the two disagreeing for exactly the readers the rule protects.
+          <span className="mt-1 text-[10px] leading-none text-mist-faint">festival corridor desk</span>
         )}
       </span>
     </span>
@@ -172,7 +167,11 @@ export function AppShell({
         )}
       >
         <div className="mx-auto flex max-w-[1400px] items-center gap-4 px-4 py-2.5 sm:px-6">
-          <Link to="/" aria-label="UtsavAir home" className="shrink-0">
+          <Link
+            to="/"
+            aria-label="UTSAVAIR festival corridor desk — home"
+            className="shrink-0"
+          >
             <Wordmark />
           </Link>
 

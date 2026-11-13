@@ -28,7 +28,7 @@ import { dirname, resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
 import { prerenderToNodeStream } from 'react-dom/static';
 
-import AppStatic from '../src/AppStatic';
+import App from '../src/App';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { ClockProvider } from '../src/hooks/useClock';
 import { PRERENDERED_AT } from '../src/lib/buildTime';
@@ -104,7 +104,7 @@ async function renderRoute(path: string): Promise<string> {
     <ErrorBoundary>
       <ClockProvider>
         <RouterProvider initialPath={path}>
-          <AppStatic />
+          <App />
         </RouterProvider>
       </ClockProvider>
     </ErrorBoundary>,

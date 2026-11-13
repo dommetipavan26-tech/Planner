@@ -409,7 +409,7 @@ export function CorridorView({
               <p className="text-[12.5px] leading-relaxed text-mist-dim">
                 No bid row is published for {corridor.code}. The allotment is held directly against
                 contract {corridor.contract_ref}; carrier desks can log a competing bid from the{' '}
-                <Link to="/carriers" className="text-marigold underline-offset-2 hover:underline">
+                <Link to="/carriers" className="text-marigold underline underline-offset-2 hover:decoration-2">
                   carrier desk
                 </Link>
                 .
