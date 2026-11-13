@@ -159,6 +159,16 @@ jobs:
         run: |
           echo "CHROME_PATH=$(node -e 'process.stdout.write(require("playwright-core").chromium.executablePath())')" >> "$GITHUB_ENV"
           npx --yes @lhci/cli@0.16.1 autorun
+          # Record the scores on the way past, not only when something breaks: a
+          # green run that leaves no numbers behind is a green run nobody can
+          # compare the next one to. And say out loud when lhci kept no local
+          # reports, because the upload step below has been reporting success
+          # while uploading nothing at all.
+          if [ -d .lighthouseci ]; then
+            node scripts/lhci-report.mjs
+          else
+            echo "::warning::lhci wrote no .lighthouseci directory, so no scores can be recorded here and the report artifact will be empty"
+          fi
 
       # A Lighthouse failure has to be readable from outside the runner: job logs
       # are not always retrievable, and the artifact below is empty when lhci dies
@@ -186,4 +196,7 @@ jobs:
             test-results/
             .lighthouseci/
           retention-days: 14
-          if-no-files-found: ignore
+          # `ignore` let this step report success while uploading nothing, which
+          # is how an empty artifact came to look like a normal outcome rather
+          # than evidence that there was nothing to keep.
+          if-no-files-found: warn
