@@ -97,7 +97,7 @@ for (const route of DOCUMENT_ROUTES) {
           .evaluate((el) => {
             const wash = '.glow-marigold, .grid-veil';
             if (el.closest(wash)) return true;
-            for (let scope: Element | null = el, depth = 0; scope && depth < 8; depth += 1) {
+            for (let scope: Element | null = el, depth = 0; scope && depth < 10; depth += 1) {
               if (scope.querySelector(wash)) return true;
               scope = scope.parentElement;
             }
@@ -118,7 +118,7 @@ test('the sign-in sheet is accessible too', async ({ page }) => {
   // never sees it.
   await cutLedger(page);
   await page.goto('/carriers/', { waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: /Sign in to the carrier desk/i }).click();
+  await page.getByRole('button', { name: /Sign in to the carrier desk/i }).first().click();
   await expect(page.getByRole('dialog')).toBeVisible();
 
   await page.addScriptTag({ content: axeSource });

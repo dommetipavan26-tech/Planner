@@ -92,7 +92,7 @@ test.describe('carrier desk gate', () => {
     await stubLedger(page);
     await page.goto('/carriers/', { waitUntil: 'domcontentloaded' });
 
-    await page.getByRole('button', { name: /Sign in to the carrier desk/i }).click();
+    await page.getByRole('button', { name: /Sign in to the carrier desk/i }).first().click();
 
     const sheet = page.getByRole('dialog');
     await expect(sheet).toBeVisible();
@@ -116,7 +116,9 @@ test.describe('carrier desk gate', () => {
     ]);
     await page.goto('/carriers/', { waitUntil: 'domcontentloaded' });
 
-    await page.getByRole('button', { name: /Sign in to the carrier desk/i }).click();
+    // Two buttons open the sheet — the header action and the signed-out empty
+    // state — and either is the gate under test, so take the first.
+    await page.getByRole('button', { name: /Sign in to the carrier desk/i }).first().click();
     const sheet = page.getByRole('dialog');
     await sheet.getByLabel('Desk code').fill('PROBE-1');
     await sheet.getByLabel('Passcode').fill('not-the-passcode');
@@ -142,7 +144,7 @@ test.describe('carrier desk gate', () => {
     ]);
     await page.goto('/carriers/', { waitUntil: 'domcontentloaded' });
 
-    await page.getByRole('button', { name: /Sign in to the carrier desk/i }).click();
+    await page.getByRole('button', { name: /Sign in to the carrier desk/i }).first().click();
     const sheet = page.getByRole('dialog');
     await sheet.getByLabel('Desk code').fill('PROBE-1');
     await sheet.getByLabel('Passcode').fill(passcode);
@@ -169,7 +171,7 @@ test.describe('carrier desk gate', () => {
     ]);
     await page.goto('/carriers/', { waitUntil: 'domcontentloaded' });
 
-    await page.getByRole('button', { name: /Sign in to the carrier desk/i }).click();
+    await page.getByRole('button', { name: /Sign in to the carrier desk/i }).first().click();
     const sheet = page.getByRole('dialog');
     await sheet.getByLabel('Desk code').fill('PROBE-1');
     await sheet.getByLabel('Passcode').fill('whatever-the-desk-was-issued');
