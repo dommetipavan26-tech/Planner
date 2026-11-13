@@ -56,6 +56,57 @@ for (const route of DOCUMENT_ROUTES) {
         };
         const root = document.getElementById('root');
         const first = root?.firstElementChild ?? null;
+
+        // Walk the parsed-but-detached server node and the node React left on
+        // screen in lockstep and describe the first place they disagree. A
+        // production build recovers from a hydration mismatch silently, so this
+        // walk is the only witness available.
+        const divergence = (a: Node, b: Node): string | null => {
+          const path: string[] = [];
+          const walk = (x: Node, y: Node): string | null => {
+            if (x.nodeType !== y.nodeType) {
+              return `${path.join(' > ')}: nodeType ${x.nodeType} vs ${y.nodeType}`;
+            }
+            if (x.nodeType === 3) {
+              const xt = (x.textContent ?? '').replace(/\s+/g, ' ');
+              const yt = (y.textContent ?? '').replace(/\s+/g, ' ');
+              return xt === yt ? null : `${path.join(' > ')}: text "${xt.slice(0, 60)}" vs "${yt.slice(0, 60)}"`;
+            }
+            if (x.nodeType !== 1) return null;
+            const xe = x as Element;
+            const ye = y as Element;
+            if (xe.tagName !== ye.tagName) {
+              return `${path.join(' > ')}: <${xe.tagName}> vs <${ye.tagName}>`;
+            }
+            path.push(xe.tagName.toLowerCase());
+            for (const attr of Array.from(xe.attributes)) {
+              if (ye.getAttribute(attr.name) !== attr.value) {
+                return `${path.join(' > ')}: @${attr.name} "${attr.value.slice(0, 60)}" vs "${(ye.getAttribute(attr.name) ?? '').slice(0, 60)}"`;
+              }
+            }
+            const xa = Array.from(xe.childNodes).filter((n) => n.nodeType !== 8);
+            const ya = Array.from(ye.childNodes).filter((n) => n.nodeType !== 8);
+            if (xa.length !== ya.length) {
+              return `${path.join(' > ')}: ${xa.length} children vs ${ya.length}`;
+            }
+            for (let i = 0; i < xa.length; i += 1) {
+              const xc = xa[i];
+              const yc = ya[i];
+              if (!xc || !yc) return `${path.join(' > ')}: missing child ${i}`;
+              const found = walk(xc, yc);
+              if (found) return found;
+            }
+            path.pop();
+            return null;
+          };
+          return walk(a, b);
+        };
+
+        const diverged =
+          w.__prerenderFirst && first && w.__prerenderFirst !== first
+            ? divergence(w.__prerenderFirst, first)
+            : null;
+
         return {
           tagged: Boolean(w.__prerenderFirst),
           same: Boolean(w.__prerenderFirst && first === w.__prerenderFirst),
@@ -66,6 +117,7 @@ for (const route of DOCUMENT_ROUTES) {
           taggedClass: String(w.__prerenderFirst?.className ?? '').slice(0, 48),
           children: root?.children.length ?? -1,
           boot: w.__UTSAVAIR_BOOT__ ?? null,
+          diverged,
           consoleErrors: (consoleErrors as string[]).slice(0, 3),
         };
       }, consoleErrors);
