@@ -45,7 +45,7 @@ import type { Corridor } from '../src/lib/types';
 const DIST = resolve(process.cwd(), 'dist');
 
 /** The pre-hydration loader: scaffolding for a client-only render, gone here. */
-const BOOT_LOADER = /\s*<div id="boot"[\s\S]*?<\/div>/;
+const BOOT_LOADER = /\s*<div id="boot"[\s\S]*?<\/div>\s*/;
 
 interface Page {
   /** Path a browser would request. */
@@ -249,7 +249,13 @@ function assemble(template: string, page: Page, markup: string): string {
   // Replacement is a function, never a string: React markup can contain `$`
   // sequences that String.prototype.replace would otherwise interpret.
   html = html.replace('<!--utsavair:head-->', () => head);
-  html = html.replace('<!--utsavair:app-->', () => markup);
+  // Whitespace around the marker is whitespace inside the root container, and
+  // a whitespace text node there is a child the client tree does not have:
+  // hydration mismatches on it at the container and — in a production build,
+  // silently — regenerates the whole page instead of adopting it. Consume the
+  // indentation with the marker so the rendered tree is the container's first
+  // node, and let the boot loader take its own indentation with it.
+  html = html.replace(/\s*<!--utsavair:app-->/, () => markup);
   html = html.replace(BOOT_LOADER, '');
 
   if (html.includes('<!--utsavair:app-->') || html.includes('id="boot"')) {

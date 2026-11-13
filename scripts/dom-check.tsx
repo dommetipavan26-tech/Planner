@@ -279,6 +279,23 @@ function assertDocument(url: string, html: string, dom: JSDOM): string[] {
   }
   if (!doc.querySelector('link[rel="apple-touch-icon"]')) fail('missing apple-touch-icon');
 
+  // --- the root container must hold exactly the rendered tree ---
+  // Whitespace text nodes inside #root are children the client tree does not
+  // have, and hydration treats the first one as a mismatch at the container:
+  // a production build then regenerates the page silently. Indentation is
+  // lovely in the template and fatal in the document.
+  const root = doc.getElementById('root');
+  if (!root) {
+    fail('no #root container');
+  } else {
+    const stray = [...root.childNodes].filter(
+      (node) => node.nodeType === 3 && (node.textContent ?? '').trim() === '',
+    );
+    if (stray.length > 0) {
+      fail(`#root carries ${stray.length} whitespace text node(s) — hydration mismatches on them`);
+    }
+  }
+
   // --- the hydration guard: this document must claim to be the route it is ---
   const marker = html.match(/__UTSAVAIR_ROUTE__=("[^"]*")/);
   if (!marker) {
