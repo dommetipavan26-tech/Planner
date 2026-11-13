@@ -478,7 +478,7 @@ function FilterBar({
           <button
             type="button"
             onClick={onClear}
-            className="ml-2 normal-case tracking-normal text-marigold underline-offset-2 hover:underline"
+            className="ml-2 normal-case tracking-normal text-marigold underline underline-offset-2 hover:decoration-2"
           >
             clear
           </button>

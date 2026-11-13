@@ -33,7 +33,16 @@ export function Wordmark({ compact = false }: { compact?: boolean }) {
       <span className="flex flex-col leading-none">
         <span className="micro-md text-[12px] tracking-[0.22em] text-ivory">UTSAVAIR</span>
         {compact ? null : (
-          <span className="mt-1 text-[10px] leading-none text-mist-faint">festival corridor desk</span>
+          // Decoration, not content: the accessible name of the home link is
+          // "UtsavAir home", and label-content-name-mismatch requires the visible
+          // text to sit inside it. The tagline would make the visible text longer
+          // than the name, so it stays out of the accessibility tree.
+          <span
+            className="mt-1 text-[10px] leading-none text-mist-faint"
+            aria-hidden="true"
+          >
+            festival corridor desk
+          </span>
         )}
       </span>
     </span>

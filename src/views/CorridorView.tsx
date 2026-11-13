@@ -630,13 +630,18 @@ function Detail({
   label: string;
   value: string;
 }) {
+  // One grouping div, exactly as the definition-list rule allows: dl > div >
+  // dt + dd. The icon lives inside the dt it decorates, because a <dl> may hold
+  // nothing that is not a term, a description, or a div wrapping those.
   return (
-    <div className="flex items-start gap-3 bg-night-900 px-4 py-3.5">
-      <span className="mt-0.5 shrink-0 text-mist-faint">{icon}</span>
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <dt className="micro text-mist-faint">{label}</dt>
-        <dd className="text-[12.5px] leading-snug text-mist">{value}</dd>
-      </div>
+    <div className="bg-night-900 px-4 py-3.5">
+      <dt className="micro flex items-center gap-1.5 text-mist-faint">
+        <span className="shrink-0" aria-hidden="true">
+          {icon}
+        </span>
+        {label}
+      </dt>
+      <dd className="mt-1 text-[12.5px] leading-snug text-mist">{value}</dd>
     </div>
   );
 }

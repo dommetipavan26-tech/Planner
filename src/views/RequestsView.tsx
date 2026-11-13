@@ -306,7 +306,7 @@ export function RequestsView({
                       </svg>
                       <span className="tnum text-[15px] font-medium leading-none text-ivory">
                         {request.upvotes}
-                      </span>
+                      </span>{' '}
                       <span className="micro text-[9px] text-mist-faint">votes</span>
                     </button>
 
@@ -480,7 +480,7 @@ export function RequestsView({
                   <button
                     type="button"
                     onClick={() => matches[0] && onHold(matches[0])}
-                    className="mt-2.5 inline-flex items-center gap-1.5 text-[11.5px] text-jade underline-offset-2 hover:underline"
+                    className="mt-2.5 inline-flex items-center gap-1.5 text-[11.5px] text-jade underline underline-offset-2 hover:decoration-2"
                   >
                     Hold seats on {matches[0]?.code} instead <IconArrow size={11} />
                   </button>

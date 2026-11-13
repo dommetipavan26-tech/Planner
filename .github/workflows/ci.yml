@@ -132,6 +132,16 @@ jobs:
       - name: Browser smoke tests
         run: npx playwright test
 
+      # Workflow logs live on a blob host that is not reachable from every
+      # collaborator, and GitHub surfaces only the first annotations of a step,
+      # so a 27-failure run can hide the interesting one. Re-running just the
+      # document spec after a failure puts its error text — and only its error
+      # text — into that step's annotations, where the pull request page shows
+      # it. Costs a minute, and only ever runs when the gate is already red.
+      - name: Surface document test failures
+        if: failure()
+        run: npx playwright test tests/documents.spec.ts --retries=0
+
       # Lighthouse is fetched at run time rather than added to the lockfile. Its
       # dependency tree (lighthouse → puppeteer-core → extract-zip, basic-ftp,
       # tmp) currently carries nine high-severity advisories with no fixed release
