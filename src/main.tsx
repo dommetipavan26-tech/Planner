@@ -48,7 +48,14 @@ function normalise(path: string): string {
 const served = PRERENDERED_ROUTE === null ? null : normalise(PRERENDERED_ROUTE);
 const here = normalise(window.location.pathname);
 
+// Which path the boot took, and why, for the browser suite and for anyone
+// staring at a repainted page: the hydration gate can say "replaced" without
+// saying whether the document mismatched, the marker was missing, or React
+// recovered from a mismatch of its own.
+const w = window as unknown as { __UTSAVAIR_BOOT__?: string };
+
 if (served === here && container.firstElementChild !== null) {
+  w.__UTSAVAIR_BOOT__ = `hydrate:${served}`;
   // This document was rendered for this route, so its markup is the first paint
   // and React adopts it instead of repainting over it.
   hydrateRoot(container, tree);
@@ -57,6 +64,7 @@ if (served === here && container.firstElementChild !== null) {
   // route's HTML for this path — an unknown URL, for instance. Hydrating that
   // would ask React to adopt markup for a different page, so render fresh. The
   // boot loader in index.html is only scaffolding for that first paint.
+  w.__UTSAVAIR_BOOT__ = `render:served=${served}:here=${here}`;
   container.innerHTML = '';
   createRoot(container).render(tree);
 }

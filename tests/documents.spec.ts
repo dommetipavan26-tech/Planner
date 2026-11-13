@@ -14,7 +14,14 @@ for (const route of DOCUMENT_ROUTES) {
   test.describe(route.label, () => {
     test(`serves its own prerendered document at ${route.path}`, async ({ page }) => {
       const errors: string[] = [];
+      const consoleErrors: string[] = [];
       page.on('pageerror', (error) => errors.push(error.message));
+      // React reports hydration mismatches through console.error, not through
+      // uncaught exceptions: without this the gate sees a repaint and never the
+      // reason for it.
+      page.on('console', (message) => {
+        if (message.type() === 'error') consoleErrors.push(message.text().slice(0, 240));
+      });
 
       await cutLedger(page);
       const response = await page.goto(route.path, { waitUntil: 'domcontentloaded' });
@@ -41,10 +48,11 @@ for (const route of DOCUMENT_ROUTES) {
       // claims to be, what the URL is, and whether the node on screen is the
       // node that was parsed. A hydration gate that only says "false" costs a
       // CI round per guess.
-      const hydration = await page.evaluate(() => {
+      const hydration = await page.evaluate((consoleErrors) => {
         const w = window as unknown as {
           __prerenderFirst?: Element;
           __UTSAVAIR_ROUTE__?: string;
+          __UTSAVAIR_BOOT__?: string;
         };
         const root = document.getElementById('root');
         const first = root?.firstElementChild ?? null;
@@ -57,8 +65,10 @@ for (const route of DOCUMENT_ROUTES) {
           firstClass: String(first?.className ?? '').slice(0, 48),
           taggedClass: String(w.__prerenderFirst?.className ?? '').slice(0, 48),
           children: root?.children.length ?? -1,
+          boot: w.__UTSAVAIR_BOOT__ ?? null,
+          consoleErrors: (consoleErrors as string[]).slice(0, 3),
         };
-      });
+      }, consoleErrors);
       expect(
         hydration.same,
         `React should hydrate the prerendered element, not replace it — ${JSON.stringify(hydration)}`,
