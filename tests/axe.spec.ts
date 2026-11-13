@@ -83,7 +83,12 @@ for (const route of DOCUMENT_ROUTES) {
     const unresolved = result.incomplete.filter((entry) => entry.id === 'color-contrast');
     const unexplained: string[] = [];
     for (const entry of unresolved) {
-      for (const node of entry.nodes) {
+      for (const raw of entry.nodes) {
+        const node = raw as {
+          target: string[];
+          any?: Array<{ message?: string }>;
+          all?: Array<{ message?: string }>;
+        };
         const selector = node.target.join(' ');
         const background = await page
           .locator(selector)
@@ -99,7 +104,11 @@ for (const route of DOCUMENT_ROUTES) {
             }
             return 'none';
           });
-        if (!/gradient/.test(background)) unexplained.push(`${selector} → ${background.slice(0, 60)}`);
+        if (!/gradient/.test(background)) {
+          const reason =
+            node.any?.[0]?.message ?? node.all?.[0]?.message ?? '(no check message)';
+          unexplained.push(`${selector} → bg ${background.slice(0, 40)} → ${reason.slice(0, 160)}`);
+        }
       }
     }
     expect(
