@@ -238,7 +238,7 @@ export function JoinSheet({
       title={receipt ? `Held · ${receipt.booking_ref}` : `Hold seats · ${corridor.code}`}
       description={
         receipt
-          ? 'Nothing is charged until the corridor clears Tier I. Save this reference.'
+          ? `Nothing is charged until ${corridor.tier1_min} seats are pledged. Save this reference.`
           : `${corridor.origin_city} → ${corridor.dest_city} · ${formatDateYear(corridor.departure_date)} · ${corridor.carrier_name}`
       }
       footer={
@@ -269,8 +269,9 @@ export function JoinSheet({
             <p className="flex items-start gap-2 text-[11.5px] leading-snug text-ink-muted">
               <IconShield size={14} className="mt-px shrink-0 text-jade-deep" />
               <span>
-                No card is charged now. If Tier I is not reached by{' '}
-                <span className="tnum text-ink-soft">{countdown(corridor.lock_deadline, now)}</span>, the
+                No card is charged now. If fewer than{' '}
+                <span className="tnum text-ink-soft">{corridor.tier1_min} seats</span> are pledged by{' '}
+                <span className="tnum text-ink-soft">{countdown(corridor.lock_deadline, now)}</span>, this
                 pledge is released automatically.
               </span>
             </p>
@@ -434,7 +435,9 @@ export function JoinSheet({
             <div className="flex items-center justify-between gap-2">
               <span className="micro text-ink-muted">Live quote</span>
               <Chip tone={q && q.seatsToNextTier === 0 ? 'jade' : 'marigold'}>
-                Tier {q?.tierReached ?? 1}
+                {q && q.nextTierLanded !== null && q.seatsToNextTier > 0
+                  ? `${q.seatsToNextTier} seats to ${rupees(q.nextTierLanded)}`
+                  : 'Lowest fare reached'}
               </Chip>
             </div>
             {q ? <QuoteBreakdown corridor={corridor} seats={seats} /> : null}
@@ -563,12 +566,13 @@ function Receipt({
       </div>
 
       {activeTier(corridor) === 0 ? (
-        <p className="flex items-start gap-2 rounded-card border border-accent-rule bg-accent-tint/70 px-3.5 py-2.5 text-[11.5px] leading-snug text-accent-deep">
+        <p className="flex items-start gap-2 rounded-card border border-accent-line bg-accent-tint/70 px-3.5 py-2.5 text-[11.5px] leading-snug text-accent-deep">
           <IconAlert size={14} className="mt-px shrink-0" />
           <span>
-            The corridor is still below Tier I. Your seat is reserved in the cohort and the price
-            above is what you pay <em className="not-italic text-ink">if</em> the block confirms. If
-            it does not, nothing is charged and the pledge is released.
+            Fewer than <span className="tnum">{corridor.tier1_min} seats</span> are pledged on this
+            corridor so far. Your seat is reserved in the cohort and the price above is what you pay{' '}
+            <em className="not-italic text-ink">if</em> the block confirms. If it does not, nothing is
+            charged and the pledge is released.
           </span>
         </p>
       ) : null}
@@ -590,7 +594,7 @@ function Receipt({
         </span>
         <span className="inline-flex items-center gap-1.5">
           <IconCheck size={12} className="text-jade-deep" />
-          25% EMD only after Tier II clears
+          25% deposit only once {corridor.tier2_min} seats pledge
         </span>
         <Link
           to={`/corridor/${encodeURIComponent(corridor.code)}`}

@@ -201,7 +201,7 @@ export function Eyebrow({ children, className }: { children: ReactNode; classNam
 export type Tone = 'marigold' | 'jade' | 'ember' | 'lagoon' | 'clay' | 'neutral';
 
 const TONE_CLASSES: Record<Tone, string> = {
-  marigold: 'bg-accent-tint text-accent-deep border-accent-rule',
+  marigold: 'bg-accent-tint text-accent-deep border-accent-line',
   jade: 'bg-jade-tint text-jade-deep border-jade-line',
   ember: 'bg-ember-tint text-ember-deep border-ember-line',
   lagoon: 'bg-lagoon-tint text-lagoon-deep border-lagoon-line',

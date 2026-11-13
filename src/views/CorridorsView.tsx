@@ -293,7 +293,7 @@ function Hero({
           </div>
 
           <ul className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <TrustItem icon={<IconShield size={13} />} text="Pledges cost nothing until Tier I clears" />
+            <TrustItem icon={<IconShield size={13} />} text="Nothing is charged until the block confirms" />
             <TrustItem icon={<IconGauge size={13} />} text={feeCopy} />
             <TrustItem icon={<IconUsers size={13} />} text={`${number(totals.seatsAllotted)} seats under contract`} />
           </ul>

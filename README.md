@@ -28,6 +28,12 @@ Protection is on, so the alias asks you to sign in).
 | **Platform fee** | 4.5% of the carrier net fare on air, 4.0% on coach. Shown as its own line everywhere; never netted off the carrier's rate. |
 | **Carrier desk** | A supply-side sign-in — desk code plus passcode — that lets a carrier lodge bids against corridors and see only its own. |
 
+That table is the contract vocabulary, and it is the only place the product uses
+it. To a traveller the same facts arrive as seats and rupees — *Pledges open*,
+*Second fare cut*, *12 seats to ₹7,800*, *Nothing is charged until 15 seats are
+pledged* — because "Tier II locked" asks a first-time reader to already know what
+a tier is ([ADR‑0008](docs/adr/0008-light-identity-and-clarity-over-atmosphere.md)).
+
 Eight corridors are live. **Six air blocks** — two out of Vijayawada (the
 Sankranti flagship on AI‑460 and the Kartika Purnima / winter-wedding-peak block),
 one inbound Delhi→Vijayawada, and one each from Visakhapatnam, Rajahmundry and
@@ -92,8 +98,12 @@ for the reasons in
   `src/index.css`. **No component carries a literal colour** — not in a class, not
   in an inline style, not in an SVG attribute. Every hue, radius, easing curve and
   shadow is a token; glows and shadows are `color-mix()`ed from the palette rather
-  than restated as `rgba()`, so changing `--color-marigold` recolours the button
-  glow, the focus ring and the chart arcs together.
+  than restated as `rgba()`, so changing `--color-accent` recolours the button
+  glow, the focus ring and the chart arcs together. The identity is a light one —
+  warm paper, ink type, one marigold stamp — and its tokens are named for the job
+  they do (`page`, `surface`, `ink`, `rule`) rather than for the pigment they
+  happen to be, so a theme is a change of values and not of meaning
+  ([ADR‑0008](docs/adr/0008-light-identity-and-clarity-over-atmosphere.md)).
 - **Supabase Postgres** as the ledger: tables, RLS, `SECURITY DEFINER` functions
   and Realtime. No backend of our own — and no `@supabase/supabase-js`: the app
   talks to PostgREST and Realtime directly through the two clients it actually
@@ -234,11 +244,11 @@ published demo passcode.
   from 226.47 / 59.57 when the umbrella SDK was on the path — and therefore off
   the critical path: first paint never waits for it.
 - **Chunking,** after route splitting: `react` 221.70 kB / 68.96 gzip · app
-  144.47 kB / 41.49 gzip · CSS 54.01 kB / 10.56 gzip · five view chunks that
+  150.68 kB / 43.97 gzip · CSS 55.61 kB / 10.75 gzip · five view chunks that
   arrive only for the route being visited · `ledger` on demand · `insights`
   6.50 kB / 2.29 gzip, mounted after the route is interactive. Nothing exceeds the
   260 kB budget CI enforces.
-- **Prerendered documents.** All 12 routes ship as static HTML (15–126 kB each),
+- **Prerendered documents.** All 12 routes ship as static HTML (15.6–136.7 kB each),
   so the first thing a traveller sees on a deep link is the corridor, not a
   skeleton. `main.tsx` hydrates that markup only when the document was rendered
   for the path being requested; otherwise it renders fresh. Everything the two
@@ -261,8 +271,12 @@ published demo passcode.
   eight live countdowns costs eight leaf re-renders a second, not eight cards.
 - **Fonts** are unicode-ranged variable/latin subsets — the browser downloads only
   what the page renders. Telugu names deliberately use the platform's own Telugu
-  face rather than a 36 kB webfont subset (ADR‑0005). `index.html` paints a dark
-  shell with a pulse loader, so there is no white flash before hydration.
+  face rather than a 36 kB webfont subset (ADR‑0005). One family does the whole
+  board: Geist Variable for text and headings, Geist Mono for codes, clocks and
+  rupees, and no serif display face, so two font files left with it (ADR‑0008).
+  `index.html` paints the paper shell with a pulse loader, so there is no flash of
+  the wrong background before hydration — and it mirrors four tokens *by value* to
+  do it, which is noted in the file itself.
 - Scroll reveals use one `IntersectionObserver` per element and disconnect after
   firing; corridor cards are `React.memo`'d. The hidden state is applied only once
   `index.html` has put a `js` class on `<html>`, so prerendered content is readable
@@ -272,12 +286,14 @@ published demo passcode.
 ## Accessibility
 
 - Every text token clears **4.5:1** on *every* surface that carries text —
-  `night`, `night-900`, `night-850` and `night-800`. Quoting the worst case
-  (against `night-800`, the lightest of the four): ivory 15.5:1, mist 7.9:1,
-  mist‑dim 5.7:1, mist‑faint 4.6:1, marigold 8.1:1, jade 7.4:1, lagoon 6.8:1,
-  clay 6.3:1, ember 4.9:1. Placeholders are included, because a placeholder is
-  text a traveller has to read. The full audit is a comment next to the tokens in
-  `src/index.css`.
+  `page`, `surface`, `raised`, `sunken` and all six tints. Each number below is
+  that token's **worst case** across the whole set, which lands on
+  `clay-tint-strong` every time: ink 13.84:1, ink‑soft 8.52:1, ink‑muted 5.95:1,
+  ink‑faint 4.72:1, accent‑deep 5.03:1, accent‑ink 6.72:1, jade‑deep 5.68:1,
+  ember‑deep 5.78:1, lagoon‑deep 6.30:1, clay‑deep 5.86:1, on‑accent 14.30:1.
+  Placeholders are included, because a placeholder is text a traveller has to
+  read. The audit is a comment next to the tokens in `src/index.css`, and
+  `npm run tokens` re-derives the pairs from the source on every run.
 - Skip link, landmark regions, `aria-current` on nav, `aria-pressed` on toggles,
   `role="progressbar"` with real values on meters, `role="img"` + label on the
   routing diagram and the allotment map, table `caption`s and row/column headers
@@ -288,6 +304,11 @@ published demo passcode.
   the first invalid field.
 - `prefers-reduced-motion` disables every animation, transition and the smooth
   scroll, and reveals are shown immediately.
+- **Marigold is a fill or a deep cut, never a bright foreground.** On paper the
+  bright accent is 1.96:1 against the page — decoration, not a label — so the
+  token set has no `text-accent` at all: an accent-coloured word takes
+  `accent-deep` or `accent-ink`, and the bright hue only ever appears as a
+  background with near-black `on-accent` type on it (8.53:1).
 - **Every route is gated by axe-core at WCAG 2.1 AA plus best practice**, run over
   the prerendered documents that actually ship (`npm run audit`, and a CI step).
   The same script asserts what axe cannot know about this app: exactly one `h1`
@@ -328,9 +349,11 @@ npm run icons      # regenerate the manifest icons from the favicon path
 
 `.github/workflows/ci.yml` runs two jobs on every pull request and push to
 `main`. **`verify`** is the fast, offline half: typecheck, the render check, the
-document gate, the build, a **bundle budget** that fails if any JS or CSS chunk
-passes 260 kB, the **no-literal-colour grep** over `src/**`, and a **dependency
-audit** that fails the build on any high advisory in the production tree
+**token gate** (`npm run tokens`, which runs first inside the document gate: every
+palette utility in `src/**` resolves to a defined token, and every background and
+foreground that share a class string clear 4.5:1), the document gate, the build, a
+**bundle budget** that fails if any JS or CSS chunk passes 260 kB, the
+**no-literal-colour grep** over `src/**`, and a **dependency audit** that fails the build on any high advisory in the production tree
 (`npm audit --omit=dev --audit-level=high`). **`browser`** is the slow half:
 `npm ci`, Playwright's chromium, the build, the 35-test browser suite, and
 Lighthouse CI against `dist/` with budgets for accessibility (≥0.95), best
@@ -345,7 +368,11 @@ extensionless URL falls back to the board and repaints, that client-side
 navigation keeps one `h1` and one `main`, that the desk gate refuses a signed-out
 bid, renders a `UT429` lockout and a `UT401` without leaking the passcode into
 telemetry, that a signed-in bid submits against the stub, and that axe's
-`color-contrast` rule runs and passes in a real engine.
+`color-contrast` rule runs in a real engine: zero violations, and the only
+contrast axe may leave unresolved is text over the two decorative washes the
+heroes declare in `src/index.css` (`.glow-accent` and `.grid-veil`), which are
+sibling layers behind the content and therefore invisible to any ancestor walk.
+A translucent layer added anywhere else fails the build.
 
 `npm run verify` builds `scripts/ssr-check.tsx` for Node and renders the whole
 tree — every view, every corridor detail page, empty states, unknown codes,
@@ -375,6 +402,7 @@ a route with no file, a sabotaged assertion — and fail loudly every time.
 | [0005](docs/adr/0005-telugu-as-a-presentation-dictionary.md) | Telugu place names are a render-time dictionary, not a column |
 | [0006](docs/adr/0006-telemetry-redaction.md) | Telemetry is redacted in the browser, before the queue |
 | [0007](docs/adr/0007-installable-not-offline.md) | Installable, but deliberately not offline |
+| [0008](docs/adr/0008-light-identity-and-clarity-over-atmosphere.md) | A light departure-board identity, and clarity over atmosphere |
 
 ---
 

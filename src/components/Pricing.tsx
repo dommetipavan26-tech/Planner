@@ -34,8 +34,64 @@ export function TierLadder({
   const seats = projectedSeats ?? corridor.pledged_seats;
   const projectedNet = netFareAt(corridor, seats);
 
+  /* Compact is the card on the board, where the ladder has to answer "what is a
+     tier" in the space of two lines: threshold, what a seat costs there, and how
+     far the cohort is from it. It used to be three 1px ticks on the meter whose
+     labels lived in a hover tooltip, which is to say the one mechanic a
+     traveller has to understand was the one thing a phone could not show. */
+  if (compact) {
+    return (
+      <div className="mt-2.5">
+        <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.1em] text-ink-faint">
+          Landed per seat at each threshold
+        </span>
+        <ol className="grid grid-cols-3 gap-1.5">
+          {slab.map((tier) => {
+            const reached = seats >= tier.min;
+            const isProjected = tier.net === projectedNet;
+            const toGo = Math.max(0, tier.min - seats);
+            return (
+              <li
+                key={tier.id}
+                aria-current={isProjected ? 'true' : undefined}
+                className={cn(
+                  'flex flex-col gap-0.5 rounded-card border px-2 py-1.5 transition-colors duration-300 ease-out-expo',
+                  isProjected
+                    ? 'border-accent/60 bg-accent-tint'
+                    : reached
+                      ? 'border-rule-strong bg-raised'
+                      : 'border-rule bg-surface',
+                )}
+              >
+                <span
+                  className={cn(
+                    'tnum font-mono text-[10px] uppercase tracking-[0.08em]',
+                    isProjected ? 'text-accent-deep' : 'text-ink-faint',
+                  )}
+                >
+                  {tier.min}+ seats
+                </span>
+                <span className="tnum text-[14.5px] font-medium leading-none text-ink">
+                  {rupees(tier.landed)}
+                </span>
+                <span
+                  className={cn(
+                    'tnum text-[10px] leading-tight',
+                    reached ? 'text-jade-deep' : 'text-ink-muted',
+                  )}
+                >
+                  {reached ? 'threshold met' : `${toGo} to go`}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    );
+  }
+
   return (
-    <ol className={cn('grid gap-2', compact ? 'sm:grid-cols-3' : 'sm:grid-cols-3')}>
+    <ol className="grid gap-2 sm:grid-cols-3">
       {slab.map((tier) => {
         const reached = seats >= tier.min;
         const isProjected = tier.net === projectedNet;

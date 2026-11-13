@@ -19,6 +19,7 @@ import {
 import type { Corridor } from '../lib/types';
 import { teluguFor } from '../lib/telugu';
 import { Button, Chip, Countdown, Meter, cn, type Tone } from './ui';
+import { TierLadder } from './Pricing';
 import {
   IconArrow,
   IconBell,
@@ -40,14 +41,22 @@ export function statusTone(c: Corridor, now: number): Tone {
   return 'clay';
 }
 
+/**
+ * The state of a corridor, in the words a traveller would use.
+ *
+ * It used to read 'Tier II locked' and 'Collecting pledges'. Neither says
+ * anything to someone who has not yet read the explainer, and the chip is the
+ * first thing they see: what changed is the price, so the chip says the price
+ * changed. 'Tier' stays in the ladder and in the explainer, where it is defined.
+ */
 export function statusLabel(c: Corridor, now: number): string {
-  if (isClosed(c, now)) return 'Lock closed';
+  if (isClosed(c, now)) return 'Closed to pledges';
   if (isFull(c)) return 'Block full';
   const tier = activeTier(c);
-  if (tier === 3) return 'Tier III locked';
-  if (tier === 2) return 'Tier II locked';
-  if (tier === 1) return 'Tier I locked';
-  return 'Collecting pledges';
+  if (tier === 3) return 'Lowest fare reached';
+  if (tier === 2) return 'Second fare cut';
+  if (tier === 1) return 'First fare cut';
+  return 'Pledges open';
 }
 
 function ModeIcon({ mode, size = 15 }: { mode: Corridor['mode']; size?: number }) {
@@ -81,8 +90,11 @@ function CorridorCardBase({ corridor, watched, onWatch, onHold, holding }: CardP
   const toNext = needsTierI
     ? corridor.tier1_min - corridor.pledged_seats
     : Math.max(0, corridor.tier3_min - corridor.pledged_seats);
-  const tierILanded =
-    corridor.tier1_fare + feeOn(corridor.tier1_fare, corridor.platform_fee_pct);
+  // What a seat actually costs at a threshold: the carrier's net fare plus the
+  // platform fee, which is the figure quoted everywhere else on the card.
+  const landedAt = (net: number) => net + feeOn(net, corridor.platform_fee_pct);
+  const tierILanded = landedAt(corridor.tier1_fare);
+  const tier3Landed = landedAt(corridor.tier3_fare);
 
   return (
     <article
@@ -193,13 +205,9 @@ function CorridorCardBase({ corridor, watched, onWatch, onHold, holding }: CardP
         <Meter
           filled={corridor.pledged_seats}
           total={corridor.total_allotment}
-          marks={[
-            { at: corridor.tier1_min, label: 'Tier I' },
-            { at: corridor.tier2_min, label: 'Tier II' },
-            { at: corridor.tier3_min, label: 'Tier III' },
-          ]}
           tone={closed ? 'lagoon' : activeTier(corridor) >= 2 ? 'marigold' : 'lagoon'}
         />
+        <TierLadder corridor={corridor} compact />
         <p className="mt-2 text-[11.5px] leading-snug text-ink-muted">
           {full ? (
             <>Allotment is full. Join the waitlist from the corridor page.</>
@@ -207,18 +215,19 @@ function CorridorCardBase({ corridor, watched, onWatch, onHold, holding }: CardP
             <>This block closed at its lock deadline. Nothing further can be pledged.</>
           ) : atFloor ? (
             <>
-              Deepest slab reached: Tier III at {rupees(corridor.tier3_fare)} net is the floor the
-              carrier contracted, so later pledges pay the same rate as the first ones.
+              That is the floor. {rupees(corridor.tier3_fare)} net is the fare the carrier
+              contracted, so anyone who pledges from here pays the same as the first ones in.
             </>
           ) : needsTierI ? (
             <>
-              <span className="tnum text-accent-deep">{toNext} more seats</span> confirm Tier I at{' '}
-              {rupees(tierILanded)} landed. Until then a pledge costs nothing and no card is charged.
+              <span className="tnum text-accent-deep">{toNext} more seats</span> and every pledged
+              seat drops to {rupees(tierILanded)}. Pledging costs nothing until then, and no card is
+              charged.
             </>
           ) : (
             <>
-              <span className="tnum text-accent-deep">{toNext} more seats</span> reach Tier III at{' '}
-              {rupees(corridor.tier3_fare)} net — the saving repriced for everyone already pledged.
+              <span className="tnum text-accent-deep">{toNext} more seats</span> and the fare drops
+              again to {rupees(tier3Landed)} — repriced for everyone already in the cohort.
             </>
           )}
         </p>
