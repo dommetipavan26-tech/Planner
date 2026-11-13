@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { reportEvent } from '../lib/telemetry';
 
 interface Props {
   children: ReactNode;
@@ -21,8 +22,15 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
-    // No telemetry in a prototype; the console is the report channel.
+    // The console is still the first report channel for whoever is watching, and
+    // telemetry is the one for everybody else. `redact()` inside `reportEvent`
+    // strips emails, long digit runs, ids and tokens from both strings before
+    // they leave the browser, so a component stack cannot carry a phone number.
     console.error('[utsavair] render error', error, info.componentStack);
+    reportEvent('ui_render_error', {
+      detail: `${error.name}: ${error.message}`,
+      stack: info.componentStack ?? '',
+    });
   }
 
   override render() {

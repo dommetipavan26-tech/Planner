@@ -11,19 +11,26 @@
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "typecheck": "tsc --noEmit",
     "verify": "tsc --noEmit && vite build --ssr scripts/ssr-check.tsx --outDir dist-ssr --logLevel warn && node dist-ssr/ssr-check.js",
-    "audit": "vite build --ssr scripts/dom-check.tsx --outDir dist-ssr --logLevel warn && node dist-ssr/dom-check.js"
+    "audit": "vite build --ssr scripts/dom-check.tsx --outDir dist-ssr --logLevel warn && node dist-ssr/dom-check.js",
+    "test:browser": "playwright test",
+    "test:browser:install": "playwright install --with-deps chromium",
+    "test:browser:report": "playwright show-report",
+    "lighthouse": "npx --yes @lhci/cli@0.16.1 autorun",
+    "icons": "node scripts/make-icons.mjs"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
     "@fontsource/instrument-serif": "^5.3.0",
-    "@supabase/supabase-js": "^2.58.0",
+    "@supabase/postgrest-js": "^2.119.0",
+    "@supabase/realtime-js": "^2.119.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "@tailwindcss/vite": "^4.1.14",
     "@types/jsdom": "^30.0.0",
     "@types/node": "^26.6.6",

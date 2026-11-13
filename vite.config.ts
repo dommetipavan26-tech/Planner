@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 /**
- * The client build splits React, the Supabase SDK and the Vercel instrumentation
+ * The client build splits React, the ledger client and the Vercel instrumentation
  * into their own chunks, so a ledger change never invalidates the framework chunk
  * and the cost of real-user metrics is visible as a line in the build output
  * rather than buried inside the app bundle. The SSR render check keeps
@@ -55,7 +55,11 @@ export default defineConfig(({ isSsrBuild }) => ({
             manualChunks(id: string) {
               const pkg = packageName(id);
               if (pkg === null) return undefined;
-              if (pkg === '@supabase/supabase-js' || pkg === 'ws' || pkg === 'phoenix') {
+              // The ledger client is two Supabase sub-packages plus the socket
+              // helpers realtime-js pulls in. Bucketed by scope rather than by
+              // name so dropping the umbrella package did not silently move half
+              // the client into the app chunk.
+              if (pkg.startsWith('@supabase/') || pkg === 'ws' || pkg === 'phoenix') {
                 return 'ledger';
               }
               if (pkg === 'react' || pkg === 'react-dom' || pkg === 'scheduler') {

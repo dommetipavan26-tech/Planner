@@ -9,3 +9,11 @@ dist-ssr
 !.env.example
 .vercel
 coverage
+
+# Browser suite and Lighthouse CI output. Reports are build artifacts, uploaded
+# from CI rather than committed.
+test-results
+playwright-report
+blob-report
+playwright/.cache
+.lighthouseci

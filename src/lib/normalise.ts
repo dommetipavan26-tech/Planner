@@ -2,6 +2,7 @@ import type {
   CarrierBid,
   Corridor,
   CorridorRequest,
+  DeskSession,
   Pledge,
   PublicPledge,
   TravelMode,
@@ -165,7 +166,8 @@ export function toBid(row: Row): CarrierBid {
     corridor_id: strOrNull(row.corridor_id),
     corridor_code: str(row.corridor_code),
     carrier_name: str(row.carrier_name),
-    desk_contact: str(row.desk_contact),
+    carrier_id: strOrNull(row.carrier_id),
+    desk_ref: strOrNull(row.desk_ref),
     offered_seats: num(row.offered_seats),
     net_group_fare: num(row.net_group_fare),
     baggage_terms: str(row.baggage_terms),
@@ -188,6 +190,30 @@ export function toRequest(row: Row): CorridorRequest {
     group_size: num(row.group_size, 1),
     upvotes: num(row.upvotes, 0),
     created_at: str(row.created_at),
+  };
+}
+
+/**
+ * A desk sign-in answer, or a stored session, into a `DeskSession`.
+ *
+ * Returns null rather than a half-built object: a session without a 64-character
+ * token or without an expiry is not a session this desk can write with, and the
+ * caller has to be able to tell that from "not signed in".
+ */
+export function toDeskSession(row: Row | null | undefined): DeskSession | null {
+  if (!row) return null;
+  const token = str(row.session_token ?? row.token);
+  const carrierId = str(row.carrier_id ?? row.carrierId);
+  const expiresAt = str(row.expires_at ?? row.expiresAt);
+  if (token.length !== 64 || !carrierId || Number.isNaN(Date.parse(expiresAt))) return null;
+  if (Date.parse(expiresAt) <= Date.now()) return null;
+  return {
+    token,
+    carrierId,
+    carrierName: str(row.carrier_name ?? row.carrierName),
+    deskRef: str(row.desk_ref ?? row.deskRef),
+    deskContact: str(row.desk_contact ?? row.deskContact),
+    expiresAt,
   };
 }
 

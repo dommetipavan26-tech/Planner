@@ -26,6 +26,7 @@ import {
   surgeMultiple,
 } from '../lib/format';
 import type { Corridor } from '../lib/types';
+import { teluguFor } from '../lib/telugu';
 import {
   Button,
   Chip,
@@ -408,7 +409,7 @@ export function CorridorView({
               <p className="text-[12.5px] leading-relaxed text-mist-dim">
                 No bid row is published for {corridor.code}. The allotment is held directly against
                 contract {corridor.contract_ref}; carrier desks can log a competing bid from the{' '}
-                <Link to="/carriers" className="text-marigold underline-offset-2 hover:underline">
+                <Link to="/carriers" className="text-marigold underline underline-offset-2 hover:decoration-2">
                   carrier desk
                 </Link>
                 .
@@ -423,7 +424,9 @@ export function CorridorView({
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="flex flex-col gap-1">
                         <span className="text-[13.5px] text-ivory">{bid.carrier_name}</span>
-                        <span className="micro text-mist-faint">{bid.desk_contact}</span>
+                        <span className="micro text-mist-faint">
+                          {bid.desk_ref ? `Desk ${bid.desk_ref}` : 'Desk attribution pending'}
+                        </span>
                       </div>
                       <Chip
                         tone={
@@ -578,6 +581,7 @@ function Endpoint({
   time: string;
   align: 'left' | 'right';
 }) {
+  const telugu = teluguFor(city);
   return (
     <div className={cn('flex min-w-0 flex-col gap-1', align === 'right' && 'items-end text-right')}>
       <span className="tnum display text-[clamp(2.4rem,6vw,3.6rem)] leading-none text-ivory">
@@ -585,6 +589,11 @@ function Endpoint({
       </span>
       <span className="tnum micro-md text-marigold">{time} IST</span>
       <span className="text-[12.5px] text-mist">{city}</span>
+      {telugu ? (
+        <span className="telugu text-[12px] text-mist-dim" lang="te">
+          {telugu}
+        </span>
+      ) : null}
       <span className="text-[11px] text-mist-faint">{state}</span>
     </div>
   );
@@ -621,13 +630,18 @@ function Detail({
   label: string;
   value: string;
 }) {
+  // One grouping div, exactly as the definition-list rule allows: dl > div >
+  // dt + dd. The icon lives inside the dt it decorates, because a <dl> may hold
+  // nothing that is not a term, a description, or a div wrapping those.
   return (
-    <div className="flex items-start gap-3 bg-night-900 px-4 py-3.5">
-      <span className="mt-0.5 shrink-0 text-mist-faint">{icon}</span>
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <dt className="micro text-mist-faint">{label}</dt>
-        <dd className="text-[12.5px] leading-snug text-mist">{value}</dd>
-      </div>
+    <div className="bg-night-900 px-4 py-3.5">
+      <dt className="micro flex items-center gap-1.5 text-mist-faint">
+        <span className="shrink-0" aria-hidden="true">
+          {icon}
+        </span>
+        {label}
+      </dt>
+      <dd className="mt-1 text-[12.5px] leading-snug text-mist">{value}</dd>
     </div>
   );
 }

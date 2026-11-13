@@ -1,0 +1,58 @@
+# Local development stack for the UtsavAir corridor desk.
+#
+# The remote project `txbgovhxqxvlioszevbe` (ap-south-1) is authoritative: every
+# schema change so far has been applied there first, and supabase/migrations/
+# holds numbered mirrors of exactly what was applied, in the order it was
+# applied. This file exists so a contributor can rebuild an equivalent database
+# on their own machine with `supabase start` or `supabase db reset` and run the
+# app against it by pointing VITE_SUPABASE_URL at http://127.0.0.1:54321.
+#
+# Nothing here talks to the remote project. `supabase link` is deliberately not
+# configured — a local stack that can write to production by accident is not a
+# development stack.
+
+project_id = "txbgovhxqxvlioszevbe"
+
+[api]
+enabled = true
+port = 54321
+# The app only ever reads and writes `public`; `extensions` is where pgcrypto
+# lives and the SECURITY DEFINER functions call into it qualified, so local
+# PostgREST needs the same search path the remote one has.
+schemas = ["public", "extensions"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[db.pooler]
+enabled = false
+
+# There is no GoTrue in this product: `auth.users` is empty by design and desk
+# sign-in is a SECURITY DEFINER RPC that returns a session token, not a Supabase
+# Auth session. Leaving it off locally keeps the local stack shaped like the
+# real one instead of inviting code that depends on a session the product does
+# not have.
+[auth]
+enabled = false
+
+# The live board subscribes to corridor changes over Realtime, so the local
+# stack needs it too.
+[realtime]
+enabled = true
+
+[studio]
+enabled = true
+port = 54323
+
+[storage]
+enabled = false
+
+[edge_runtime]
+enabled = false
+
+[analytics]
+enabled = false

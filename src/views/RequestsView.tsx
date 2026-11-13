@@ -176,14 +176,17 @@ export function RequestsView({
       setTravelWindow('');
       setRequesterName('');
       setErrors({});
-      onToast(
-        result.simulated
-          ? 'Request saved on this device — Postgres is unreachable'
-          : 'Request published to the corridor board',
-        result.simulated ? 'info' : 'success',
-      );
+      if (result.simulated) {
+        onToast('Request kept on this device only — it did not reach Postgres', 'info');
+      } else if (result.duplicate) {
+        // The ledger treats the same ask from the same device inside two minutes as
+        // a retry and hands back the row it already wrote.
+        onToast('This device already posted that request', 'info');
+      } else {
+        onToast('Request published to the corridor board', 'success');
+      }
     } else {
-      onToast(result.error ?? 'The ledger rejected that request.', 'error');
+      onToast(result.error ?? 'The ledger rejected that request.', result.throttled ? 'info' : 'error');
     }
   };
 
@@ -191,7 +194,19 @@ export function RequestsView({
     setVoting(id);
     const result = await upvote(id);
     setVoting(null);
-    if (!result.ok) onToast(result.error ?? 'Could not register that upvote.', 'error');
+    if (!result.ok) {
+      onToast(result.error ?? 'Could not register that upvote.', result.throttled ? 'info' : 'error');
+      return;
+    }
+    if (result.duplicate) {
+      // One vote per request per device. A second press is a no-op, and saying
+      // nothing about it would just look like a dead button.
+      onToast('This device already asked for that corridor', 'info');
+      return;
+    }
+    if (result.simulated) {
+      onToast('Upvote kept on this device only — it did not reach Postgres', 'info');
+    }
   };
 
   return (
@@ -291,7 +306,7 @@ export function RequestsView({
                       </svg>
                       <span className="tnum text-[15px] font-medium leading-none text-ivory">
                         {request.upvotes}
-                      </span>
+                      </span>{' '}
                       <span className="micro text-[9px] text-mist-faint">votes</span>
                     </button>
 
@@ -465,7 +480,7 @@ export function RequestsView({
                   <button
                     type="button"
                     onClick={() => matches[0] && onHold(matches[0])}
-                    className="mt-2.5 inline-flex items-center gap-1.5 text-[11.5px] text-jade underline-offset-2 hover:underline"
+                    className="mt-2.5 inline-flex items-center gap-1.5 text-[11.5px] text-jade underline underline-offset-2 hover:decoration-2"
                   >
                     Hold seats on {matches[0]?.code} instead <IconArrow size={11} />
                   </button>

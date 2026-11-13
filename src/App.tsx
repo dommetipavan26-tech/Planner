@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
 
 import { useRouter, ScrollToTop } from './lib/router';
 import { routeTitle } from './lib/meta';
@@ -40,7 +40,24 @@ const SpeedInsights = lazy(() =>
   import('@vercel/speed-insights/react').then((m) => ({ default: m.SpeedInsights })),
 );
 
-export default function App() {
+/* The five routed views, injected so the same tree can render twice: in the
+   browser behind `lazy()` chunks, and at build time from `AppStatic` with the
+   modules already in hand. A prerender that suspends is a prerender that emits
+   streaming completion scripts into a static file, so the static tree must not
+   contain a single boundary. */
+export interface RoutedViews {
+  /* ComponentType, not the bare function type: the browser hands these in as
+     `lazy()` wrappers and the build hands them in as the modules themselves,
+     and both must satisfy the same prop contract. */
+  CorridorView: ComponentType<Parameters<typeof import('./views/CorridorView').CorridorView>[0]>;
+  TripsView: ComponentType<Parameters<typeof import('./views/TripsView').TripsView>[0]>;
+  CarriersView: ComponentType<Parameters<typeof import('./views/CarriersView').CarriersView>[0]>;
+  RequestsView: ComponentType<Parameters<typeof import('./views/RequestsView').RequestsView>[0]>;
+  NotFoundView: ComponentType<Parameters<typeof import('./views/NotFoundView').NotFoundView>[0]>;
+}
+
+export function AppTree({ views }: { views: RoutedViews }) {
+  const { CorridorView, TripsView, CarriersView, RequestsView, NotFoundView } = views;
   const ledger = useLedger();
   const { route } = useRouter();
   const { toasts, push, dismiss } = useToasts();
@@ -167,4 +184,8 @@ export default function App() {
       </Suspense>
     </>
   );
+}
+
+export default function App() {
+  return <AppTree views={{ CorridorView, TripsView, CarriersView, RequestsView, NotFoundView }} />;
 }

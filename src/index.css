@@ -197,6 +197,21 @@
     font-weight: 500;
   }
 
+  /* Telugu place and festival names, rendered under the English label.
+     No webfont: Noto Sans Telugu is about 36 kB of woff2 for the Telugu subset
+     alone, on every corridor page, for one secondary line — and every platform
+     this desk targets already ships a Telugu face. Naming them makes the fallback
+     a decision instead of whatever the browser reaches for first. `normal` for
+     letter-spacing matters: the tracking the Latin text uses pulls Telugu
+     matras away from the consonants they belong to. */
+  .telugu {
+    font-family: 'Noto Sans Telugu', 'Telugu Sangam MN', 'Nirmala UI', 'Noto Serif Telugu',
+      system-ui, sans-serif;
+    letter-spacing: normal;
+    font-feature-settings: normal;
+    line-height: 1.5;
+  }
+
   /* Display type with the optical sizing Instrument Serif wants */
   .display {
     font-family: var(--font-display);

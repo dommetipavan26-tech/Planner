@@ -25,8 +25,8 @@
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import { Writable } from 'node:stream';
-import { renderToPipeableStream } from 'react-dom/server';
+import { JSDOM } from 'jsdom';
+import { prerenderToNodeStream } from 'react-dom/static';
 
 import App from '../src/App';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
@@ -45,7 +45,7 @@ import type { Corridor } from '../src/lib/types';
 const DIST = resolve(process.cwd(), 'dist');
 
 /** The pre-hydration loader: scaffolding for a client-only render, gone here. */
-const BOOT_LOADER = /\s*<div id="boot"[\s\S]*?<\/div>/;
+const BOOT_LOADER = /\s*<div id="boot"[\s\S]*?<\/div>\s*/;
 
 interface Page {
   /** Path a browser would request. */
@@ -88,51 +88,124 @@ function pages(): Page[] {
 /**
  * Render one route to a string.
  *
- * `renderToPipeableStream` with `onAllReady` rather than `renderToString`,
- * because the routed views are lazy: `renderToString` cannot wait for an import
- * and would happily emit the Suspense fallback as the page.
+ * `prerenderToNodeStream` from `react-dom/static`, not `renderToPipeableStream`:
+ * the streaming API emits a pending Suspense boundary as a fallback plus a
+ * hidden completion div and an inline `$RC` swap script, which is right for a
+ * socket and wrong for a file. In a browser that swap script runs at parse time,
+ * and when the boundary id it names is gone it removes the completed content
+ * instead of moving it — leaving the lazy view's region empty until hydration
+ * rebuilds it, which is a repaint, not a hydration. The static API waits for
+ * every boundary and writes the finished markup inline, which is what a document
+ * on disk has to contain. (`renderToString` cannot be used either: the routed
+ * views are lazy, and it would emit the fallback as the page.)
  */
-function renderRoute(path: string): Promise<string> {
-  return new Promise<string>((done, fail) => {
-    const chunks: string[] = [];
-    let settled = false;
-
-    const { pipe } = renderToPipeableStream(
-      <ErrorBoundary>
-        <ClockProvider>
-          <RouterProvider initialPath={path}>
-            <App />
-          </RouterProvider>
-        </ClockProvider>
-      </ErrorBoundary>,
-      {
-        onAllReady() {
-          const sink = new Writable({
-            write(chunk: unknown, _encoding: unknown, callback: () => void) {
-              chunks.push(typeof chunk === 'string' ? chunk : String(chunk));
-              callback();
-            },
-          });
-          sink.on('finish', () => {
-            if (settled) return;
-            settled = true;
-            done(chunks.join(''));
-          });
-          sink.on('error', (error: Error) => {
-            if (settled) return;
-            settled = true;
-            fail(error);
-          });
-          pipe(sink);
-        },
-        onError(error: unknown) {
-          if (settled) return;
-          settled = true;
-          fail(error instanceof Error ? error : new Error(String(error)));
-        },
+async function renderRoute(path: string): Promise<string> {
+  const { prelude } = await prerenderToNodeStream(
+    <ErrorBoundary>
+      <ClockProvider>
+        <RouterProvider initialPath={path}>
+          <App />
+        </RouterProvider>
+      </ClockProvider>
+    </ErrorBoundary>,
+    {
+      onError(error: unknown) {
+        throw error instanceof Error ? error : new Error(String(error));
       },
-    );
-  });
+    },
+  );
+
+  const chunks: string[] = [];
+  for await (const chunk of prelude) {
+    chunks.push(typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8'));
+  }
+  return chunks.join('');
+}
+
+/**
+ * Collapse any streaming completion instructions into finished markup.
+ *
+ * The static renderer writes a Suspense boundary whose content lands after the
+ * shell in the streaming shape: a pending marker, the fallback, a hidden div
+ * carrying the finished content, and an inline `$RC` script that a browser would
+ * run at parse time to swap one for the other. On a socket that is progress; on
+ * a file it is a trap — the swap runs before the deferred bundle hydrates, and
+ * hydration then rebuilds the page instead of adopting it. Everything a document
+ * on disk needs is the finished markup, so the swap is performed here instead:
+ * the pending marker and fallback are replaced by the hidden div's content under
+ * a completed marker, and the runtime scripts are dropped.
+ *
+ * Fails loudly if anything survives: a document that still carries a `$RC` is a
+ * document that will repaint in a browser, and the browser suite asserts that it
+ * does not.
+ */
+function settle(html: string, path: string): string {
+  let out = html;
+
+  for (;;) {
+    const open = out.indexOf('<!--$?-->');
+    if (open === -1) break;
+
+    const template = out.indexOf('<template id="B:', open);
+    if (template === -1 || template > open + 40) {
+      throw new Error(`${path}: pending boundary without a recoverable template at ${open}`);
+    }
+    const idStart = template + '<template id="'.length;
+    const idEnd = out.indexOf('"', idStart);
+    const boundaryId = out.slice(idStart, idEnd);
+    const completionId = `S:${boundaryId.slice(2)}`;
+
+    const dom = new JSDOM(out);
+    const completion = dom.window.document.getElementById(completionId);
+    if (!completion) {
+      throw new Error(`${path}: boundary ${boundaryId} has no completion div ${completionId}`);
+    }
+    const content = completion.innerHTML;
+    dom.window.close();
+
+    const close = out.indexOf('<!--/$-->', open);
+    if (close === -1) {
+      throw new Error(`${path}: pending boundary ${boundaryId} is never closed`);
+    }
+    const finished = `<!--$-->${content}<!--/$-->`;
+    out = out.slice(0, open) + finished + out.slice(close + '<!--/$-->'.length);
+
+    // The hidden completion div and the parse-time runtime are dead weight now.
+    const hiddenOpen = out.indexOf(`<div hidden id="${completionId}">`);
+    if (hiddenOpen !== -1) {
+      // The completion div wraps the view's own root element, which contains divs
+      // of its own, so its end is found by balancing, not by searching.
+      let depth = 0;
+      let i = hiddenOpen;
+      let end = -1;
+      while (i < out.length) {
+        const nextOpen = out.indexOf('<div', i);
+        const nextClose = out.indexOf('</div>', i);
+        if (nextClose === -1) break;
+        if (nextOpen !== -1 && nextOpen < nextClose) {
+          depth += 1;
+          i = nextOpen + 4;
+        } else {
+          depth -= 1;
+          i = nextClose + 6;
+          if (depth === 0) {
+            end = i;
+            break;
+          }
+        }
+      }
+      if (end === -1) throw new Error(`${path}: unbalanced completion div ${completionId}`);
+      out = out.slice(0, hiddenOpen) + out.slice(end);
+    }
+  }
+
+  out = out.replace(/<script>requestAnimationFrame\(function\(\)\{\$RT=[\s\S]*?<\/script>/, '');
+  out = out.replace(/<script>[\s\S]*?\$RC\([\s\S]*?<\/script>\s*/, '');
+
+  if (out.includes('$RC(') || out.includes('<!--$?-->') || out.includes('hidden id="S:')) {
+    throw new Error(`${path}: streaming completion instructions survived settling`);
+  }
+  return out;
 }
 
 /** Replace everything between `<!--name-->` and `<!--/name-->`, markers included. */
@@ -176,7 +249,13 @@ function assemble(template: string, page: Page, markup: string): string {
   // Replacement is a function, never a string: React markup can contain `$`
   // sequences that String.prototype.replace would otherwise interpret.
   html = html.replace('<!--utsavair:head-->', () => head);
-  html = html.replace('<!--utsavair:app-->', () => markup);
+  // Whitespace around the marker is whitespace inside the root container, and
+  // a whitespace text node there is a child the client tree does not have:
+  // hydration mismatches on it at the container and — in a production build,
+  // silently — regenerates the whole page instead of adopting it. Consume the
+  // indentation with the marker so the rendered tree is the container's first
+  // node, and let the boot loader take its own indentation with it.
+  html = html.replace(/\s*<!--utsavair:app-->/, () => markup);
   html = html.replace(BOOT_LOADER, '');
 
   if (html.includes('<!--utsavair:app-->') || html.includes('id="boot"')) {
@@ -224,7 +303,7 @@ async function main(): Promise<void> {
   const written: string[] = [];
 
   for (const page of list) {
-    const markup = await renderRoute(page.path);
+    const markup = settle(await renderRoute(page.path), page.path);
     assertReal(page, markup);
     const html = assemble(template, page, markup);
     const target = resolve(DIST, page.file);

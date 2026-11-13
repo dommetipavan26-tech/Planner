@@ -17,6 +17,7 @@ import {
   surgeMultiple,
 } from '../lib/format';
 import type { Corridor } from '../lib/types';
+import { teluguFor } from '../lib/telugu';
 import { Button, Chip, Countdown, Meter, cn, type Tone } from './ui';
 import {
   IconArrow,
@@ -281,6 +282,7 @@ function Endpoint({
   time: string;
   align: 'left' | 'right';
 }) {
+  const telugu = teluguFor(city);
   return (
     <div className={cn('flex min-w-0 flex-col gap-0.5', align === 'right' && 'items-end text-right')}>
       <span className="tnum display text-[26px] leading-none text-ivory">{code}</span>
@@ -288,6 +290,11 @@ function Endpoint({
       <span className="max-w-[8.5rem] truncate text-[11.5px] text-mist-dim" title={city}>
         {city}
       </span>
+      {telugu ? (
+        <span className="telugu max-w-[8.5rem] truncate text-[11px] text-mist-faint" lang="te">
+          {telugu}
+        </span>
+      ) : null}
     </div>
   );
 }
