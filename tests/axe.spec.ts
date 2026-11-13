@@ -98,8 +98,13 @@ for (const route of DOCUMENT_ROUTES) {
             // reports, so walk up until some layer actually paints a background.
             let node: Element | null = el;
             for (let depth = 0; node && depth < 8; depth += 1) {
-              const image = window.getComputedStyle(node).backgroundImage;
-              if (image && image !== 'none') return image;
+              // Pseudo-elements paint too: the corridor hero's gradient is a
+              // ::before/::after layer, invisible to a walk that only reads the
+              // elements themselves.
+              for (const pseudo of [null, '::before', '::after'] as const) {
+                const image = window.getComputedStyle(node, pseudo).backgroundImage;
+                if (image && image !== 'none') return image;
+              }
               node = node.parentElement;
             }
             return 'none';
