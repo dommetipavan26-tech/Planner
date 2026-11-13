@@ -334,8 +334,12 @@ export function FeeDisclosure({ corridor }: { corridor: Corridor | undefined }) 
                   <span className="tnum micro text-ink-muted">{row.share}%</span>
                 </div>
                 <span className="h-[3px] w-full overflow-hidden rounded-pill bg-hover">
+                  {/* Opaque deep cut: bright marigold at 80% over the track was
+                      1.49:1, a bar that could not be seen to have a length. The
+                      percentage is printed beside it, so the bar is a second
+                      reading of the same figure rather than the only one. */}
                   <span
-                    className="block h-full rounded-pill bg-accent/80"
+                    className="block h-full rounded-pill bg-accent-deep"
                     style={{ width: `${row.share}%` }}
                   />
                 </span>
@@ -447,7 +451,10 @@ export function RefundRule({ corridor }: { corridor: Corridor | undefined }) {
                     item.tone === 'jade'
                       ? 'bg-jade'
                       : item.tone === 'marigold'
-                        ? 'bg-accent'
+                                                // Bright marigold as a swatch is 2.12:1 against a card — a dot
+                        // nobody can find. Marigold as a graphic follows the rule
+                        // marigold as type already did: the deep cut, 6.37:1.
+                        ? 'bg-accent-deep'
                         : item.tone === 'clay'
                           ? 'bg-clay'
                           : 'bg-ember',

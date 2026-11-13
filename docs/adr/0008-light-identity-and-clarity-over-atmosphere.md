@@ -64,22 +64,69 @@ defined, and nowhere a traveller meets it first. The ladder itself is now a
 visible three-cell row on every card — threshold, landed fare, distance to it —
 instead of ticks with a tooltip.
 
-**A static gate, because two defects in this change were invisible to
-everything that ran.** A component asking for a token the design system does not
+**Contrast is measured for graphics as well as for type.** Light paper made the
+text side easy to hold to a floor; it made the *non-text* side visibly wrong, and
+WCAG 1.4.11 is the requirement no tool in this repository checks — axe's
+`color-contrast` is about text, in jsdom or in Chromium alike. Three real
+failures were sitting in the shipped light theme and were found by hand: a text
+field's border at 1.36:1 against the panel it sits on (and `raised` against
+`surface` is 1.016:1, so that border was the only thing on the page saying "this
+is a field"); a focus indicator at 1.70:1, on a control that opts out of the
+global ring; and a marigold meter fill at **1.63:1 against its own track**, which
+made the board's most common graphic a bar nobody could see filling. The seat map
+had the same defect at 1.63:1, and marked its tier thresholds with a ring colour
+that was both invisible and the *only* thing carrying that meaning, which is a
+1.4.1 failure on top of a 1.4.11 one.
+
+The rule that came out of it is the accent rule applied consistently: **bright
+marigold is a fill only where it carries near-black type; as a graphic it takes
+the deep cut**, at 4.90:1 against the track it sits in. Anything a reader has to
+see in order to *use* it — a field, a button, a meter track — takes a new
+`--color-edge`, which clears 3:1 against every panel in the neutral ramp
+including the pressed state a control turns into mid-click (worst case 3.24:1).
+Hairlines stay hairlines: `rule`, `rule-soft`, `rule-strong` and `rule-strongest`
+measure 1.12–2.31:1 and are used only where a rule separates content, which
+1.4.11 asks nothing of. Thresholds in the seat map are now a **taller cell**, so
+the meaning survives greyscale as well as low contrast. And a state encoded as
+one background against another has to clear 3:1 between the two, *opaque* — a
+translucent fill has no contrast of its own, it inherits whatever ends up behind
+it, so it cannot be reasoned about at all.
+
+**A static gate, because these defects were invisible to everything that ran.** A component asking for a token the design system does not
 define produces no error anywhere: Tailwind v4 generates utilities from
 `@theme`, so an unknown name emits nothing, the build succeeds, and the element
 simply has no colour. And a background paired with a foreground at 1.16:1 in one
 class string passes the local audit, because jsdom runs axe with
-`color-contrast` disabled for want of a layout engine. Both were hit, and both
-are now caught by `npm run tokens` — pure source arithmetic, no build, under a
-second — which runs first in `npm run audit`. It was checked against a
-deliberately sabotaged file before being trusted.
+`color-contrast` disabled for want of a layout engine. Both were hit. So were the
+three non-text failures above, which no axe run anywhere would ever have
+reported. All of them are now caught by `npm run tokens` — pure source
+arithmetic, no build, under a second — which runs first in `npm run audit`, and
+which was checked against deliberately sabotaged files before being trusted: a
+probe carrying `bg-accent-tint text-white` was written into `src/`, the gate was
+watched to fail on it at 1.12:1 while passing `bg-lagoon text-white` beside it,
+and the probe was deleted. Every branch of it has been seen firing on a real
+defect rather than only on a fixture.
 
 ## Consequences
 
 - Contrast is a measured floor with the numbers written down, not a claim.
   The browser suite remains the authority on inherited colour; the token gate
   exists so the obvious cases never reach a CI run.
+- Writing the numbers down found two wrong ones. This ADR's own earlier draft,
+  the token comment in `src/index.css` and the README all quoted floors measured
+  against eleven surfaces and named `clay-tint-strong` as the darkest; the
+  darkest is `ember-tint-strong`, against which `ink-faint` was 4.47:1 — 0.03
+  short of the floor being advertised. `ink-faint` is one step darker now
+  (4.66:1 worst case) and the gate re-derives every quoted number, so a comment
+  cannot outlive the palette it describes.
+- The state-pair check distinguishes a state from a choice between categories by
+  looking for an equality test in the ternary's condition. That is a heuristic.
+  It is right for every ternary in this repository, including the nested hue
+  chains, and it fails towards a false alarm rather than a missed defect — but it
+  is the one judgement in the gate that a reader should not trust blindly.
+- Lighthouse collects three runs per URL and `lhci assert` judges the median.
+  One run made the timing budgets a coin toss on a shared runner, and a gate that
+  reddens at random teaches people to re-run instead of read.
 - The hero washes are still the only place axe may report unresolved contrast,
   and the browser gate still requires any unresolved node to share a section
   with `.glow-accent` or `.grid-veil`. A translucent layer anywhere else fails

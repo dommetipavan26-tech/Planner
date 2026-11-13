@@ -42,31 +42,46 @@
 
   /* --- Ink ---------------------------------------------------------------- */
   /* Ratios below are each token's worst case across every surface that carries
-     text — page, surface, raised, sunken and all six tints, the darkest of
-     which is clay-tint-strong — so the number quoted is a floor, not a sample.
+     text — page, surface, raised, sunken and all eight tints. The worst surface
+     turns out to be `ember-tint-strong` rather than the page, because a status
+     wash is darker than the paper it sits on; the numbers quoted are floors, not
+     samples, and `npm run tokens` re-derives all of them from this file.
      Every one clears WCAG AA 4.5:1, `ink-faint` included, because a faint label
      is still a label a traveller has to read.
-       ink 13.84:1 · ink-soft 8.52:1 · ink-muted 5.95:1 · ink-faint 4.72:1
-       accent-deep 5.03:1 · accent-ink 6.72:1 · jade-deep 5.68:1
-       ember-deep 5.78:1 · lagoon-deep 6.30:1 · clay-deep 5.86:1
-       on-accent 14.30:1
-     hover and press are interaction states and meter tracks, never text
-     backgrounds, which is why they are not in that set. */
+       ink 13.11:1 · ink-soft 8.07:1 · ink-muted 5.64:1 · ink-faint 4.66:1
+       accent-deep 4.77:1 · accent-ink 6.36:1 · jade-deep 5.38:1
+       ember-deep 5.48:1 · lagoon-deep 5.97:1 · clay-deep 5.55:1
+       on-accent 13.55:1
+     hover and press are interaction states, never text backgrounds, which is why
+     they are not in that set — the only text that ever sits on them is a
+     control's own label, written in the same class string as the background. */
   --color-ink: #14181f;
   --color-ink-soft: #363d48;
   --color-ink-muted: #4c5460;
-  --color-ink-faint: #5b6370;
+  --color-ink-faint: #586070;
 
   /* --- Rules -------------------------------------------------------------- */
-  /* Hairlines. Deliberately low-contrast against the page (1.1–1.7:1): a rule
-     separates, it does not compete with type. `rule-strong` and
-     `rule-strongest` are the two that carry meaning on their own — an input
-     border and a meter track — and both clear 3:1 against the page, which is
-     what AA asks of a boundary a reader has to see to use the control. */
+  /* Hairlines, and they stay hairlines: a rule separates content, it does not
+     compete with type. Measured against the page — rule 1.23:1, rule-soft
+     1.12:1, rule-strong 1.67:1, rule-strongest 2.31:1 — so none of these is a
+     boundary anyone is required to see. They are used for separators, card
+     edges, dividers, the hero's graph paper and scrollbars, all decoration
+     under WCAG 1.4.11, which asks nothing of them.
+
+     Anything a reader has to see in order to *use* it takes `edge` instead,
+     which clears 3:1 against every panel in the neutral ramp, including the
+     pressed state a control turns into while it is being used: page 4.36:1,
+     surface 4.72:1, raised 4.80:1, sunken 3.98:1, hover 3.63:1, press 3.24:1.
+     That distinction is not cosmetic here: `raised` against `surface` is
+     1.016:1, so a text field's border is the only thing on the page that says
+     "this is a field", and the 1.36:1 hairline it used to carry was a boundary
+     nobody could find. `npm run tokens` re-derives every number in this comment
+     from this file, so the comment cannot outlive the palette. */
   --color-rule: #e2ddd1;
   --color-rule-soft: #ebe7dc;
   --color-rule-strong: #c5bfb0;
   --color-rule-strongest: #a9a291;
+  --color-edge: #787261;
 
   /* --- Accent: the marigold stamp ----------------------------------------- */
   /* One accent, used two ways, and the two are never interchangeable. As a FILL

@@ -148,6 +148,13 @@ jobs:
       # in the 0.15 line, and none of it belongs in a browser. Pinning the exact
       # version here keeps that out of `npm ci` while still failing the build on a
       # budget regression. It reuses the Chromium Playwright just installed.
+      # Three runs per URL rather than one. `lhci assert` judges the median, and
+      # the budgets here include single-sample timings — FCP 2500ms, server
+      # response 600ms, CLS 0.1 — which on a shared runner are noisy enough that
+      # one sample reddens a build at random. It did: PR #7's first run failed this
+      # step, wrote no reports at all, and the next run passed the same code. The
+      # step below exists to tell those two situations apart; this one exists to
+      # make the first one rarer.
       - name: Lighthouse budgets
         run: |
           echo "CHROME_PATH=$(node -e 'process.stdout.write(require("playwright-core").chromium.executablePath())')" >> "$GITHUB_ENV"

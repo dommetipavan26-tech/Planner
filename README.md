@@ -286,14 +286,31 @@ published demo passcode.
 ## Accessibility
 
 - Every text token clears **4.5:1** on *every* surface that carries text —
-  `page`, `surface`, `raised`, `sunken` and all six tints. Each number below is
-  that token's **worst case** across the whole set, which lands on
-  `clay-tint-strong` every time: ink 13.84:1, ink‑soft 8.52:1, ink‑muted 5.95:1,
-  ink‑faint 4.72:1, accent‑deep 5.03:1, accent‑ink 6.72:1, jade‑deep 5.68:1,
-  ember‑deep 5.78:1, lagoon‑deep 6.30:1, clay‑deep 5.86:1, on‑accent 14.30:1.
-  Placeholders are included, because a placeholder is text a traveller has to
-  read. The audit is a comment next to the tokens in `src/index.css`, and
-  `npm run tokens` re-derives the pairs from the source on every run.
+  `page`, `surface`, `raised`, `sunken` and all eight tints. Each number below is
+  that token's **worst case** across the whole set, and the worst surface turns
+  out to be `ember-tint-strong` rather than the page, because a status wash is
+  darker than the paper it sits on: ink 13.11:1, ink‑soft 8.07:1, ink‑muted
+  5.64:1, ink‑faint 4.66:1, accent‑deep 4.77:1, accent‑ink 6.36:1, jade‑deep
+  5.38:1, ember‑deep 5.48:1, lagoon‑deep 5.97:1, clay‑deep 5.55:1, on‑accent
+  13.55:1. Placeholders are included, because a placeholder is text a traveller
+  has to read. The audit is a comment next to the tokens in `src/index.css`, and
+  `npm run tokens` re-derives every one of those numbers from the source on every
+  run — two of them were wrong before it did, including this paragraph's.
+- **Non-text contrast is measured too (WCAG 1.4.11), because nothing else can.**
+  axe's `color-contrast` is about text: it does not ask whether a text field's
+  border, a progress bar's track or a meter's fill can be seen. Three real
+  failures were sitting in the shipped light theme and were found by hand — a
+  field border at **1.36:1**, a focus indicator at **1.70:1**, and a marigold
+  meter fill at **1.63:1 against its own track**, which made the board's most
+  common graphic a bar nobody could see filling. Anything a reader has to see in
+  order to *use* it now takes `--color-edge`, which clears 3:1 against every
+  panel including the pressed state a control turns into mid-click (worst case
+  3.24:1); meter fills, seat cells and swatches take a cut that clears 3:1
+  against the panels they sit on; and a state encoded as one background against
+  another has to clear 3:1 between the two, opaque, because a translucent fill
+  has no contrast of its own. The seat map's tier thresholds are marked by a
+  **taller cell** rather than a ring colour, so they survive being read in
+  greyscale (1.4.1) as well as at 3:1 (1.4.11).
 - Skip link, landmark regions, `aria-current` on nav, `aria-pressed` on toggles,
   `role="progressbar"` with real values on meters, `role="img"` + label on the
   routing diagram and the allotment map, table `caption`s and row/column headers
@@ -349,15 +366,23 @@ npm run icons      # regenerate the manifest icons from the favicon path
 
 `.github/workflows/ci.yml` runs two jobs on every pull request and push to
 `main`. **`verify`** is the fast, offline half: typecheck, the render check, the
-**token gate** (`npm run tokens`, which runs first inside the document gate: every
-palette utility in `src/**` resolves to a defined token, and every background and
-foreground that share a class string clear 4.5:1), the document gate, the build, a
+**token gate** (`npm run tokens`, which runs first inside the document gate) — every
+palette utility in `src/**` resolves to a defined token; every background and
+foreground that share a class string clear 4.5:1; every foreground token is
+legible on all twelve text-bearing panels; the declared boundary and graphic
+tokens clear 3:1 against the panels they sit on; and every state encoded as one
+background against another clears 3:1 — the document gate, the build, a
 **bundle budget** that fails if any JS or CSS chunk passes 260 kB, the
 **no-literal-colour grep** over `src/**`, and a **dependency audit** that fails the build on any high advisory in the production tree
 (`npm audit --omit=dev --audit-level=high`). **`browser`** is the slow half:
 `npm ci`, Playwright's chromium, the build, the 35-test browser suite, and
-Lighthouse CI against `dist/` with budgets for accessibility (≥0.95), best
-practices (≥0.90), performance (≥0.80), CLS, FCP, LCP and total byte weight. Both
+Lighthouse CI against `dist/` — three runs per URL, judged on the median, because
+one sample of a timing budget on a shared runner is a coin toss — with budgets for
+accessibility (≥0.95), best practices (≥0.90), performance (≥0.80), CLS, FCP, LCP
+and total byte weight. If that step fails, `scripts/lhci-report.mjs` runs
+afterwards and says whether a budget broke (and which, against what threshold) or
+whether Lighthouse never collected at all, which is an infrastructure problem and
+not a regression. Both
 report bundles are uploaded as an artifact on every run, cancelled or not.
 
 The browser suite **never writes to the production ledger**: every test either

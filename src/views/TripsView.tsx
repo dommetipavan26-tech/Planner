@@ -392,15 +392,7 @@ export function TripsView({
                           {corridor.pledged_seats}/{corridor.total_allotment}
                         </span>
                       </div>
-                      <Meter
-                        filled={corridor.pledged_seats}
-                        total={corridor.total_allotment}
-                        marks={[
-                          { at: corridor.tier1_min, label: 'Tier I' },
-                          { at: corridor.tier2_min, label: 'Tier II' },
-                          { at: corridor.tier3_min, label: 'Tier III' },
-                        ]}
-                      />
+                      <Meter filled={corridor.pledged_seats} total={corridor.total_allotment} />
                       <p className="text-[11px] text-ink-faint">
                         {isClosed(corridor, now) ? (
                           <>Closed {formatDate(corridor.lock_deadline)}</>

@@ -736,7 +736,7 @@ function SeatMap({ corridor }: { corridor: Corridor }) {
         </span>
       </div>
       <div
-        className="flex flex-wrap gap-[3px]"
+        className="flex flex-wrap items-end gap-[3px]"
         role="img"
         aria-label={`${filled} of ${corridor.total_allotment} contracted seats are pledged; tier ${tier || 0} is live`}
       >
@@ -748,9 +748,14 @@ function SeatMap({ corridor }: { corridor: Corridor }) {
               key={i}
               title={markIndex >= 0 ? `${marks[markIndex]?.label} at seat ${i + 1}` : undefined}
               className={cn(
-                'h-[7px] w-[7px] rounded-[1.5px] transition-colors duration-500',
-                isFilled ? 'bg-accent' : 'bg-hover',
-                markIndex >= 0 && 'ring-1 ring-inset ring-rule-strong',
+                'w-[7px] rounded-[1.5px] transition-colors duration-500',
+                markIndex >= 0 ? 'h-[11px]' : 'h-[7px]',
+                // Bright marigold against the empty cell measured 1.63:1, so the
+                // map could not be read as a map: which seats are pledged is the
+                // whole point of it. The deep cut is 4.90:1 against the same
+                // cell, and marigold as a graphic follows the rule marigold as
+                // type already did.
+                isFilled ? 'bg-accent-deep' : 'bg-hover',
               )}
             />
           );
@@ -762,7 +767,11 @@ function SeatMap({ corridor }: { corridor: Corridor }) {
             <span
               className={cn(
                 'h-1.5 w-1.5 rounded-full',
-                corridor.pledged_seats >= m.at ? 'bg-jade' : 'bg-press',
+                // Solid jade against a hollow `edge` outline: the two states
+                // differ by 3.33:1 and by shape, so neither colour nor contrast
+                // is carrying the meaning alone. Two filled greys — jade against
+                // the old `press` — measured 2.71:1.
+                corridor.pledged_seats >= m.at ? 'bg-jade' : 'border border-edge',
               )}
               aria-hidden="true"
             />

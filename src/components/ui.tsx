@@ -91,9 +91,9 @@ const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary:
     'bg-accent text-on-accent hover:bg-accent-bright shadow-accent',
   secondary:
-    'bg-sunken text-ink border border-rule-strong hover:bg-hover hover:border-rule-strongest',
+    'bg-sunken text-ink border border-edge hover:bg-hover hover:border-edge',
   ghost: 'text-ink-soft hover:text-ink hover:bg-raised border border-transparent',
-  quiet: 'text-ink-muted hover:text-ink-soft border border-rule hover:border-rule-strong',
+  quiet: 'text-ink-muted hover:text-ink-soft hover:bg-hover border border-edge',
   danger: 'bg-ember-tint text-ember-deep border border-ember-line hover:bg-ember-tint-strong',
 };
 
@@ -248,10 +248,14 @@ export function Chip({
 /* Form controls                                                              */
 /* -------------------------------------------------------------------------- */
 
+/* `focus:outline-none` opts a field out of the global ring, so the focus
+   indicator is the border and it has to clear 3:1 by itself: the bright accent
+   at 70% over the field measured 1.70:1, which is a decoration where a state
+   change was promised. `accent-deep` is 6.47:1 against the field. */
 const FIELD_SHELL =
   'w-full rounded-card border bg-raised text-ink placeholder:text-ink-faint ' +
   'transition-[border-color,background-color,box-shadow] duration-200 ease-out-expo ' +
-  'focus:outline-none focus:border-accent/70 focus:bg-sunken focus:shadow-ring-accent';
+  'focus:outline-none focus:border-accent-deep focus:bg-sunken focus:shadow-ring-accent';
 
 export function Field({
   label,
@@ -303,7 +307,7 @@ export function TextInput({
       className={cn(
         FIELD_SHELL,
         'h-10 px-3 text-[13.5px]',
-        invalid ? 'border-ember/60' : 'border-rule',
+        invalid ? 'border-ember-deep' : 'border-edge',
         className,
       )}
       aria-invalid={invalid || undefined}
@@ -322,7 +326,7 @@ export function TextArea({
       className={cn(
         FIELD_SHELL,
         'px-3 py-2.5 text-[13.5px] leading-relaxed resize-y min-h-[84px]',
-        invalid ? 'border-ember/60' : 'border-rule',
+        invalid ? 'border-ember-deep' : 'border-edge',
         className,
       )}
       aria-invalid={invalid || undefined}
@@ -343,7 +347,7 @@ export function SelectInput({
         className={cn(
           FIELD_SHELL,
           'h-10 appearance-none pl-3 pr-9 text-[13.5px]',
-          invalid ? 'border-ember/60' : 'border-rule',
+          invalid ? 'border-ember-deep' : 'border-edge',
           className,
         )}
         aria-invalid={invalid || undefined}
@@ -519,33 +523,46 @@ export function Stat({
 }
 
 /**
- * Fill meter. The track is the carrier's allotment; the fill is pledged seats,
- * and the three tier marks sit at their seat thresholds so the reader can see
- * exactly how far the cohort is from the next price break.
+ * Fill meter. The track is the carrier's allotment; the fill is pledged seats.
+ *
+ * A progress bar is a graphic, so WCAG 1.4.11 applies to it twice: the reader has
+ * to see where the bar is, and how full it is. Two measurements set these colours.
+ * The track is a `sunken` well with an `edge` outline, because the outline is the
+ * only thing that says "this is a bar" — a track that differs from its card by
+ * 1.15:1 is a smudge, and `edge` clears 3.31–3.99:1 against every surface it can
+ * sit on. The fill takes a cut that clears 3:1 against both the track and the
+ * page: bright marigold measured 1.63:1 against the old track and 1.96:1 against
+ * the page, so the most common meter on the board was a bar nobody could see
+ * filling. Marigold as a *graphic* now follows the rule marigold as *type* already
+ * did, and takes the deep cut.
+ *
+ * The three tier ticks this used to draw are gone rather than re-cut. Their labels
+ * only ever existed in a `title` attribute, which a phone cannot open, so the one
+ * thing a traveller has to understand about a corridor — how far it is from the
+ * next price break — was the one thing they could not read. `<TierLadder compact>`
+ * says it in words and rupees instead.
  */
 export function Meter({
   filled,
   total,
-  marks = [],
   tone = 'marigold',
   className,
   label,
 }: {
   filled: number;
   total: number;
-  marks?: Array<{ at: number; label: string }>;
   tone?: 'marigold' | 'jade' | 'lagoon';
   className?: string;
   label?: string;
 }) {
   const ratio = total > 0 ? Math.min(100, (filled / total) * 100) : 0;
   const barTone =
-    tone === 'jade' ? 'bg-jade' : tone === 'lagoon' ? 'bg-lagoon' : 'bg-accent';
+    tone === 'jade' ? 'bg-jade' : tone === 'lagoon' ? 'bg-lagoon' : 'bg-accent-deep';
 
   return (
     <div className={cn('w-full', className)}>
       <div
-        className="relative h-[6px] w-full overflow-hidden rounded-pill bg-hover"
+        className="relative h-2 w-full overflow-hidden rounded-pill border border-edge bg-sunken"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={total}
@@ -557,25 +574,6 @@ export function Meter({
           style={{ width: `${ratio}%` }}
         />
       </div>
-      {marks.length > 0 && (
-        <div className="relative mt-0 h-2 w-full" aria-hidden="true">
-          {marks.map((mark) => {
-            const pos = total > 0 ? Math.min(100, (mark.at / total) * 100) : 0;
-            const passed = filled >= mark.at;
-            return (
-              <span
-                key={mark.label}
-                title={`${mark.label} at ${mark.at} seats`}
-                className={cn(
-                  'absolute top-0 h-2 w-px',
-                  passed ? 'bg-accent/70' : 'bg-rule-strongest',
-                )}
-                style={{ left: `${pos}%` }}
-              />
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

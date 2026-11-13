@@ -271,7 +271,11 @@ function Row({
         <span
           className={cn(
             'block h-full rounded-pill transition-[width] duration-500 ease-out-expo',
-            tone === 'ember' ? 'bg-ember/70' : 'bg-lagoon/60',
+            // Opaque: the same two fills at 70% and 60% over the sunken track
+            // measured 2.67:1 and 2.32:1, below the 3:1 a graphic needs — and a
+            // translucent fill has no contrast of its own, it inherits whatever
+            // ends up behind it.
+            tone === 'ember' ? 'bg-ember' : 'bg-lagoon',
           )}
           style={{ width: `${(value / scale) * 100}%` }}
         />
