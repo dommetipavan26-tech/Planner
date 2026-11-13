@@ -148,10 +148,51 @@ jobs:
       # in the 0.15 line, and none of it belongs in a browser. Pinning the exact
       # version here keeps that out of `npm ci` while still failing the build on a
       # budget regression. It reuses the Chromium Playwright just installed.
+      # Three runs per URL rather than one. `lhci assert` judges the median, and
+      # the budgets here include single-sample timings — FCP 2500ms, server
+      # response 600ms, CLS 0.1 — which on a shared runner are noisy enough that
+      # one sample reddens a build at random. It did: PR #7's first run failed this
+      # step, wrote no reports at all, and the next run passed the same code. The
+      # step below exists to tell those two situations apart; this one exists to
+      # make the first one rarer.
       - name: Lighthouse budgets
         run: |
           echo "CHROME_PATH=$(node -e 'process.stdout.write(require("playwright-core").chromium.executablePath())')" >> "$GITHUB_ENV"
           npx --yes @lhci/cli@0.16.1 autorun
+          # Record the scores on the way past, not only when something breaks: a
+          # green run that leaves no numbers behind is a green run nobody can
+          # compare the next one to. And say out loud when lhci kept no local
+          # reports, because the upload step below has been reporting success
+          # while uploading nothing at all.
+          if [ -d .lighthouseci ]; then
+            node scripts/lhci-report.mjs
+            # Copy the reports somewhere the artifact action will actually pick
+            # them up. `.lighthouseci/` is hidden *and* gitignored, and the upload
+            # step has been reporting success while archiving nothing at all —
+            # nine reports were sitting in that directory on a run whose artifact
+            # came back empty.
+            mkdir -p lighthouse-reports
+            cp .lighthouseci/lhr-*.json .lighthouseci/links.json lighthouse-reports/ 2>/dev/null || true
+            echo "kept $(ls -1 lighthouse-reports | wc -l) report file(s) for upload"
+          else
+            echo "::warning::lhci wrote no .lighthouseci directory, so no scores can be recorded here and the report artifact will be empty"
+          fi
+
+      # A Lighthouse failure has to be readable from outside the runner: job logs
+      # are not always retrievable, and the artifact below is empty when lhci dies
+      # before it writes anything — which is exactly the case that looks like a
+      # budget regression and is not one. So on failure this says which of the two
+      # happened, and emits the specifics as annotations, where they can be read
+      # back through the API.
+      # A Lighthouse failure has to be readable from outside the runner: job logs
+      # are not always retrievable, and the artifact below is empty when lhci dies
+      # before it collects anything — so "a budget regressed" and "Lighthouse never
+      # ran" look identical in the checks list while needing opposite responses.
+      # The script says which one happened, and re-judges any reports that do exist
+      # against the budgets in .lighthouserc.json.
+      - name: Surface Lighthouse failures
+        if: failure()
+        run: node scripts/lhci-report.mjs
 
       - name: Upload browser and Lighthouse reports
         if: ${{ !cancelled() }}
@@ -161,6 +202,9 @@ jobs:
           path: |
             playwright-report/
             test-results/
-            .lighthouseci/
+            lighthouse-reports/
           retention-days: 14
-          if-no-files-found: ignore
+          # `ignore` let this step report success while uploading nothing, which
+          # is how an empty artifact came to look like a normal outcome rather
+          # than evidence that there was nothing to keep.
+          if-no-files-found: warn

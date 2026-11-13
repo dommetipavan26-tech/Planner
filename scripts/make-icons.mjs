@@ -1,8 +1,8 @@
 /**
  * Draws the installable icons from the same artwork as the favicon.
  *
- * The favicon in index.html is an inline SVG: a night-coloured rounded square, a
- * marigold corridor arc, an ivory origin dot and a marigold destination dot. The
+ * The favicon in index.html is an inline SVG: a paper-coloured rounded square, a
+ * marigold corridor arc, an ink origin dot and a marigold destination dot. The
  * PWA manifest needs rasterised versions of it, and there is no image pipeline in
  * this project to produce them, so this script rasterises that exact path — same
  * cubic Bézier, same stroke width, same radii, same three token colours — with a
@@ -24,10 +24,15 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'public', 'icons');
 
-/* Colours straight out of src/index.css --color-night, --color-marigold, --color-ivory. */
-const NIGHT = [6, 8, 14];
+/* Colours straight out of src/index.css --color-page, --color-accent, --color-ink.
+   The mark is unchanged from the dark identity — a corridor curving from an
+   origin dot to a destination dot — but the stock it is printed on is paper now,
+   so the origin dot is ink rather than ink and the field is warm white. An icon
+   that was a dark tile reads as a hole in a light browser chrome; this one reads
+   as a stamp. */
+const PAPER = [246, 244, 239];
 const MARIGOLD = [232, 163, 61];
-const IVORY = [244, 241, 234];
+const INK = [20, 24, 31];
 
 /* The favicon path, in the 32-unit viewBox it was drawn in. */
 const VIEW = 32;
@@ -39,7 +44,7 @@ const CURVE = [
   [23.5, 9],
 ];
 const STROKE = 1.8;
-const ORIGIN = { at: [8.5, 22.5], r: 2.6, colour: IVORY };
+const ORIGIN = { at: [8.5, 22.5], r: 2.6, colour: INK };
 const DEST = { at: [23.5, 9], r: 2.6, colour: MARIGOLD };
 
 /* ------------------------------------------------------------------ png */
@@ -160,9 +165,9 @@ function render(size, { maskable = false } = {}) {
 
   for (let py = 0; py < size; py++) {
     for (let px = 0; px < size; px++) {
-      let night = 0;
+      let paper = 0;
       let marigold = 0;
-      let ivory = 0;
+      let ink = 0;
 
       for (let sy = 0; sy < 3; sy++) {
         for (let sx = 0; sx < 3; sx++) {
@@ -171,11 +176,11 @@ function render(size, { maskable = false } = {}) {
 
           // Background: rounded square, or full bleed when maskable.
           if (maskable) {
-            night += 1;
+            paper += 1;
           } else {
             const dist = roundedSquareCoverage(x - VIEW / 2, y - VIEW / 2, VIEW / 2, CORNER);
-            if (dist <= -0.5) night += 1;
-            else if (dist < 0.5) night += 0.5 - dist;
+            if (dist <= -0.5) paper += 1;
+            else if (dist < 0.5) paper += 0.5 - dist;
           }
 
           // Artwork, pulled into the safe zone for the maskable variant.
@@ -190,26 +195,26 @@ function render(size, { maskable = false } = {}) {
             const dist = Math.hypot(cx - dot.at[0], cy - dot.at[1]) - dot.r;
             const cover = dist <= -0.5 ? 1 : dist < 0.5 ? 0.5 - dist : 0;
             if (cover <= 0) continue;
-            if (dot.colour === IVORY) ivory += cover;
+            if (dot.colour === INK) ink += cover;
             else marigold += cover;
           }
         }
       }
 
       const total = 9;
-      const aIvory = Math.min(1, ivory / total);
+      const aIvory = Math.min(1, ink / total);
       const aMarigold = Math.min(1, marigold / total);
-      const aNight = Math.min(1, night / total);
+      const aPaper = Math.min(1, paper / total);
 
-      // Paint back to front: night, then marigold, then ivory. Each layer is the
+      // Paint back to front: paper, then marigold, then ink. Each layer is the
       // source over what is already there — source-over, so a fully opaque lower
       // layer must not swallow the one above it.
       let [r, g, b] = [0, 0, 0];
       let alpha = 0;
       for (const [colour, coverage] of [
-        [NIGHT, aNight],
+        [PAPER, aPaper],
         [MARIGOLD, aMarigold],
-        [IVORY, aIvory],
+        [INK, aIvory],
       ]) {
         if (coverage <= 0) continue;
         const source = coverage;

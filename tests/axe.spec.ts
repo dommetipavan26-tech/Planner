@@ -73,7 +73,7 @@ for (const route of DOCUMENT_ROUTES) {
     expect(summary, `axe violations on ${route.path}`).toEqual([]);
 
     // axe cannot compute a ratio against a gradient, and the corridor heroes
-    // sit on two declared decorative washes — `.glow-marigold` (radial marigold
+    // sit on two declared decorative washes — `.glow-accent` (radial marigold
     // and lagoon at 13% and 7%) and `.grid-veil` (a masked survey grid) — which
     // are sibling layers behind the hero content, so every text node in a hero
     // comes back `incomplete` by construction. Those washes mix into the night
@@ -95,7 +95,7 @@ for (const route of DOCUMENT_ROUTES) {
           .locator(selector)
           .first()
           .evaluate((el) => {
-            const wash = '.glow-marigold, .grid-veil';
+            const wash = '.glow-accent, .grid-veil';
             if (el.closest(wash)) return true;
             for (let scope: Element | null = el, depth = 0; scope && depth < 10; depth += 1) {
               if (scope.querySelector(wash)) return true;

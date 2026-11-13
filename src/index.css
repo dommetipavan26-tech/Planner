@@ -1,84 +1,154 @@
 @import 'tailwindcss';
 
 /* ==========================================================================
-   UtsavAir design system
-   Dark airside palette, editorial serif display, monospaced money.
-   Every token below is a deliberate choice; there are no one-off colours in
-   the components.
+   UtsavAir design system — departure board on paper
+   ==========================================================================
+   A light, warm-paper surface with ink-navy type, a marigold stamp for the one
+   action that matters on each screen, and monospaced figures for every code,
+   clock and rupee. It replaces the previous dark "airside at night" identity
+   (ADR-0008): the board is read in daylight, on a phone, by someone deciding
+   whether to hand over money for a seat in January — and a dark editorial
+   treatment made the tier ladder, the deadlines and the next action compete
+   with the atmosphere instead of standing out from it.
+
+   Every hue in the product lives in this file. CI greps `src/**` for a literal
+   hex or `rgba()` and fails the build, so a component cannot smuggle in a
+   one-off colour; the tokens below are the whole palette.
    ========================================================================== */
 
 @theme {
   /* --- Type --------------------------------------------------------------- */
+  /* One text family and one mono. The previous identity carried a serif display
+     face (Instrument Serif) plus two Geist cuts; a single variable grotesque
+     does the whole job, the hierarchy comes from weight and size rather than
+     from a family change, and two fewer font files ship to every document.
+     `--font-display` stays defined because headings and `.display` name it: it
+     is the same face, and the difference is optical, not a second download. */
   --font-sans: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+  --font-display: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'Geist Mono Variable', 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* --- Surfaces ----------------------------------------------------------- */
-  --color-night: #06080e;
-  --color-night-900: #0a0e17;
-  --color-night-850: #0e131e;
-  --color-night-800: #131a26;
-  --color-night-750: #1a2231;
-  --color-night-700: #222b3c;
+  /* The ramp reads like stock: page is the sheet everything is printed on,
+     surface is a card laid on it, raised is the brightest panel (sticky header,
+     popover, sheet), and sunken/hover/press go the other way for wells, list
+     stripes and interaction states. */
+  --color-page: #f6f4ef;
+  --color-surface: #fffdf9;
+  --color-raised: #ffffff;
+  --color-sunken: #eceae1;
+  --color-hover: #e3e0d6;
+  --color-press: #d8d4c8;
 
-  /* --- Lines -------------------------------------------------------------- */
-  --color-line: #1b2331;
-  --color-line-soft: #141b27;
-  --color-line-bright: #2b3548;
+  /* --- Ink ---------------------------------------------------------------- */
+  /* Ratios below are each token's worst case across every surface that carries
+     text — page, surface, raised, sunken and all eight tints. The worst surface
+     turns out to be `ember-tint-strong` rather than the page, because a status
+     wash is darker than the paper it sits on; the numbers quoted are floors, not
+     samples, and `npm run tokens` re-derives all of them from this file.
+     Every one clears WCAG AA 4.5:1, `ink-faint` included, because a faint label
+     is still a label a traveller has to read.
+       ink 13.11:1 · ink-soft 8.07:1 · ink-muted 5.64:1 · ink-faint 4.66:1
+       accent-deep 4.77:1 · accent-ink 6.36:1 · jade-deep 5.38:1
+       ember-deep 5.48:1 · lagoon-deep 5.97:1 · clay-deep 5.55:1
+       on-accent 13.55:1
+     hover and press are interaction states, never text backgrounds, which is why
+     they are not in that set — the only text that ever sits on them is a
+     control's own label, written in the same class string as the background. */
+  --color-ink: #14181f;
+  --color-ink-soft: #363d48;
+  --color-ink-muted: #4c5460;
+  --color-ink-faint: #586070;
 
-  /* --- Text --------------------------------------------------------------- */
-  /* Ratios below are the worst case for each token across every surface that
-     carries text: night #06080e, night-900 #0a0e17, night-850 #0e131e and
-     night-800 #131a26 — so the number quoted is against night-800, the
-     lightest of the four. All of them clear WCAG AA 4.5:1, placeholders
-     included, because a placeholder is text a traveller has to read.
-       ivory 15.5:1 · mist 7.9:1 · mist-dim 5.7:1 · mist-faint 4.6:1
-       marigold 8.1:1 · jade 7.4:1 · lagoon 6.8:1 · clay 6.3:1 · ember 4.9:1
-     night-750 and night-700 appear only as hover states and non-text fills
-     (seat dots, meter tracks), which is why they are not in the audit. */
-  --color-ivory: #f4f1ea;
-  --color-mist: #a9aebc;
-  --color-mist-dim: #8b93a5;
-  --color-mist-faint: #7c8392;
+  /* --- Rules -------------------------------------------------------------- */
+  /* Hairlines, and they stay hairlines: a rule separates content, it does not
+     compete with type. Measured against the page — rule 1.23:1, rule-soft
+     1.12:1, rule-strong 1.67:1, rule-strongest 2.31:1 — so none of these is a
+     boundary anyone is required to see. They are used for separators, card
+     edges, dividers, the hero's graph paper and scrollbars, all decoration
+     under WCAG 1.4.11, which asks nothing of them.
 
-  /* --- Signal ------------------------------------------------------------- */
-  --color-marigold: #e8a33d;
-  --color-marigold-deep: #b87a22;
-  --color-marigold-veil: #2a1f10;
-  --color-jade: #5cbb8d;
-  --color-jade-veil: #10241b;
-  --color-ember: #e0604c;
-  --color-ember-veil: #2a1512;
-  --color-lagoon: #63a9d6;
-  --color-lagoon-veil: #10202c;
-  --color-clay: #d08a6a;
-  --color-clay-veil: #261811;
+     Anything a reader has to see in order to *use* it takes `edge` instead,
+     which clears 3:1 against every panel in the neutral ramp, including the
+     pressed state a control turns into while it is being used: page 4.36:1,
+     surface 4.72:1, raised 4.80:1, sunken 3.98:1, hover 3.63:1, press 3.24:1.
+     That distinction is not cosmetic here: `raised` against `surface` is
+     1.016:1, so a text field's border is the only thing on the page that says
+     "this is a field", and the 1.36:1 hairline it used to carry was a boundary
+     nobody could find. `npm run tokens` re-derives every number in this comment
+     from this file, so the comment cannot outlive the palette. */
+  --color-rule: #e2ddd1;
+  --color-rule-soft: #ebe7dc;
+  --color-rule-strong: #c5bfb0;
+  --color-rule-strongest: #a9a291;
+  --color-edge: #787261;
 
-  /* --- Hairlines & interaction states ------------------------------------- */
-  /* Hover and border variants of the signal palette. They live here rather
-     than in the components, so a hue change is one edit and no component ever
-     carries a literal colour. */
-  --color-line-brightest: #3a465c;
-  --color-marigold-bright: #f0b25a;
-  --color-marigold-line: #3b2d17;
-  --color-marigold-veil-bright: #33260f;
-  --color-jade-line: #1b3627;
-  --color-ember-line: #3d211c;
-  --color-ember-deep: #341915;
-  --color-lagoon-line: #1a2f3f;
-  --color-clay-line: #3a2619;
-  --color-clay-veil-bright: #33210f;
+  /* --- Accent: the marigold stamp ----------------------------------------- */
+  /* One accent, used two ways, and the two are never interchangeable. As a FILL
+     it is the bright marigold with near-black `on-accent` type on it (8.53:1) —
+     the primary action, the tier a traveller has reached, the live seat count.
+     As TEXT it is `accent-deep` or `accent-ink`, because the bright marigold on
+     paper is 1.96:1 and would be unreadable; a component that needs an
+     accent-coloured word takes the deep cut. */
+  --color-accent: #e8a33d;
+  --color-accent-bright: #f2b657;
+  --color-accent-deep: #87520f;
+  --color-accent-ink: #6b4309;
+  --color-accent-tint: #fdf1dc;
+  --color-accent-tint-strong: #fbe9c9;
+  --color-accent-line: #ecd3a6;
+  --color-on-accent: #1b1305;
+
+  /* --- Status pigments ---------------------------------------------------- */
+  /* Four hues with fixed jobs: jade is confirmed, ember is refused or expired,
+     lagoon is informational, clay is a warning that is not a refusal. Each ships
+     a fill (white or on-accent type on it, both measured below), a `-deep` cut
+     for text on paper, a tint for a wash and a line for an edge.
+       on-accent on jade 4.58:1 · surface on ember 4.96:1
+       surface on lagoon 5.45:1 · surface on clay 4.74:1 */
+  --color-jade: #2f8f62;
+  --color-jade-deep: #1c6242;
+  --color-jade-tint: #e5f3eb;
+  --color-jade-line: #bcdcc9;
+
+  --color-ember: #c0492f;
+  --color-ember-deep: #96351f;
+  --color-ember-tint: #fbeae4;
+  --color-ember-tint-strong: #f5d7cc;
+  --color-ember-line: #e9c5b8;
+
+  --color-lagoon: #2b6f9c;
+  --color-lagoon-deep: #1d5478;
+  --color-lagoon-tint: #e5eff7;
+  --color-lagoon-line: #bcd6e8;
+
+  --color-clay: #a4633c;
+  --color-clay-deep: #7c4726;
+  --color-clay-tint: #f8efe7;
+  --color-clay-tint-strong: #f1e0d2;
+  --color-clay-line: #e0c7b3;
 
   /* --- Shadows ------------------------------------------------------------ */
-  /* Colour-mixed from the palette rather than restated as rgba(), so the glow
-     on a marigold button tracks --color-marigold automatically. */
-  --shadow-marigold: 0 10px 30px -16px color-mix(in srgb, var(--color-marigold) 85%, transparent);
-  --shadow-marigold-lift: 0 12px 34px -18px
-    color-mix(in srgb, var(--color-marigold) 90%, transparent);
-  --shadow-ring-marigold: 0 0 0 3px color-mix(in srgb, var(--color-marigold) 12%, transparent);
-  --shadow-tab-inset: 0 1px 0 0 color-mix(in srgb, var(--color-ivory) 6%, transparent) inset;
+  /* On paper a shadow is a grey, not a glow: colour-mixed from `ink` so it warms
+     with the surface instead of sitting on it as a black smudge. The accent
+     shadow is the one exception, kept for the primary action so the marigold
+     button still reads as the thing to press. */
+  --shadow-panel:
+    0 1px 2px color-mix(in srgb, var(--color-ink) 6%, transparent),
+    0 10px 24px -18px color-mix(in srgb, var(--color-ink) 38%, transparent);
+  --shadow-lift:
+    0 1px 2px color-mix(in srgb, var(--color-ink) 7%, transparent),
+    0 22px 48px -24px color-mix(in srgb, var(--color-ink) 42%, transparent);
+  --shadow-accent: 0 8px 22px -12px color-mix(in srgb, var(--color-accent-deep) 55%, transparent);
+  --shadow-accent-lift: 0 12px 28px -14px color-mix(in srgb, var(--color-accent-deep) 62%, transparent);
+  --shadow-ring-accent: 0 0 0 3px color-mix(in srgb, var(--color-accent) 32%, transparent);
+  --shadow-tab-inset: 0 1px 0 0 color-mix(in srgb, var(--color-raised) 70%, transparent) inset;
 
-  --radius-card: 4px;
+  /* --- Shape & motion ----------------------------------------------------- */
+  /* 8px rather than the previous 4px: on a light background a hard corner reads
+     as a cut edge, and the cards are now separated by shadow as well as by rule,
+     so the softer radius is what makes a card look like one object. */
+  --radius-card: 8px;
   --radius-pill: 999px;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -88,12 +158,12 @@
   html {
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
-    scrollbar-color: var(--color-night-750) transparent;
+    scrollbar-color: var(--color-rule-strong) transparent;
   }
 
   body {
-    background-color: var(--color-night);
-    color: var(--color-ivory);
+    background-color: var(--color-page);
+    color: var(--color-ink);
     font-family: var(--font-sans);
     font-synthesis-weight: none;
     -webkit-font-smoothing: antialiased;
@@ -103,12 +173,15 @@
   }
 
   ::selection {
-    background-color: var(--color-marigold);
-    color: var(--color-night-900);
+    background-color: var(--color-accent);
+    color: var(--color-on-accent);
   }
 
+  /* Focus has to survive both directions: a dark ring disappears on ink, so the
+     ring is the deep accent cut, which clears 3:1 against paper and against the
+     marigold fill it most often lands on. */
   :focus-visible {
-    outline: 2px solid var(--color-marigold);
+    outline: 2px solid var(--color-accent-deep);
     outline-offset: 3px;
     border-radius: 2px;
   }
@@ -117,8 +190,8 @@
   h2,
   h3 {
     font-family: var(--font-display);
-    font-weight: 400;
-    letter-spacing: -0.015em;
+    font-weight: 650;
+    letter-spacing: -0.022em;
   }
 
   /* Numeric inputs without spinners — the steppers are custom */
@@ -140,35 +213,36 @@
     cursor: pointer;
   }
   input[type='range']::-webkit-slider-runnable-track {
-    height: 2px;
-    background: var(--color-night-750);
+    height: 3px;
+    background: var(--color-rule-strong);
     border-radius: 2px;
   }
   input[type='range']::-webkit-slider-thumb {
     -webkit-appearance: none;
-    height: 12px;
-    width: 12px;
-    margin-top: -5px;
+    height: 14px;
+    width: 14px;
+    margin-top: -5.5px;
     border-radius: 50%;
-    background: var(--color-marigold);
-    border: 2px solid var(--color-night);
-    box-shadow: 0 0 0 1px var(--color-marigold-deep);
+    background: var(--color-accent);
+    border: 2px solid var(--color-raised);
+    box-shadow: 0 0 0 1px var(--color-accent-deep);
     transition: transform 0.15s var(--ease-out-expo);
   }
   input[type='range']:active::-webkit-slider-thumb {
-    transform: scale(1.25);
+    transform: scale(1.2);
   }
   input[type='range']::-moz-range-track {
-    height: 2px;
-    background: var(--color-night-750);
+    height: 3px;
+    background: var(--color-rule-strong);
     border-radius: 2px;
   }
   input[type='range']::-moz-range-thumb {
-    height: 12px;
-    width: 12px;
+    height: 14px;
+    width: 14px;
     border-radius: 50%;
-    background: var(--color-marigold);
-    border: 2px solid var(--color-night);
+    background: var(--color-accent);
+    border: 2px solid var(--color-raised);
+    box-shadow: 0 0 0 1px var(--color-accent-deep);
   }
 }
 
@@ -179,20 +253,23 @@
     font-feature-settings: 'tnum' 1;
   }
 
-  /* Uppercase eyebrows and table headers */
+  /* Uppercase eyebrows and table headers. Slightly larger and slightly less
+     tracked than before: at 10.5px with 0.16em tracking on paper the small caps
+     broke up into noise, and an eyebrow a traveller squints at is not an
+     eyebrow, it is the label they needed. */
   .micro {
     font-family: var(--font-mono);
-    font-size: 10.5px;
-    line-height: 1.3;
-    letter-spacing: 0.16em;
+    font-size: 11px;
+    line-height: 1.35;
+    letter-spacing: 0.11em;
     text-transform: uppercase;
     font-weight: 500;
   }
   .micro-md {
     font-family: var(--font-mono);
-    font-size: 11px;
-    line-height: 1.3;
-    letter-spacing: 0.12em;
+    font-size: 11.5px;
+    line-height: 1.35;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
     font-weight: 500;
   }
@@ -212,31 +289,34 @@
     line-height: 1.5;
   }
 
-  /* Display type with the optical sizing Instrument Serif wants */
+  /* Display type: the heavy end of the same variable face, tracked tight. A
+     headline on this board is usually a number or a route, so it is set to be
+     read at a glance across a platform, not admired. */
   .display {
     font-family: var(--font-display);
-    font-weight: 400;
-    letter-spacing: -0.02em;
+    font-weight: 700;
+    letter-spacing: -0.03em;
     line-height: 0.98;
   }
   .display em {
-    font-style: italic;
-    letter-spacing: -0.01em;
+    font-style: normal;
+    font-weight: 500;
+    letter-spacing: -0.015em;
   }
 
   /* Hairline rules that read as printed stock, not borders */
   .hairline-t {
-    border-top: 1px solid var(--color-line);
+    border-top: 1px solid var(--color-rule);
   }
   .hairline-b {
-    border-bottom: 1px solid var(--color-line);
+    border-bottom: 1px solid var(--color-rule);
   }
 
   /* Perforation used on boarding-pass surfaces */
   .perforation {
     background-image: linear-gradient(
       to right,
-      var(--color-line) 0 4px,
+      var(--color-rule-strong) 0 4px,
       transparent 4px 9px
     );
     background-size: 9px 1px;
@@ -247,54 +327,58 @@
   .barcode {
     background-image: repeating-linear-gradient(
       to right,
-      var(--color-mist-dim) 0 1px,
+      var(--color-ink-muted) 0 1px,
       transparent 1px 3px,
-      var(--color-mist-dim) 3px 5px,
+      var(--color-ink-muted) 3px 5px,
       transparent 5px 7px,
-      var(--color-mist-dim) 7px 8px,
+      var(--color-ink-muted) 7px 8px,
       transparent 8px 12px
     );
   }
 
-  /* Film grain over the page, barely there */
+  /* Paper tooth over the page, barely there. Kept from the previous identity at
+     a third of the strength: on white it is what stops a large flat area looking
+     like a rendering error, and at this opacity it does not touch contrast. */
   .grain::after {
     content: '';
     position: fixed;
     inset: 0;
     z-index: 100;
     pointer-events: none;
-    opacity: 0.028;
+    opacity: 0.022;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
-  /* Ambient marigold wash behind the hero */
-  .glow-marigold {
+  /* Ambient marigold wash behind the hero — a stamp bleeding slightly into the
+     sheet, at 10% and 6% so it never sits under text as a competing background. */
+  .glow-accent {
     background:
       radial-gradient(
         58rem 30rem at 78% -8%,
-        color-mix(in srgb, var(--color-marigold) 13%, transparent),
+        color-mix(in srgb, var(--color-accent) 16%, transparent),
         transparent 62%
       ),
       radial-gradient(
         40rem 24rem at 4% 12%,
-        color-mix(in srgb, var(--color-lagoon) 7%, transparent),
+        color-mix(in srgb, var(--color-lagoon) 9%, transparent),
         transparent 60%
       );
   }
 
-  /* Survey grid behind the hero. Tailwind cannot express a layered grid plus a
-     radial mask without restating palette values in the component, so the
-     surface is defined here. */
+  /* Graph paper behind the hero. On the dark identity this was a survey grid;
+     on paper it is timetable stock, which is closer to what the board actually
+     is. Tailwind cannot express a layered grid plus a radial mask without
+     restating palette values in the component, so the surface is defined here. */
   .grid-veil {
     background-image:
       linear-gradient(
         to right,
-        color-mix(in srgb, var(--color-line) 50%, transparent) 1px,
+        color-mix(in srgb, var(--color-rule-strong) 55%, transparent) 1px,
         transparent 1px
       ),
       linear-gradient(
         to bottom,
-        color-mix(in srgb, var(--color-line) 50%, transparent) 1px,
+        color-mix(in srgb, var(--color-rule-strong) 55%, transparent) 1px,
         transparent 1px
       );
     background-size: 72px 72px;
@@ -307,7 +391,7 @@
     background-image: linear-gradient(
       90deg,
       transparent 0%,
-      color-mix(in srgb, var(--color-line-bright) 75%, transparent) 50%,
+      color-mix(in srgb, var(--color-raised) 85%, transparent) 50%,
       transparent 100%
     );
   }
@@ -316,8 +400,8 @@
   .map-veil {
     background-image: linear-gradient(
       to top,
-      var(--color-night-900) 8%,
-      color-mix(in srgb, var(--color-night-900) 90%, transparent) 45%,
+      var(--color-surface) 8%,
+      color-mix(in srgb, var(--color-surface) 90%, transparent) 45%,
       transparent 100%
     );
   }
@@ -326,21 +410,9 @@
   .sheet-glow {
     background-image: radial-gradient(
       120% 80% at 100% 0%,
-      color-mix(in srgb, var(--color-marigold) 10%, transparent),
+      color-mix(in srgb, var(--color-accent) 14%, transparent),
       transparent 60%
     );
-  }
-
-  .shadow-panel {
-    box-shadow:
-      0 1px 0 0 color-mix(in srgb, var(--color-ivory) 3%, transparent) inset,
-      0 24px 60px -40px color-mix(in srgb, black 90%, transparent);
-  }
-
-  .shadow-lift {
-    box-shadow:
-      0 1px 0 0 color-mix(in srgb, var(--color-ivory) 5%, transparent) inset,
-      0 30px 70px -46px color-mix(in srgb, black 95%, transparent);
   }
 }
 
@@ -380,7 +452,7 @@
 
 @keyframes utsav-pulse-ring {
   0% {
-    opacity: 0.55;
+    opacity: 0.5;
     transform: scale(1);
   }
   70% {
@@ -427,7 +499,6 @@
   animation: utsav-sweep 2.2s var(--ease-out-expo) infinite;
 }
 
-/* Scroll reveal — driven by IntersectionObserver in <Reveal /> */
 /* Scroll reveals.
    The hidden state is applied only once JavaScript has announced itself, via the
    `js` class that index.html sets on <html> before first paint. That ordering is
@@ -452,7 +523,7 @@ html.js .reveal:not([data-shown='true']) {
 /* Scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-night-750) transparent;
+  scrollbar-color: var(--color-rule-strong) transparent;
 }
 *::-webkit-scrollbar {
   width: 10px;
@@ -462,13 +533,13 @@ html.js .reveal:not([data-shown='true']) {
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background-color: var(--color-night-750);
+  background-color: var(--color-rule-strong);
   border: 3px solid transparent;
   background-clip: content-box;
   border-radius: 999px;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-night-700);
+  background-color: var(--color-rule-strongest);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -7,7 +7,7 @@
         "http://localhost/carriers/index.html",
         "http://localhost/corridor/HYD-VGA-SK27/index.html"
       ],
-      "numberOfRuns": 1,
+      "numberOfRuns": 3,
       "settings": {
         "preset": "desktop",
         "chromeFlags": [

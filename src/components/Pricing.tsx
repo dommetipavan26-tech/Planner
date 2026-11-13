@@ -34,8 +34,64 @@ export function TierLadder({
   const seats = projectedSeats ?? corridor.pledged_seats;
   const projectedNet = netFareAt(corridor, seats);
 
+  /* Compact is the card on the board, where the ladder has to answer "what is a
+     tier" in the space of two lines: threshold, what a seat costs there, and how
+     far the cohort is from it. It used to be three 1px ticks on the meter whose
+     labels lived in a hover tooltip, which is to say the one mechanic a
+     traveller has to understand was the one thing a phone could not show. */
+  if (compact) {
+    return (
+      <div className="mt-2.5">
+        <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.1em] text-ink-faint">
+          Landed per seat at each threshold
+        </span>
+        <ol className="grid grid-cols-3 gap-1.5">
+          {slab.map((tier) => {
+            const reached = seats >= tier.min;
+            const isProjected = tier.net === projectedNet;
+            const toGo = Math.max(0, tier.min - seats);
+            return (
+              <li
+                key={tier.id}
+                aria-current={isProjected ? 'true' : undefined}
+                className={cn(
+                  'flex flex-col gap-0.5 rounded-card border px-2 py-1.5 transition-colors duration-300 ease-out-expo',
+                  isProjected
+                    ? 'border-accent/60 bg-accent-tint'
+                    : reached
+                      ? 'border-rule-strong bg-raised'
+                      : 'border-rule bg-surface',
+                )}
+              >
+                <span
+                  className={cn(
+                    'tnum font-mono text-[10px] uppercase tracking-[0.08em]',
+                    isProjected ? 'text-accent-deep' : 'text-ink-faint',
+                  )}
+                >
+                  {tier.min}+ seats
+                </span>
+                <span className="tnum text-[14.5px] font-medium leading-none text-ink">
+                  {rupees(tier.landed)}
+                </span>
+                <span
+                  className={cn(
+                    'tnum text-[10px] leading-tight',
+                    reached ? 'text-jade-deep' : 'text-ink-muted',
+                  )}
+                >
+                  {reached ? 'threshold met' : `${toGo} to go`}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    );
+  }
+
   return (
-    <ol className={cn('grid gap-2', compact ? 'sm:grid-cols-3' : 'sm:grid-cols-3')}>
+    <ol className="grid gap-2 sm:grid-cols-3">
       {slab.map((tier) => {
         const reached = seats >= tier.min;
         const isProjected = tier.net === projectedNet;
@@ -46,47 +102,47 @@ export function TierLadder({
             className={cn(
               'relative flex flex-col gap-2 rounded-card border px-3 py-2.5 transition-colors duration-300 ease-out-expo',
               isProjected
-                ? 'border-marigold/55 bg-marigold-veil/60'
+                ? 'border-accent/55 bg-accent-tint/60'
                 : reached
-                  ? 'border-line-bright bg-night-850'
-                  : 'border-line bg-night-900/60',
+                  ? 'border-rule-strong bg-raised'
+                  : 'border-rule bg-surface/60',
             )}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className={cn('micro', isProjected ? 'text-marigold' : 'text-mist-dim')}>
+              <span className={cn('micro', isProjected ? 'text-accent-deep' : 'text-ink-muted')}>
                 {tier.label}
               </span>
               {reached ? (
-                <span className="inline-flex items-center gap-1 text-jade" title="Threshold met">
+                <span className="inline-flex items-center gap-1 text-jade-deep" title="Threshold met">
                   <IconCheck size={12} />
                   <span className="micro">met</span>
                 </span>
               ) : (
-                <span className="tnum micro text-mist-faint">
+                <span className="tnum micro text-ink-faint">
                   {Math.max(0, tier.min - seats)} to go
                 </span>
               )}
             </div>
             <div className="flex items-baseline gap-1.5">
-              <span className="tnum text-[19px] font-medium leading-none text-ivory">
+              <span className="tnum text-[19px] font-medium leading-none text-ink">
                 {rupees(tier.net)}
               </span>
-              <span className="micro text-mist-faint">net</span>
+              <span className="micro text-ink-faint">net</span>
             </div>
-            <dl className="flex flex-col gap-0.5 text-[11px] leading-snug text-mist-dim">
+            <dl className="flex flex-col gap-0.5 text-[11px] leading-snug text-ink-muted">
               <div className="flex justify-between gap-2">
                 <dt>at {tier.min}+ seats</dt>
-                <dd className="tnum text-mist">
+                <dd className="tnum text-ink-soft">
                   {rupees(tier.fee)} fee
                 </dd>
               </div>
               <div className="flex justify-between gap-2">
                 <dt>Landed</dt>
-                <dd className="tnum text-ivory">{rupees(tier.landed)}</dd>
+                <dd className="tnum text-ink">{rupees(tier.landed)}</dd>
               </div>
             </dl>
             {isProjected ? (
-              <span className="absolute -top-px left-3 h-px w-8 bg-marigold" aria-hidden="true" />
+              <span className="absolute -top-px left-3 h-px w-8 bg-accent" aria-hidden="true" />
             ) : null}
           </li>
         );
@@ -120,7 +176,7 @@ export function PriceAnatomy({
 
   const segments = useMemo(
     () => [
-      { key: 'net', label: 'Carrier net', value: animatedNet, className: 'bg-marigold' },
+      { key: 'net', label: 'Carrier net', value: animatedNet, className: 'bg-accent' },
       { key: 'fee', label: 'Platform fee', value: fee, className: 'bg-clay' },
     ],
     [animatedNet, fee],
@@ -138,15 +194,15 @@ export function PriceAnatomy({
       <div>
         <div className="mb-1.5 flex items-baseline justify-between gap-3">
           <span className="flex items-baseline gap-2">
-            <span className="text-[12.5px] text-ivory">Pooled group fare</span>
-            <span className="micro text-mist-faint">at {seats} pledged seats</span>
+            <span className="text-[12.5px] text-ink">Pooled group fare</span>
+            <span className="micro text-ink-faint">at {seats} pledged seats</span>
           </span>
-          <span className="tnum text-[13px] font-medium text-ivory">
+          <span className="tnum text-[13px] font-medium text-ink">
             {rupees(Math.round(animatedLanded))}
           </span>
         </div>
         <div
-          className="flex h-[10px] w-full overflow-hidden rounded-pill bg-night-800"
+          className="flex h-[10px] w-full overflow-hidden rounded-pill bg-sunken"
           role="img"
           aria-label={`Pooled group fare ${rupees(landed)} per seat: carrier net ${rupees(net)} plus ${pct(corridor.platform_fee_pct, 1)} platform fee ${rupees(fee)}`}
         >
@@ -159,7 +215,7 @@ export function PriceAnatomy({
           ))}
         </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
-          <Swatch className="bg-marigold" label={`Carrier net ${rupees(net)}`} />
+          <Swatch className="bg-accent" label={`Carrier net ${rupees(net)}`} />
           <Swatch
             className="bg-clay"
             label={`Platform fee ${rupees(fee)} · ${pct(corridor.platform_fee_pct, 1)}`}
@@ -174,11 +230,11 @@ export function PriceAnatomy({
         tone="lagoon"
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-night-850 px-3 py-2.5">
-        <p className="text-[11.5px] leading-snug text-mist-dim">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-rule bg-raised px-3 py-2.5">
+        <p className="text-[11.5px] leading-snug text-ink-muted">
           Surge multiple{' '}
-          <span className="tnum text-ember">{surgeMultiple(corridor).toFixed(1)}×</span> · you keep{' '}
-          <span className="tnum text-jade">{rupees(savingPerSeat(corridor))}</span> per seat at the
+          <span className="tnum text-ember-deep">{surgeMultiple(corridor).toFixed(1)}×</span> · you keep{' '}
+          <span className="tnum text-jade-deep">{rupees(savingPerSeat(corridor))}</span> per seat at the
           current slab.
         </p>
         <Chip tone="jade" dot={activeTier(corridor) >= 1}>
@@ -206,16 +262,20 @@ function Row({
     <div>
       <div className="mb-1.5 flex items-baseline justify-between gap-3">
         <span className="flex items-baseline gap-2">
-          <span className="text-[12.5px] text-mist">{label}</span>
-          <span className="hidden text-[11px] text-mist-faint sm:inline">{hint}</span>
+          <span className="text-[12.5px] text-ink-soft">{label}</span>
+          <span className="hidden text-[11px] text-ink-faint sm:inline">{hint}</span>
         </span>
-        <span className="tnum text-[13px] text-mist">{rupees(value)}</span>
+        <span className="tnum text-[13px] text-ink-soft">{rupees(value)}</span>
       </div>
-      <div className="h-[3px] w-full overflow-hidden rounded-pill bg-night-800" aria-hidden="true">
+      <div className="h-[3px] w-full overflow-hidden rounded-pill bg-sunken" aria-hidden="true">
         <span
           className={cn(
             'block h-full rounded-pill transition-[width] duration-500 ease-out-expo',
-            tone === 'ember' ? 'bg-ember/70' : 'bg-lagoon/60',
+            // Opaque: the same two fills at 70% and 60% over the sunken track
+            // measured 2.67:1 and 2.32:1, below the 3:1 a graphic needs — and a
+            // translucent fill has no contrast of its own, it inherits whatever
+            // ends up behind it.
+            tone === 'ember' ? 'bg-ember' : 'bg-lagoon',
           )}
           style={{ width: `${(value / scale) * 100}%` }}
         />
@@ -228,7 +288,7 @@ function Swatch({ className, label }: { className: string; label: string }) {
   return (
     <span className="inline-flex items-center gap-1.5">
       <span className={cn('h-2 w-2 rounded-[2px]', className)} aria-hidden="true" />
-      <span className="tnum text-[11px] text-mist-dim">{label}</span>
+      <span className="tnum text-[11px] text-ink-muted">{label}</span>
     </span>
   );
 }
@@ -262,10 +322,10 @@ export function QuoteBreakdown({
         {rows.map(([label, value, note]) => (
           <div key={label} className="flex items-baseline justify-between gap-3">
             <dt className="flex min-w-0 flex-col">
-              <span className="truncate text-[12px] text-mist">{label}</span>
-              {note ? <span className="text-[10.5px] text-mist-faint">{note}</span> : null}
+              <span className="truncate text-[12px] text-ink-soft">{label}</span>
+              {note ? <span className="text-[10.5px] text-ink-faint">{note}</span> : null}
             </dt>
-            <dd className="tnum shrink-0 text-[12.5px] text-ivory">{value}</dd>
+            <dd className="tnum shrink-0 text-[12.5px] text-ink">{value}</dd>
           </div>
         ))}
       </dl>
@@ -273,32 +333,32 @@ export function QuoteBreakdown({
       <div className="perforation h-px w-full" aria-hidden="true" />
 
       <div className="flex items-baseline justify-between gap-3">
-        <span className="micro text-mist-dim">Landed per seat</span>
-        <span className="tnum text-[15px] font-medium text-ivory">{rupees(Math.round(landed))}</span>
+        <span className="micro text-ink-muted">Landed per seat</span>
+        <span className="tnum text-[15px] font-medium text-ink">{rupees(Math.round(landed))}</span>
       </div>
       <div className="flex items-baseline justify-between gap-3">
-        <span className="micro text-mist-dim">Payable at lock</span>
-        <span className="tnum display text-[26px] leading-none text-marigold">
+        <span className="micro text-ink-muted">Payable at lock</span>
+        <span className="tnum display text-[26px] leading-none text-accent-deep">
           {rupees(Math.round(total))}
         </span>
       </div>
-      <div className="flex items-center justify-between gap-3 rounded-card border border-jade-line bg-jade-veil px-3 py-2">
-        <span className="inline-flex items-center gap-1.5 text-[12px] text-jade">
+      <div className="flex items-center justify-between gap-3 rounded-card border border-jade-line bg-jade-tint px-3 py-2">
+        <span className="inline-flex items-center gap-1.5 text-[12px] text-jade-deep">
           <IconSpark size={13} />
           Saved against surge
         </span>
-        <span className="tnum text-[14px] font-medium text-jade">
+        <span className="tnum text-[14px] font-medium text-jade-deep">
           {rupees(Math.round(saving))}
         </span>
       </div>
       {q.seatsToNextTier > 0 ? (
-        <p className="text-[11.5px] leading-snug text-mist-dim">
+        <p className="text-[11.5px] leading-snug text-ink-muted">
           {q.seatsToNextTier} more pledged seat{q.seatsToNextTier === 1 ? '' : 's'} on this corridor
           drop everyone to the next slab — worth{' '}
-          <span className="tnum text-marigold">{rupees(q.nextTierSaving)}</span> to your party.
+          <span className="tnum text-accent-deep">{rupees(q.nextTierSaving)}</span> to your party.
         </p>
       ) : (
-        <p className="text-[11.5px] leading-snug text-jade">
+        <p className="text-[11.5px] leading-snug text-jade-deep">
           Deepest slab reached. This is the floor the carrier has contracted.
         </p>
       )}
@@ -310,7 +370,7 @@ export function QuoteBreakdown({
 export function LandedFigure({ corridor }: { corridor: Corridor }) {
   const value = useAnimatedNumber(landedPerSeat(corridor));
   return (
-    <span className="tnum display text-[30px] leading-none text-ivory">
+    <span className="tnum display text-[30px] leading-none text-ink">
       {rupees(Math.round(value))}
     </span>
   );

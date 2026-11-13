@@ -238,15 +238,15 @@ export function JoinSheet({
       title={receipt ? `Held · ${receipt.booking_ref}` : `Hold seats · ${corridor.code}`}
       description={
         receipt
-          ? 'Nothing is charged until the corridor clears Tier I. Save this reference.'
+          ? `Nothing is charged until ${corridor.tier1_min} seats are pledged. Save this reference.`
           : `${corridor.origin_city} → ${corridor.dest_city} · ${formatDateYear(corridor.departure_date)} · ${corridor.carrier_name}`
       }
       footer={
         receipt ? (
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[11.5px] leading-snug text-mist-dim">
+            <p className="text-[11.5px] leading-snug text-ink-muted">
               Manifest closes{' '}
-              <span className="tnum text-mist">
+              <span className="tnum text-ink-soft">
                 {corridor.manifest_deadline ? formatDateYear(corridor.manifest_deadline) : '72h before departure'}
               </span>
               . Name changes are free until then.
@@ -258,7 +258,7 @@ export function JoinSheet({
               <Link
                 to="/trips"
                 onClick={onClose}
-                className="inline-flex h-8 items-center justify-center rounded-pill bg-marigold px-3 text-[12.5px] font-medium text-night-900 transition-colors duration-200 hover:bg-marigold-bright"
+                className="inline-flex h-8 items-center justify-center rounded-pill bg-accent px-3 text-[12.5px] font-medium text-on-accent transition-colors duration-200 hover:bg-accent-bright"
               >
                 View my trips
               </Link>
@@ -266,11 +266,12 @@ export function JoinSheet({
           </div>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="flex items-start gap-2 text-[11.5px] leading-snug text-mist-dim">
-              <IconShield size={14} className="mt-px shrink-0 text-jade" />
+            <p className="flex items-start gap-2 text-[11.5px] leading-snug text-ink-muted">
+              <IconShield size={14} className="mt-px shrink-0 text-jade-deep" />
               <span>
-                No card is charged now. If Tier I is not reached by{' '}
-                <span className="tnum text-mist">{countdown(corridor.lock_deadline, now)}</span>, the
+                No card is charged now. If fewer than{' '}
+                <span className="tnum text-ink-soft">{corridor.tier1_min} seats</span> are pledged by{' '}
+                <span className="tnum text-ink-soft">{countdown(corridor.lock_deadline, now)}</span>, this
                 pledge is released automatically.
               </span>
             </p>
@@ -311,7 +312,7 @@ export function JoinSheet({
           >
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div className="flex flex-col gap-1.5">
-                <span className="micro text-mist-dim">Seats in your party</span>
+                <span className="micro text-ink-muted">Seats in your party</span>
                 <Stepper
                   value={seats}
                   min={1}
@@ -321,12 +322,12 @@ export function JoinSheet({
                   disabled={closed}
                 />
               </div>
-              <p className="tnum text-[11.5px] text-mist-dim">
+              <p className="tnum text-[11.5px] text-ink-muted">
                 {seatsLeft(corridor)} of {corridor.total_allotment} left in the block
               </p>
             </div>
             {errors.seats && touched.seats ? (
-              <p role="alert" className="flex items-center gap-1.5 text-[11.5px] text-ember">
+              <p role="alert" className="flex items-center gap-1.5 text-[11.5px] text-ember-deep">
                 <IconAlert size={12} /> {errors.seats}
               </p>
             ) : null}
@@ -407,16 +408,16 @@ export function JoinSheet({
             </Field>
 
             {corridor.mode === 'bus' ? (
-              <p className="flex items-start gap-2 rounded-card border border-line bg-night-850 px-3 py-2.5 text-[11.5px] leading-snug text-mist-dim">
-                <IconBus size={14} className="mt-px shrink-0 text-lagoon" />
+              <p className="flex items-start gap-2 rounded-card border border-rule bg-raised px-3 py-2.5 text-[11.5px] leading-snug text-ink-muted">
+                <IconBus size={14} className="mt-px shrink-0 text-lagoon-deep" />
                 <span>
                   Coach blocks assign berths at manifest close, in pledge order. Families travelling
                   together are seated together where the layout allows it.
                 </span>
               </p>
             ) : (
-              <p className="flex items-start gap-2 rounded-card border border-line bg-night-850 px-3 py-2.5 text-[11.5px] leading-snug text-mist-dim">
-                <IconPlane size={14} className="mt-px shrink-0 text-marigold" />
+              <p className="flex items-start gap-2 rounded-card border border-rule bg-raised px-3 py-2.5 text-[11.5px] leading-snug text-ink-muted">
+                <IconPlane size={14} className="mt-px shrink-0 text-accent-deep" />
                 <span>
                   Group PNRs are issued to the lead passenger at manifest close. Names can be swapped
                   free until 72 hours before departure.
@@ -430,19 +431,21 @@ export function JoinSheet({
             </button>
           </form>
 
-          <aside className="flex flex-col gap-3 rounded-card border border-line bg-night-850 p-3.5">
+          <aside className="flex flex-col gap-3 rounded-card border border-rule bg-raised p-3.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="micro text-mist-dim">Live quote</span>
+              <span className="micro text-ink-muted">Live quote</span>
               <Chip tone={q && q.seatsToNextTier === 0 ? 'jade' : 'marigold'}>
-                Tier {q?.tierReached ?? 1}
+                {q && q.nextTierLanded !== null && q.seatsToNextTier > 0
+                  ? `${q.seatsToNextTier} seats to ${rupees(q.nextTierLanded)}`
+                  : 'Lowest fare reached'}
               </Chip>
             </div>
             {q ? <QuoteBreakdown corridor={corridor} seats={seats} /> : null}
             <Divider className="my-1" />
-            <div className="flex flex-col gap-1.5 text-[11px] leading-snug text-mist-faint">
+            <div className="flex flex-col gap-1.5 text-[11px] leading-snug text-ink-faint">
               <span className="inline-flex items-center gap-1.5">
                 <IconClock size={12} />
-                Lock in <span className="tnum text-mist-dim">{countdown(corridor.lock_deadline, now)}</span>
+                Lock in <span className="tnum text-ink-muted">{countdown(corridor.lock_deadline, now)}</span>
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <IconPin size={12} />
@@ -473,15 +476,15 @@ function Receipt({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="sheet-glow animate-rise overflow-hidden rounded-card border border-line-bright bg-night-850">
+      <div className="sheet-glow animate-rise overflow-hidden rounded-card border border-rule-strong bg-raised">
         <div className="flex items-start justify-between gap-4 px-4 py-3.5">
           <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-pill border border-marigold/40 bg-marigold-veil text-[13px] font-medium text-marigold">
+            <span className="grid h-10 w-10 place-items-center rounded-pill border border-accent/40 bg-accent-tint text-[13px] font-medium text-accent-deep">
               {initials(pledge.passenger_name)}
             </span>
             <div className="flex flex-col gap-0.5">
-              <span className="text-[13.5px] font-medium text-ivory">{pledge.passenger_name}</span>
-              <span className="tnum text-[11.5px] text-mist-dim">
+              <span className="text-[13.5px] font-medium text-ink">{pledge.passenger_name}</span>
+              <span className="tnum text-[11.5px] text-ink-muted">
                 {maskPhone(pledge.passenger_phone)} · {pledge.passenger_cohort}
               </span>
             </div>
@@ -490,7 +493,7 @@ function Receipt({
             <Chip tone={pledge.status === 'allotment_confirmed' ? 'jade' : 'marigold'} dot>
               {pledge.status === 'allotment_confirmed' ? 'Allotment confirmed' : 'Escrow held'}
             </Chip>
-            <span className="tnum micro text-mist-faint">{pledge.booking_ref}</span>
+            <span className="tnum micro text-ink-faint">{pledge.booking_ref}</span>
           </div>
         </div>
 
@@ -499,32 +502,32 @@ function Receipt({
         <div className="grid gap-4 px-4 py-3.5 sm:grid-cols-[1fr_auto]">
           <div className="flex items-center gap-3">
             <div className="flex flex-col">
-              <span className="tnum display text-[24px] leading-none text-ivory">
+              <span className="tnum display text-[24px] leading-none text-ink">
                 {corridor.origin_code}
               </span>
-              <span className="micro mt-1 text-mist-faint">{corridor.departure_time}</span>
+              <span className="micro mt-1 text-ink-faint">{corridor.departure_time}</span>
             </div>
             <div className="flex flex-1 flex-col items-center gap-1">
-              <span className="micro text-mist-faint">{corridor.duration_label}</span>
+              <span className="micro text-ink-faint">{corridor.duration_label}</span>
               <span className="relative flex w-full items-center" aria-hidden="true">
-                <span className="h-px flex-1 bg-line-bright" />
-                <span className="mx-1 text-marigold">
+                <span className="h-px flex-1 bg-rule-strongest" />
+                <span className="mx-1 text-accent-deep">
                   {corridor.mode === 'bus' ? <IconBus size={13} /> : <IconPlane size={13} />}
                 </span>
-                <span className="h-px flex-1 bg-line-bright" />
+                <span className="h-px flex-1 bg-rule-strongest" />
               </span>
-              <span className="micro text-mist-faint">{corridor.service_number}</span>
+              <span className="micro text-ink-faint">{corridor.service_number}</span>
             </div>
             <div className="flex flex-col items-end">
-              <span className="tnum display text-[24px] leading-none text-ivory">
+              <span className="tnum display text-[24px] leading-none text-ink">
                 {corridor.dest_code}
               </span>
-              <span className="micro mt-1 text-mist-faint">{corridor.arrival_time}</span>
+              <span className="micro mt-1 text-ink-faint">{corridor.arrival_time}</span>
             </div>
           </div>
           <div className="flex flex-col items-start gap-1 sm:items-end">
-            <span className="text-[12.5px] text-mist">{formatDateYear(corridor.departure_date)}</span>
-            <span className="text-[11.5px] text-mist-dim">{corridor.carrier_name}</span>
+            <span className="text-[12.5px] text-ink-soft">{formatDateYear(corridor.departure_date)}</span>
+            <span className="text-[11.5px] text-ink-muted">{corridor.carrier_name}</span>
           </div>
         </div>
 
@@ -541,20 +544,20 @@ function Receipt({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-card border border-line bg-night-900 px-3.5 py-3">
-          <span className="micro text-mist-dim">Boarding point</span>
-          <p className="mt-1.5 flex items-start gap-2 text-[12.5px] leading-snug text-ivory">
-            <IconPin size={13} className="mt-0.5 shrink-0 text-marigold" />
+        <div className="rounded-card border border-rule bg-surface px-3.5 py-3">
+          <span className="micro text-ink-muted">Boarding point</span>
+          <p className="mt-1.5 flex items-start gap-2 text-[12.5px] leading-snug text-ink">
+            <IconPin size={13} className="mt-0.5 shrink-0 text-accent-deep" />
             {pledge.boarding_point || corridor.pickup_hub}
           </p>
         </div>
-        <div className="rounded-card border border-line bg-night-900 px-3.5 py-3">
-          <span className="micro text-mist-dim">Saving vs surge</span>
+        <div className="rounded-card border border-rule bg-surface px-3.5 py-3">
+          <span className="micro text-ink-muted">Saving vs surge</span>
           <p className="mt-1.5 flex items-baseline gap-2">
-            <span className="tnum text-[16px] font-medium text-jade">
+            <span className="tnum text-[16px] font-medium text-jade-deep">
               {rupees(pledge.estimated_saving)}
             </span>
-            <span className="text-[11.5px] text-mist-dim">
+            <span className="text-[11.5px] text-ink-muted">
               surge was {surgeMultiple(corridor).toFixed(1)}× at{' '}
               {rupees(pledge.max_willing_fare)}
             </span>
@@ -563,19 +566,20 @@ function Receipt({
       </div>
 
       {activeTier(corridor) === 0 ? (
-        <p className="flex items-start gap-2 rounded-card border border-marigold-line bg-marigold-veil/70 px-3.5 py-2.5 text-[11.5px] leading-snug text-marigold">
+        <p className="flex items-start gap-2 rounded-card border border-accent-line bg-accent-tint/70 px-3.5 py-2.5 text-[11.5px] leading-snug text-accent-deep">
           <IconAlert size={14} className="mt-px shrink-0" />
           <span>
-            The corridor is still below Tier I. Your seat is reserved in the cohort and the price
-            above is what you pay <em className="not-italic text-ivory">if</em> the block confirms. If
-            it does not, nothing is charged and the pledge is released.
+            Fewer than <span className="tnum">{corridor.tier1_min} seats</span> are pledged on this
+            corridor so far. Your seat is reserved in the cohort and the price above is what you pay{' '}
+            <em className="not-italic text-ink">if</em> the block confirms. If it does not, nothing is
+            charged and the pledge is released.
           </span>
         </p>
       ) : null}
 
       {simulated ? (
-        <p className="flex items-start gap-2 rounded-card border border-line bg-night-850 px-3.5 py-2.5 text-[11.5px] leading-snug text-mist-dim">
-          <IconAlert size={14} className="mt-px shrink-0 text-clay" />
+        <p className="flex items-start gap-2 rounded-card border border-rule bg-raised px-3.5 py-2.5 text-[11.5px] leading-snug text-ink-muted">
+          <IconAlert size={14} className="mt-px shrink-0 text-clay-deep" />
           <span>
             Postgres is unreachable from this browser, so this hold is stored locally on your device
             only. It will not appear on the shared ledger until the connection returns.
@@ -583,18 +587,18 @@ function Receipt({
         </p>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-mist-faint">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-ink-faint">
         <span className="inline-flex items-center gap-1.5">
-          <IconCheck size={12} className="text-jade" />
+          <IconCheck size={12} className="text-jade-deep" />
           Free name swap until T-72h
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <IconCheck size={12} className="text-jade" />
-          25% EMD only after Tier II clears
+          <IconCheck size={12} className="text-jade-deep" />
+          25% deposit only once {corridor.tier2_min} seats pledge
         </span>
         <Link
           to={`/corridor/${encodeURIComponent(corridor.code)}`}
-          className="inline-flex items-center gap-1 text-mist-dim transition-colors duration-200 hover:text-marigold"
+          className="inline-flex items-center gap-1 text-ink-muted transition-colors duration-200 hover:text-accent-deep"
         >
           Back to {corridor.code} <IconArrow size={11} />
         </Link>
@@ -614,8 +618,8 @@ function Cell({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <dt className="micro text-mist-faint">{label}</dt>
-      <dd className={cn('tnum text-[14px] font-medium', tone ? 'text-marigold' : 'text-ivory')}>
+      <dt className="micro text-ink-faint">{label}</dt>
+      <dd className={cn('tnum text-[14px] font-medium', tone ? 'text-accent-deep' : 'text-ink')}>
         {value}
       </dd>
     </div>

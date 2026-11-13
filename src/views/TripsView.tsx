@@ -91,11 +91,11 @@ export function TripsView({
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 py-10 sm:px-6 lg:py-14">
-      <header className="flex flex-col gap-5 border-b border-line pb-6 lg:flex-row lg:items-end lg:justify-between">
+      <header className="flex flex-col gap-5 border-b border-rule pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex flex-col gap-2">
           <Eyebrow>Device-scoped · no account needed</Eyebrow>
-          <h1 className="display text-[clamp(2rem,4.6vw,3.25rem)] text-ivory">My trips</h1>
-          <p className="max-w-xl text-[13.5px] leading-relaxed text-mist-dim">
+          <h1 className="display text-[clamp(2rem,4.6vw,3.25rem)] text-ink">My trips</h1>
+          <p className="max-w-xl text-[13.5px] leading-relaxed text-ink-muted">
             Every pledge and watch you make from this browser, read back from Postgres through a
             SECURITY DEFINER function that only ever returns rows belonging to your device id.
           </p>
@@ -110,7 +110,7 @@ export function TripsView({
               { value: 'watching', label: `Watching (${watched.length})` },
             ]}
           />
-          <p className="tnum micro text-mist-faint">
+          <p className="tnum micro text-ink-faint">
             {/* The device id lives in localStorage, so it does not exist during a
                 server render. Naming the source instead of the value keeps the
                 prerendered markup and the browser's first render identical — and
@@ -126,7 +126,7 @@ export function TripsView({
         <div className="mt-8 flex flex-col gap-6">
           {mine.length > 0 ? (
             <>
-              <dl className="grid gap-px overflow-hidden rounded-card border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
+              <dl className="grid gap-px overflow-hidden rounded-card border border-rule bg-rule-strong sm:grid-cols-2 lg:grid-cols-4">
                 <SummaryCell label="Seats held" value={String(summary.seats)} note={`across ${mine.length} pledge${mine.length === 1 ? '' : 's'}`} />
                 <SummaryCell
                   label="Payable at lock"
@@ -152,15 +152,15 @@ export function TripsView({
                   const corridor = corridorFor(pledge.corridor_id);
                   return (
                     <Reveal key={pledge.id} as="li" delay={Math.min(i, 4) * 50}>
-                      <article className="overflow-hidden rounded-card border border-line bg-night-900 shadow-panel transition-colors duration-300 hover:border-line-bright">
+                      <article className="overflow-hidden rounded-card border border-rule bg-surface shadow-panel transition-colors duration-300 hover:border-rule-strong">
                         <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-4">
                           <div className="flex items-center gap-3">
-                            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-pill border border-marigold/40 bg-marigold-veil text-[13px] font-medium text-marigold">
+                            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-pill border border-accent/40 bg-accent-tint text-[13px] font-medium text-accent-deep">
                               {initials(pledge.passenger_name)}
                             </span>
                             <div className="flex flex-col gap-0.5">
-                              <span className="text-[13.5px] text-ivory">{pledge.passenger_name}</span>
-                              <span className="tnum text-[11.5px] text-mist-dim">
+                              <span className="text-[13.5px] text-ink">{pledge.passenger_name}</span>
+                              <span className="tnum text-[11.5px] text-ink-muted">
                                 {maskPhone(pledge.passenger_phone)} · {pledge.passenger_cohort}
                               </span>
                             </div>
@@ -176,7 +176,7 @@ export function TripsView({
                             <button
                               type="button"
                               onClick={() => void copyRef(pledge.booking_ref)}
-                              className="tnum micro rounded-pill border border-line px-2 py-1 text-mist-dim transition-colors duration-200 hover:border-line-bright hover:text-ivory"
+                              className="tnum micro rounded-pill border border-rule px-2 py-1 text-ink-muted transition-colors duration-200 hover:border-rule-strong hover:text-ink"
                               title="Copy booking reference"
                             >
                               {pledge.booking_ref}
@@ -191,55 +191,55 @@ export function TripsView({
                             <div className="flex flex-col gap-3">
                               <div className="flex items-center gap-3">
                                 <div className="flex flex-col">
-                                  <span className="tnum display text-[24px] leading-none text-ivory">
+                                  <span className="tnum display text-[24px] leading-none text-ink">
                                     {corridor.origin_code}
                                   </span>
-                                  <span className="micro mt-1 text-mist-faint">
+                                  <span className="micro mt-1 text-ink-faint">
                                     {corridor.departure_time}
                                   </span>
                                 </div>
                                 <div className="flex flex-1 flex-col items-center gap-1">
-                                  <span className="micro text-mist-faint">
+                                  <span className="micro text-ink-faint">
                                     {corridor.duration_label}
                                   </span>
                                   <span className="relative flex w-full items-center" aria-hidden="true">
-                                    <span className="h-px flex-1 bg-line-bright" />
-                                    <span className="mx-1.5 text-marigold">
+                                    <span className="h-px flex-1 bg-rule-strongest" />
+                                    <span className="mx-1.5 text-accent-deep">
                                       {corridor.mode === 'bus' ? (
                                         <IconBus size={13} />
                                       ) : (
                                         <IconPlane size={13} />
                                       )}
                                     </span>
-                                    <span className="h-px flex-1 bg-line-bright" />
+                                    <span className="h-px flex-1 bg-rule-strongest" />
                                   </span>
-                                  <span className="micro text-mist-faint">
+                                  <span className="micro text-ink-faint">
                                     {corridor.service_number}
                                   </span>
                                 </div>
                                 <div className="flex flex-col items-end">
-                                  <span className="tnum display text-[24px] leading-none text-ivory">
+                                  <span className="tnum display text-[24px] leading-none text-ink">
                                     {corridor.dest_code}
                                   </span>
-                                  <span className="micro mt-1 text-mist-faint">
+                                  <span className="micro mt-1 text-ink-faint">
                                     {corridor.arrival_time}
                                   </span>
                                 </div>
                               </div>
-                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11.5px] text-mist-dim">
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11.5px] text-ink-muted">
                                 <span className="tnum inline-flex items-center gap-1.5">
-                                  <IconClock size={12} className="text-mist-faint" />
+                                  <IconClock size={12} className="text-ink-faint" />
                                   {formatDate(corridor.departure_date)} · {corridor.carrier_name}
                                 </span>
                                 <span className="inline-flex items-center gap-1.5">
-                                  <IconPin size={12} className="text-mist-faint" />
+                                  <IconPin size={12} className="text-ink-faint" />
                                   <span className="truncate">{pledge.boarding_point}</span>
                                 </span>
                               </div>
                               <div className="flex flex-col gap-1.5">
                                 <div className="flex items-baseline justify-between gap-3">
-                                  <span className="micro text-mist-faint">Cohort</span>
-                                  <span className="tnum text-[11.5px] text-mist-dim">
+                                  <span className="micro text-ink-faint">Cohort</span>
+                                  <span className="tnum text-[11.5px] text-ink-muted">
                                     {corridor.pledged_seats}/{corridor.total_allotment} ·{' '}
                                     {statusLabel(corridor, now)}
                                   </span>
@@ -252,14 +252,14 @@ export function TripsView({
                               </div>
                             </div>
                           ) : (
-                            <p className="text-[12.5px] text-mist-dim">
+                            <p className="text-[12.5px] text-ink-muted">
                               This corridor is no longer on the board. Your pledge reference{' '}
-                              <span className="tnum text-mist">{pledge.booking_ref}</span> is still
+                              <span className="tnum text-ink-soft">{pledge.booking_ref}</span> is still
                               valid with the carrier desk.
                             </p>
                           )}
 
-                          <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 self-start rounded-card border border-line bg-night-850 px-4 py-3.5">
+                          <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 self-start rounded-card border border-rule bg-raised px-4 py-3.5">
                             <Cell label="Seats" value={String(pledge.seats)} />
                             <Cell label="Net fare" value={rupees(pledge.locked_unit_fare)} />
                             <Cell label="Fee" value={rupees(pledge.platform_fee_unit)} tone="clay" />
@@ -280,12 +280,12 @@ export function TripsView({
                           </dl>
                         </div>
 
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft px-5 py-3">
-                          <p className="text-[11.5px] text-mist-faint">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-rule-soft px-5 py-3">
+                          <p className="text-[11.5px] text-ink-faint">
                             {corridor && !isClosed(corridor, now) ? (
                               <>
                                 Lock in{' '}
-                                <Countdown iso={corridor.lock_deadline} className="text-mist-dim" /> ·
+                                <Countdown iso={corridor.lock_deadline} className="text-ink-muted" /> ·
                                 names free to change until{' '}
                                 {corridor.manifest_deadline
                                   ? formatDate(corridor.manifest_deadline)
@@ -314,7 +314,7 @@ export function TripsView({
                                 </Button>
                                 <Link
                                   to={corridorPath(corridor.code)}
-                                  className="inline-flex h-8 items-center gap-1.5 rounded-pill border border-line px-3 text-[12.5px] text-mist transition-colors duration-200 hover:border-line-bright hover:text-ivory"
+                                  className="inline-flex h-8 items-center gap-1.5 rounded-pill border border-rule px-3 text-[12.5px] text-ink-soft transition-colors duration-200 hover:border-rule-strong hover:text-ink"
                                 >
                                   Corridor <IconArrow size={12} />
                                 </Link>
@@ -328,7 +328,7 @@ export function TripsView({
                 })}
               </ul>
 
-              <p className="text-[11.5px] leading-relaxed text-mist-faint">
+              <p className="text-[11.5px] leading-relaxed text-ink-faint">
                 Pledges are not tickets. Nothing is captured until the corridor clears Tier I and the
                 carrier confirms the allotment in writing; until then the row sits in escrow and can be
                 released without a refund cycle, because no money moved.
@@ -343,7 +343,7 @@ export function TripsView({
               action={
                 <Link
                   to="/"
-                  className="inline-flex h-9 items-center gap-2 rounded-pill bg-marigold px-4 text-[12.5px] font-medium text-night-900 transition-colors duration-200 hover:bg-marigold-bright"
+                  className="inline-flex h-9 items-center gap-2 rounded-pill bg-accent px-4 text-[12.5px] font-medium text-on-accent transition-colors duration-200 hover:bg-accent-bright"
                 >
                   Browse live corridors <IconArrow size={13} />
                 </Link>
@@ -362,7 +362,7 @@ export function TripsView({
               action={
                 <Link
                   to="/"
-                  className="inline-flex h-9 items-center gap-2 rounded-pill border border-line-bright px-4 text-[12.5px] text-mist transition-colors duration-200 hover:text-ivory"
+                  className="inline-flex h-9 items-center gap-2 rounded-pill border border-rule-strong px-4 text-[12.5px] text-ink-soft transition-colors duration-200 hover:text-ink"
                 >
                   Find a corridor <IconArrow size={13} />
                 </Link>
@@ -376,32 +376,24 @@ export function TripsView({
                     <Panel hover className="flex h-full flex-col gap-3 p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex flex-col gap-1">
-                          <span className="micro text-ivory">{corridor.code}</span>
-                          <span className="text-[12px] text-mist-dim">
+                          <span className="micro text-ink">{corridor.code}</span>
+                          <span className="text-[12px] text-ink-muted">
                             {corridor.origin_city} → {corridor.dest_city}
                           </span>
                         </div>
                         <Chip tone={statusTone(corridor, now)}>{statusLabel(corridor, now)}</Chip>
                       </div>
                       <div className="flex items-baseline justify-between gap-3">
-                        <span className="tnum text-[15px] text-ivory">
+                        <span className="tnum text-[15px] text-ink">
                           {rupees(corridor.tier1_fare)}
-                          <span className="text-[11px] text-mist-faint"> net from</span>
+                          <span className="text-[11px] text-ink-faint"> net from</span>
                         </span>
-                        <span className="tnum text-[11.5px] text-mist-dim">
+                        <span className="tnum text-[11.5px] text-ink-muted">
                           {corridor.pledged_seats}/{corridor.total_allotment}
                         </span>
                       </div>
-                      <Meter
-                        filled={corridor.pledged_seats}
-                        total={corridor.total_allotment}
-                        marks={[
-                          { at: corridor.tier1_min, label: 'Tier I' },
-                          { at: corridor.tier2_min, label: 'Tier II' },
-                          { at: corridor.tier3_min, label: 'Tier III' },
-                        ]}
-                      />
-                      <p className="text-[11px] text-mist-faint">
+                      <Meter filled={corridor.pledged_seats} total={corridor.total_allotment} />
+                      <p className="text-[11px] text-ink-faint">
                         {isClosed(corridor, now) ? (
                           <>Closed {formatDate(corridor.lock_deadline)}</>
                         ) : (
@@ -415,8 +407,8 @@ export function TripsView({
                         <Link
                           to={corridorPath(corridor.code)}
                           className={cn(
-                            'inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-pill border border-line text-[12px] text-mist',
-                            'transition-colors duration-200 hover:border-line-bright hover:text-ivory',
+                            'inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-pill border border-rule text-[12px] text-ink-soft',
+                            'transition-colors duration-200 hover:border-rule-strong hover:text-ink',
                           )}
                         >
                           Open <IconArrow size={12} />
@@ -424,7 +416,7 @@ export function TripsView({
                         <button
                           type="button"
                           onClick={() => onWatch(corridor)}
-                          className="grid h-8 w-8 place-items-center rounded-pill border border-marigold/40 bg-marigold-veil text-marigold transition-colors duration-200 hover:bg-marigold-veil-bright"
+                          className="grid h-8 w-8 place-items-center rounded-pill border border-accent/40 bg-accent-tint text-accent-deep transition-colors duration-200 hover:bg-accent-tint-strong"
                           aria-label={`Stop watching ${corridor.code}`}
                           title="Stop watching"
                         >
@@ -435,7 +427,7 @@ export function TripsView({
                   </Reveal>
                 ))}
               </ul>
-              <p className="flex items-center gap-2 text-[11.5px] text-mist-faint">
+              <p className="flex items-center gap-2 text-[11.5px] text-ink-faint">
                 <IconUsers size={13} />
                 {watched.length} corridor{watched.length === 1 ? '' : 's'} watched ·{' '}
                 {pct(
@@ -465,17 +457,17 @@ function SummaryCell({
   tone?: 'jade' | 'marigold';
 }) {
   return (
-    <div className="flex flex-col gap-1 bg-night-900 px-4 py-4">
-      <dt className="micro text-mist-faint">{label}</dt>
+    <div className="flex flex-col gap-1 bg-surface px-4 py-4">
+      <dt className="micro text-ink-faint">{label}</dt>
       <dd
         className={cn(
           'tnum text-[24px] leading-none font-medium',
-          tone === 'jade' ? 'text-jade' : tone === 'marigold' ? 'text-marigold' : 'text-ivory',
+          tone === 'jade' ? 'text-jade-deep' : tone === 'marigold' ? 'text-accent-deep' : 'text-ink',
         )}
       >
         {value}
       </dd>
-      <dd className="text-[11px] text-mist-faint">{note}</dd>
+      <dd className="text-[11px] text-ink-faint">{note}</dd>
     </div>
   );
 }
@@ -495,17 +487,17 @@ function Cell({
 }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="micro text-mist-faint">{label}</dt>
+      <dt className="micro text-ink-faint">{label}</dt>
       <dd
         className={cn(
           'tnum leading-none',
           strong ? 'text-[15px] font-medium' : 'text-[12.5px]',
-          tone === 'jade' ? 'text-jade' : tone === 'clay' ? 'text-clay' : tone === 'marigold' ? 'text-marigold' : 'text-ivory',
+          tone === 'jade' ? 'text-jade-deep' : tone === 'clay' ? 'text-clay-deep' : tone === 'marigold' ? 'text-accent-deep' : 'text-ink',
         )}
       >
         {value}
       </dd>
-      {note ? <dd className="text-[10.5px] text-mist-faint">{note}</dd> : null}
+      {note ? <dd className="text-[10.5px] text-ink-faint">{note}</dd> : null}
     </div>
   );
 }

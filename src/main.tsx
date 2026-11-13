@@ -1,13 +1,12 @@
 import { StrictMode } from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
 
-// Type: Geist for UI, Geist Mono for money and codes, Instrument Serif for
-// display. Each @font-face is unicode-ranged, so the browser only ever fetches
-// the subsets this page actually renders.
+// Type: Geist for everything a traveller reads, Geist Mono for every code, clock
+// and rupee. The display face is the same variable grotesque at a heavier weight
+// (ADR-0008), so there is no third family to fetch. Each @font-face is
+// unicode-ranged, so the browser only ever fetches the subsets this page renders.
 import '@fontsource-variable/geist';
 import '@fontsource-variable/geist-mono';
-import '@fontsource/instrument-serif/latin-400.css';
-import '@fontsource/instrument-serif/latin-400-italic.css';
 
 import './index.css';
 
