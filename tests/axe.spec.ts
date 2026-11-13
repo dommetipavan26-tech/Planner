@@ -88,7 +88,17 @@ for (const route of DOCUMENT_ROUTES) {
         const background = await page
           .locator(selector)
           .first()
-          .evaluate((el) => window.getComputedStyle(el).backgroundImage);
+          .evaluate((el) => {
+            // The gradient sits on the hero card, not on the text node axe
+            // reports, so walk up until some layer actually paints a background.
+            let node: Element | null = el;
+            for (let depth = 0; node && depth < 8; depth += 1) {
+              const image = window.getComputedStyle(node).backgroundImage;
+              if (image && image !== 'none') return image;
+              node = node.parentElement;
+            }
+            return 'none';
+          });
         if (!/gradient/.test(background)) unexplained.push(`${selector} → ${background.slice(0, 60)}`);
       }
     }
