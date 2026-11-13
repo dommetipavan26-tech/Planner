@@ -1,26 +1,44 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter, ScrollToTop, type RouteMatch } from './lib/router';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+
+import { useRouter, ScrollToTop } from './lib/router';
+import { routeTitle } from './lib/meta';
 import { useLedger } from './hooks/useLedger';
 import type { Corridor } from './lib/types';
 import { AppShell } from './components/AppShell';
 import { JoinSheet } from './components/JoinSheet';
 import { Button, useToasts, ToastStack } from './components/ui';
 import { CorridorsView } from './views/CorridorsView';
-import { CorridorView } from './views/CorridorView';
-import { TripsView } from './views/TripsView';
-import { CarriersView } from './views/CarriersView';
-import { RequestsView } from './views/RequestsView';
-import { NotFoundView } from './views/NotFoundView';
 import { IconAlert, IconClose } from './components/icons';
+import { RouteFallback } from './components/RouteFallback';
 
-const TITLES: Record<RouteMatch['name'], string> = {
-  corridors: 'UtsavAir — festival corridor desk',
-  corridor: 'UtsavAir — festival corridor desk',
-  trips: 'My trips · UtsavAir',
-  carriers: 'Carrier desk · UtsavAir',
-  requests: 'Corridor requests · UtsavAir',
-  notfound: 'Page not found · UtsavAir',
-};
+/* The landing route stays in the main chunk: first paint must never wait on a
+   second request. Everything else is a route a traveller chooses to visit, so
+   its code arrives when they ask for it and not before. */
+const CorridorView = lazy(() =>
+  import('./views/CorridorView').then((m) => ({ default: m.CorridorView })),
+);
+const TripsView = lazy(() => import('./views/TripsView').then((m) => ({ default: m.TripsView })));
+const CarriersView = lazy(() =>
+  import('./views/CarriersView').then((m) => ({ default: m.CarriersView })),
+);
+const RequestsView = lazy(() =>
+  import('./views/RequestsView').then((m) => ({ default: m.RequestsView })),
+);
+const NotFoundView = lazy(() =>
+  import('./views/NotFoundView').then((m) => ({ default: m.NotFoundView })),
+);
+
+/* Real-user metrics, deliberately behind the same lazy boundary. Both packages
+   are thin: they open a queue and inject Vercel's collector from an effect, and
+   that collector reads buffered PerformanceObserver entries, so waiting one
+   chunk before mounting costs no data and keeps the instruments off the critical
+   path entirely. */
+const Analytics = lazy(() =>
+  import('@vercel/analytics/react').then((m) => ({ default: m.Analytics })),
+);
+const SpeedInsights = lazy(() =>
+  import('@vercel/speed-insights/react').then((m) => ({ default: m.SpeedInsights })),
+);
 
 export default function App() {
   const ledger = useLedger();
@@ -39,8 +57,8 @@ export default function App() {
 
   useEffect(() => {
     if (route.name === 'corridor') return; // the corridor view owns its own title
-    document.title = TITLES[route.name] ?? TITLES.corridors;
-  }, [route.name]);
+    document.title = routeTitle(route);
+  }, [route]);
 
   const handleHold = useCallback((corridor: Corridor) => {
     setHoldCode(corridor.code);
@@ -108,27 +126,29 @@ export default function App() {
           <CorridorsView ledger={ledger} onHold={handleHold} onWatch={(c) => void handleWatch(c)} />
         ) : null}
 
-        {route.name === 'corridor' && route.code ? (
-          <CorridorView
-            code={route.code}
-            ledger={ledger}
-            allCorridors={ledger.corridors}
-            onHold={handleHold}
-            onWatch={(c) => void handleWatch(c)}
-          />
-        ) : null}
+        <Suspense fallback={<RouteFallback route={route.name} />}>
+          {route.name === 'corridor' && route.code ? (
+            <CorridorView
+              code={route.code}
+              ledger={ledger}
+              allCorridors={ledger.corridors}
+              onHold={handleHold}
+              onWatch={(c) => void handleWatch(c)}
+            />
+          ) : null}
 
-        {route.name === 'trips' ? (
-          <TripsView ledger={ledger} onWatch={(c) => void handleWatch(c)} onToast={push} />
-        ) : null}
+          {route.name === 'trips' ? (
+            <TripsView ledger={ledger} onWatch={(c) => void handleWatch(c)} onToast={push} />
+          ) : null}
 
-        {route.name === 'carriers' ? <CarriersView ledger={ledger} onToast={push} /> : null}
+          {route.name === 'carriers' ? <CarriersView ledger={ledger} onToast={push} /> : null}
 
-        {route.name === 'requests' ? (
-          <RequestsView ledger={ledger} onToast={push} onHold={handleHold} />
-        ) : null}
+          {route.name === 'requests' ? (
+            <RequestsView ledger={ledger} onToast={push} onHold={handleHold} />
+          ) : null}
 
-        {route.name === 'notfound' ? <NotFoundView corridors={ledger.corridors} /> : null}
+          {route.name === 'notfound' ? <NotFoundView corridors={ledger.corridors} /> : null}
+        </Suspense>
       </AppShell>
 
       <JoinSheet
@@ -140,6 +160,11 @@ export default function App() {
       />
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
+
+      <Suspense fallback={null}>
+        <Analytics />
+        <SpeedInsights />
+      </Suspense>
     </>
   );
 }

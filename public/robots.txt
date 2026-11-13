@@ -1,0 +1,7 @@
+# Every route a traveller can land on is prerendered to static HTML, so there is
+# nothing to hold back from a crawler. /trips is device-scoped: the document is
+# the empty state, and a returning traveller's pledges arrive after hydration.
+User-agent: *
+Allow: /
+
+Sitemap: https://utsav-corridor.vercel.app/sitemap.xml

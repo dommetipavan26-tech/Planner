@@ -19,6 +19,7 @@ export function NotFoundView({ corridors }: { corridors: Corridor[] }) {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-20 sm:px-6">
       <EmptyState
+        as="h1"
         icon={<IconArrow size={22} />}
         title="That route does not exist"
         body="No page is served at this address. The corridor board is the front door — every open block, its tier slabs and its lock countdown are on it."

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, corridorPath } from '../lib/router';
 import { useCoarseNow } from '../hooks/useClock';
+import { useMounted } from '../hooks/useMounted';
 import type { Ledger } from '../hooks/useLedger';
 import {
   compactRupees,
@@ -52,6 +53,7 @@ export function TripsView({
   onToast: (message: string, tone?: 'success' | 'error' | 'info') => void;
 }) {
   const now = useCoarseNow();
+  const mounted = useMounted();
   const [tab, setTab] = useState<Tab>('pledges');
 
   const corridorFor = useMemo(() => {
@@ -109,7 +111,13 @@ export function TripsView({
             ]}
           />
           <p className="tnum micro text-mist-faint">
-            device {ledger.device.slice(0, 8)}…{ledger.device.slice(-4)}
+            {/* The device id lives in localStorage, so it does not exist during a
+                server render. Naming the source instead of the value keeps the
+                prerendered markup and the browser's first render identical — and
+                reads as a sentence in a static document, where a dash would read
+                as something missing. */}
+            device{' '}
+            {mounted ? `${ledger.device.slice(0, 8)}…${ledger.device.slice(-4)}` : 'this browser'}
           </p>
         </div>
       </header>
@@ -329,6 +337,7 @@ export function TripsView({
           ) : (
             <EmptyState
               icon={<IconTicket size={22} />}
+              as="h2"
               title="No pledges from this device yet"
               body="Hold seats on an open corridor and the pledge appears here the moment it is written to Postgres — along with the slab price it locked and the saving against the surge fare."
               action={
@@ -347,6 +356,7 @@ export function TripsView({
           {watched.length === 0 ? (
             <EmptyState
               icon={<IconBell size={22} />}
+              as="h2"
               title="You are not watching any corridor"
               body="Watching stores a row against your device id. When a watched corridor crosses a tier threshold, the ledger event appears in the ticker at the top of the desk."
               action={

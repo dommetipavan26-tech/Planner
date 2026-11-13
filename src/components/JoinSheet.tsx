@@ -161,6 +161,11 @@ export function JoinSheet({
 
   const submit = useCallback(async () => {
     if (!corridor) return;
+    // A second press while the first is still in flight is the commonest way a
+    // traveller ends up holding four seats they wanted two of. The server now
+    // treats that repeat as a retry and returns the pledge it already wrote, but
+    // the request should not have been made twice in the first place.
+    if (submitting) return;
     const found = validate({ name, phone, boardingPoint, seats, maxSeats });
     setErrors(found);
     setTouched({ name: true, phone: true, boardingPoint: true, seats: true });
@@ -191,18 +196,25 @@ export function JoinSheet({
     setSubmitting(false);
 
     if (!result.ok || !result.data) {
-      onToast(result.error ?? 'The ledger rejected that pledge. Try again.', 'error');
+      // A throttle is a refusal of pace, not a failed pledge: nothing was
+      // written, so it is worth a nudge rather than an alarm.
+      onToast(
+        result.error ?? 'The ledger rejected that pledge. Try again.',
+        result.throttled ? 'info' : 'error',
+      );
       return;
     }
     setReceipt(result.data);
     setSimulated(Boolean(result.simulated));
     onToast(
-      result.simulated
-        ? `Seat hold recorded locally as ${result.data.booking_ref}`
-        : `${result.data.booking_ref} is on the live ledger`,
-      'success',
+      result.duplicate
+        ? `${result.data.booking_ref} was already held — that press was a repeat, so no second seat was taken`
+        : result.simulated
+          ? `Seat hold recorded locally as ${result.data.booking_ref}`
+          : `${result.data.booking_ref} is on the live ledger`,
+      result.duplicate ? 'info' : 'success',
     );
-  }, [corridor, name, phone, boardingPoint, seats, maxSeats, cohort, onJoin, onToast]);
+  }, [corridor, submitting, name, phone, boardingPoint, seats, maxSeats, cohort, onJoin, onToast]);
 
   const copyRef = useCallback(async () => {
     if (!receipt) return;

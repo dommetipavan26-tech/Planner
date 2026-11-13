@@ -182,6 +182,7 @@ export function CarriersView({
         <div className="mt-6">
           <EmptyState
             icon={<IconSearch size={22} />}
+            as="h2"
             title="No bid matches that filter"
             body="Carrier desks log bids as allotments are released for the festival window. Widen the filter, or log the bid you are holding."
             action={

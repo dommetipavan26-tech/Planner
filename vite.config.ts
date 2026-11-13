@@ -3,10 +3,32 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 /**
- * The client build splits React and the Supabase SDK into their own chunks so a
- * ledger change never invalidates the framework chunk. The SSR render check
- * keeps dependencies external, so it must not see manualChunks at all.
+ * The client build splits React, the Supabase SDK and the Vercel instrumentation
+ * into their own chunks, so a ledger change never invalidates the framework chunk
+ * and the cost of real-user metrics is visible as a line in the build output
+ * rather than buried inside the app bundle. The SSR render check keeps
+ * dependencies external, so it must not see manualChunks at all.
  */
+
+/**
+ * The package a module id belongs to, matched on the package boundary.
+ *
+ * Substring matching is not enough here: `id.includes('/react/')` also matches
+ * `node_modules/@vercel/analytics/react/`, which silently pulled the
+ * instrumentation into the framework chunk and made React look 5 kB heavier than
+ * it is. Scoped packages are two path segments, everything else is one.
+ */
+function packageName(id: string): string | null {
+  const marker = 'node_modules/';
+  const at = id.lastIndexOf(marker);
+  if (at === -1) return null;
+  const segments = id.slice(at + marker.length).split('/');
+  const first = segments[0];
+  if (first === undefined) return null;
+  if (!first.startsWith('@')) return first;
+  const second = segments[1];
+  return second === undefined ? null : `${first}/${second}`;
+}
 export default defineConfig(({ isSsrBuild }) => ({
   plugins: [react(), tailwindcss()],
   server: {
@@ -31,16 +53,16 @@ export default defineConfig(({ isSsrBuild }) => ({
         ? undefined
         : {
             manualChunks(id: string) {
-              if (!id.includes('node_modules')) return undefined;
-              if (id.includes('@supabase') || id.includes('/ws/') || id.includes('phoenix')) {
+              const pkg = packageName(id);
+              if (pkg === null) return undefined;
+              if (pkg === '@supabase/supabase-js' || pkg === 'ws' || pkg === 'phoenix') {
                 return 'ledger';
               }
-              if (
-                id.includes('/react/') ||
-                id.includes('/react-dom/') ||
-                id.includes('/scheduler/')
-              ) {
+              if (pkg === 'react' || pkg === 'react-dom' || pkg === 'scheduler') {
                 return 'react';
+              }
+              if (pkg === '@vercel/analytics' || pkg === '@vercel/speed-insights') {
+                return 'insights';
               }
               return undefined;
             },

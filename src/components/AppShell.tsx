@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useRouter } from '../lib/router';
+import { PRERENDERED_AT } from '../lib/buildTime';
 import { useNow } from '../hooks/useClock';
 import { formatClockMs } from '../lib/format';
 import type { LedgerEvent } from '../hooks/useLedger';
@@ -245,7 +246,9 @@ export function AppShell({
 }
 
 function Footer() {
-  const year = new Date().getFullYear();
+  // Derived from the build instant rather than the viewer's clock, so a
+  // prerendered footer hydrates to the year it was written in.
+  const year = new Date(PRERENDERED_AT).getFullYear();
   return (
     <footer className="mt-16 border-t border-line bg-night-900/50">
       <div className="mx-auto grid max-w-[1400px] gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
