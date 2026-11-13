@@ -121,11 +121,11 @@ export function CarriersView({
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 py-10 sm:px-6 lg:py-14">
-      <header className="flex flex-col gap-5 border-b border-line pb-6 lg:flex-row lg:items-end lg:justify-between">
+      <header className="flex flex-col gap-5 border-b border-rule pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex max-w-2xl flex-col gap-2.5">
           <Eyebrow>Supply side · published</Eyebrow>
-          <h1 className="display text-[clamp(2rem,4.6vw,3.25rem)] text-ivory">Carrier desk</h1>
-          <p className="text-[13.5px] leading-relaxed text-mist-dim">
+          <h1 className="display text-[clamp(2rem,4.6vw,3.25rem)] text-ink">Carrier desk</h1>
+          <p className="text-[13.5px] leading-relaxed text-ink-muted">
             Every block on the board starts here: a carrier desk offers seats at a net group fare,
             states how long it will hold them, and names the baggage and name-change terms. Those rows
             live in Postgres next to the pledges they price, so the fare a traveller sees can always be
@@ -134,13 +134,13 @@ export function CarriersView({
         </div>
         <div className="flex flex-col items-start gap-2 sm:items-end">
           {desk ? (
-            <p className="micro max-w-xs text-right text-mist-faint">
+            <p className="micro max-w-xs text-right text-ink-faint">
               Signed in as{' '}
-              <span className="text-jade">{desk.deskRef || desk.carrierName}</span> · session ends{' '}
+              <span className="text-jade-deep">{desk.deskRef || desk.carrierName}</span> · session ends{' '}
               {untilLabel(desk.expiresAt, now)}
             </p>
           ) : (
-            <p className="micro max-w-xs text-right text-mist-faint">
+            <p className="micro max-w-xs text-right text-ink-faint">
               Bids are written by an authenticated desk. Signing in is the first step.
             </p>
           )}
@@ -154,7 +154,7 @@ export function CarriersView({
         </div>
       </header>
 
-      <dl className="mt-8 grid gap-px overflow-hidden rounded-card border border-line bg-line sm:grid-cols-2 lg:grid-cols-5">
+      <dl className="mt-8 grid gap-px overflow-hidden rounded-card border border-rule bg-rule-strong sm:grid-cols-2 lg:grid-cols-5">
         <StatCell label="Bids logged" value={String(bids.length)} note={`${stats.carriers} carrier desks`} />
         <StatCell label="Seats offered" value={number(stats.seats)} note="across all live blocks" />
         <StatCell
@@ -191,7 +191,7 @@ export function CarriersView({
         <div className="relative w-full lg:w-72">
           <IconSearch
             size={14}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-mist-faint"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint"
           />
           <TextInput
             type="search"
@@ -241,8 +241,8 @@ export function CarriersView({
                 <Panel hover className="flex h-full flex-col gap-3.5 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 flex-col gap-1">
-                      <span className="truncate text-[14px] text-ivory">{bid.carrier_name}</span>
-                      <span className="micro truncate text-mist-faint">
+                      <span className="truncate text-[14px] text-ink">{bid.carrier_name}</span>
+                      <span className="micro truncate text-ink-faint">
                         {bid.desk_ref ? `Desk ${bid.desk_ref}` : 'Desk attribution pending'}
                       </span>
                     </div>
@@ -264,16 +264,16 @@ export function CarriersView({
                     {corridor ? (
                       <Link
                         to={corridorPath(corridor.code)}
-                        className="micro inline-flex items-center gap-1.5 rounded-pill border border-line bg-night-850 px-2.5 py-1 text-mist transition-colors duration-200 hover:border-marigold/50 hover:text-marigold"
+                        className="micro inline-flex items-center gap-1.5 rounded-pill border border-rule bg-raised px-2.5 py-1 text-ink-soft transition-colors duration-200 hover:border-accent/50 hover:text-accent-deep"
                       >
                         {corridor.code} <IconArrow size={11} />
                       </Link>
                     ) : (
-                      <span className="micro rounded-pill border border-line bg-night-850 px-2.5 py-1 text-mist-dim">
+                      <span className="micro rounded-pill border border-rule bg-raised px-2.5 py-1 text-ink-muted">
                         {bid.corridor_code} · unmatched
                       </span>
                     )}
-                    <span className="micro text-mist-faint">
+                    <span className="micro text-ink-faint">
                       logged {relativeTime(bid.created_at, now)}
                     </span>
                   </div>
@@ -291,25 +291,25 @@ export function CarriersView({
                     />
                   </dl>
 
-                  <div className="flex flex-col gap-1.5 text-[11.5px] leading-relaxed text-mist-dim">
+                  <div className="flex flex-col gap-1.5 text-[11.5px] leading-relaxed text-ink-muted">
                     <span className="inline-flex items-start gap-1.5">
-                      <IconLuggage size={12} className="mt-0.5 shrink-0 text-mist-faint" />
+                      <IconLuggage size={12} className="mt-0.5 shrink-0 text-ink-faint" />
                       {bid.baggage_terms}
                     </span>
                     {bid.notes ? (
                       <span className="inline-flex items-start gap-1.5">
-                        <IconClock size={12} className="mt-0.5 shrink-0 text-mist-faint" />
+                        <IconClock size={12} className="mt-0.5 shrink-0 text-ink-faint" />
                         {bid.notes}
                       </span>
                     ) : null}
                   </div>
 
                   {corridor ? (
-                    <div className="mt-auto flex items-baseline justify-between gap-3 border-t border-line-soft pt-3">
-                      <span className="text-[11.5px] text-mist-faint">
+                    <div className="mt-auto flex items-baseline justify-between gap-3 border-t border-rule-soft pt-3">
+                      <span className="text-[11.5px] text-ink-faint">
                         Block on the board: {corridor.pledged_seats}/{corridor.total_allotment} pledged
                       </span>
-                      <span className="tnum text-[12.5px] text-jade">
+                      <span className="tnum text-[12.5px] text-jade-deep">
                         −{pct(
                           corridor.festival_surge_fare > 0
                             ? ((corridor.festival_surge_fare - bid.net_group_fare) /
@@ -330,9 +330,9 @@ export function CarriersView({
 
       <div className="mt-14 grid gap-8 lg:grid-cols-2">
         <section className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5 border-b border-line pb-3">
+          <div className="flex flex-col gap-1.5 border-b border-rule pb-3">
             <Eyebrow>What we ask a carrier for</Eyebrow>
-            <h2 className="display text-[clamp(1.5rem,3vw,2rem)] text-ivory">
+            <h2 className="display text-[clamp(1.5rem,3vw,2rem)] text-ink">
               Four terms, and nothing else
             </h2>
           </div>
@@ -356,12 +356,12 @@ export function CarriersView({
               },
             ].map((item, i) => (
               <li key={item.title} className="flex gap-3">
-                <span className="tnum micro mt-0.5 shrink-0 text-mist-faint">
+                <span className="tnum micro mt-0.5 shrink-0 text-ink-faint">
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 <div className="flex flex-col gap-1">
-                  <span className="text-[13px] text-ivory">{item.title}</span>
-                  <span className="text-[12px] leading-relaxed text-mist-dim">{item.body}</span>
+                  <span className="text-[13px] text-ink">{item.title}</span>
+                  <span className="text-[12px] leading-relaxed text-ink-muted">{item.body}</span>
                 </div>
               </li>
             ))}
@@ -369,13 +369,13 @@ export function CarriersView({
         </section>
 
         <section className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5 border-b border-line pb-3">
+          <div className="flex flex-col gap-1.5 border-b border-rule pb-3">
             <Eyebrow>What the carrier gets</Eyebrow>
-            <h2 className="display text-[clamp(1.5rem,3vw,2rem)] text-ivory">
+            <h2 className="display text-[clamp(1.5rem,3vw,2rem)] text-ink">
               Load factor, bought in one transaction
             </h2>
           </div>
-          <div className="grid gap-px overflow-hidden rounded-card border border-line bg-line sm:grid-cols-2">
+          <div className="grid gap-px overflow-hidden rounded-card border border-rule bg-rule-strong sm:grid-cols-2">
             {[
               {
                 label: 'Guaranteed load factor',
@@ -398,38 +398,38 @@ export function CarriersView({
                 note: `${coachFee ? pct(coachFee, 1) : '—'} on coach blocks — charged to the traveller, never netted off the carrier fare`,
               },
             ].map((item) => (
-              <div key={item.label} className="flex flex-col gap-1 bg-night-900 px-4 py-4">
-                <span className="micro text-mist-faint">{item.label}</span>
-                <span className="tnum text-[19px] leading-none font-medium text-ivory">
+              <div key={item.label} className="flex flex-col gap-1 bg-surface px-4 py-4">
+                <span className="micro text-ink-faint">{item.label}</span>
+                <span className="tnum text-[19px] leading-none font-medium text-ink">
                   {item.value}
                 </span>
-                <span className="text-[11px] leading-snug text-mist-faint">{item.note}</span>
+                <span className="text-[11px] leading-snug text-ink-faint">{item.note}</span>
               </div>
             ))}
           </div>
           <Panel className="flex flex-col gap-2 p-4">
-            <span className="inline-flex items-center gap-2 text-[12.5px] text-mist">
-              <IconShield size={14} className="text-jade" />
+            <span className="inline-flex items-center gap-2 text-[12.5px] text-ink-soft">
+              <IconShield size={14} className="text-jade-deep" />
               Nothing on this desk is binding
             </span>
-            <p className="text-[11.5px] leading-relaxed text-mist-faint">
+            <p className="text-[11.5px] leading-relaxed text-ink-faint">
               A bid row is an offer recorded against a corridor, not a contract. Blocks become live only
               when a contract reference is issued and the hold window covers the published lock
               deadline. Traveller money is held, never captured, until that point — total fee exposure
               across accepted bids today is{' '}
-              <span className="tnum text-clay">{compactRupees(acceptedFeeExposure)}</span>{' '}
+              <span className="tnum text-clay-deep">{compactRupees(acceptedFeeExposure)}</span>{' '}
               if every offered seat converts.
             </p>
           </Panel>
-          <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11.5px] text-mist-faint">
+          <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11.5px] text-ink-faint">
             <li className="inline-flex items-center gap-1.5">
-              <IconCheck size={12} className="text-jade" /> Bids are append-only from the anon key
+              <IconCheck size={12} className="text-jade-deep" /> Bids are append-only from the anon key
             </li>
             <li className="inline-flex items-center gap-1.5">
-              <IconCheck size={12} className="text-jade" /> Status changes are desk-side, never client-side
+              <IconCheck size={12} className="text-jade-deep" /> Status changes are desk-side, never client-side
             </li>
             <li className="inline-flex items-center gap-1.5">
-              <IconUsers size={12} className="text-jade" /> Realtime: a new bid appears on every open desk
+              <IconUsers size={12} className="text-jade-deep" /> Realtime: a new bid appears on every open desk
             </li>
           </ul>
         </section>
@@ -477,17 +477,17 @@ function StatCell({
   tone?: 'jade' | 'marigold';
 }) {
   return (
-    <div className="flex flex-col gap-1 bg-night-900 px-4 py-4">
-      <dt className="micro text-mist-faint">{label}</dt>
+    <div className="flex flex-col gap-1 bg-surface px-4 py-4">
+      <dt className="micro text-ink-faint">{label}</dt>
       <dd
         className={cn(
           'tnum text-[22px] leading-none font-medium',
-          tone === 'jade' ? 'text-jade' : tone === 'marigold' ? 'text-marigold' : 'text-ivory',
+          tone === 'jade' ? 'text-jade-deep' : tone === 'marigold' ? 'text-accent-deep' : 'text-ink',
         )}
       >
         {value}
       </dd>
-      <dd className="text-[11px] leading-snug text-mist-faint">{note}</dd>
+      <dd className="text-[11px] leading-snug text-ink-faint">{note}</dd>
     </div>
   );
 }
@@ -503,11 +503,11 @@ function MiniCell({
 }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="micro text-mist-faint">{label}</dt>
+      <dt className="micro text-ink-faint">{label}</dt>
       <dd
         className={cn(
           'tnum text-[13.5px] leading-none',
-          tone === 'marigold' ? 'text-marigold' : tone === 'clay' ? 'text-clay' : 'text-ivory',
+          tone === 'marigold' ? 'text-accent-deep' : tone === 'clay' ? 'text-clay-deep' : 'text-ink',
         )}
       >
         {value}
@@ -624,7 +624,7 @@ function BidSheet({
         width="max-w-lg"
         footer={
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[11.5px] leading-snug text-mist-dim">
+            <p className="text-[11.5px] leading-snug text-ink-muted">
               Five wrong passcodes lock a desk for fifteen minutes.
             </p>
             <div className="flex gap-2">
@@ -677,25 +677,25 @@ function BidSheet({
           </Field>
 
           <Divider label="what signing in proves" />
-          <ul className="flex list-none flex-col gap-2 text-[12px] leading-relaxed text-mist-dim">
+          <ul className="flex list-none flex-col gap-2 text-[12px] leading-relaxed text-ink-muted">
             <li className="flex gap-2">
-              <IconShield size={14} className="mt-0.5 shrink-0 text-jade" />
+              <IconShield size={14} className="mt-0.5 shrink-0 text-jade-deep" />
               <span>
                 Your bids carry your desk&rsquo;s name and code from the ledger, not from a text
                 field anybody could type into.
               </span>
             </li>
             <li className="flex gap-2">
-              <IconClock size={14} className="mt-0.5 shrink-0 text-marigold" />
+              <IconClock size={14} className="mt-0.5 shrink-0 text-accent-deep" />
               <span>
                 The session lasts eight hours and lives in this tab only. Closing the tab signs the
                 desk out.
               </span>
             </li>
             <li className="flex gap-2">
-              <IconCheck size={14} className="mt-0.5 shrink-0 text-lagoon" />
+              <IconCheck size={14} className="mt-0.5 shrink-0 text-lagoon-deep" />
               <span>
-                Every bid you log lands as <span className="text-ivory">under review</span>.
+                Every bid you log lands as <span className="text-ink">under review</span>.
                 Accepting a block stays an operations decision on the ledger.
               </span>
             </li>
@@ -767,9 +767,9 @@ function BidSheet({
       width="max-w-2xl"
       footer={
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-[11.5px] leading-snug text-mist-dim">
+          <p className="text-[11.5px] leading-snug text-ink-muted">
             Landed to the traveller at this net fare:{' '}
-            <span className="tnum text-marigold">{rupees(landed)}</span> ({rupees(netGroupFare)} +{' '}
+            <span className="tnum text-accent-deep">{rupees(landed)}</span> ({rupees(netGroupFare)} +{' '}
             {rupees(fee)} fee at {pct(feePct, 1)}).
           </p>
           <div className="flex gap-2">
@@ -783,10 +783,10 @@ function BidSheet({
         </div>
       }
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-night-900 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-rule bg-surface px-4 py-3">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="truncate text-[13.5px] text-ivory">{desk.carrierName}</span>
-          <span className="micro truncate text-mist-faint">
+          <span className="truncate text-[13.5px] text-ink">{desk.carrierName}</span>
+          <span className="micro truncate text-ink-faint">
             Desk {desk.deskRef} · {desk.deskContact} · session ends {untilLabel(desk.expiresAt, now)}
           </span>
         </div>

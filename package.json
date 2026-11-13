@@ -11,7 +11,8 @@
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "typecheck": "tsc --noEmit",
     "verify": "tsc --noEmit && vite build --ssr scripts/ssr-check.tsx --outDir dist-ssr --logLevel warn && node dist-ssr/ssr-check.js",
-    "audit": "vite build --ssr scripts/dom-check.tsx --outDir dist-ssr --logLevel warn && node dist-ssr/dom-check.js",
+    "tokens": "node scripts/token-check.mjs",
+    "audit": "node scripts/token-check.mjs && vite build --ssr scripts/dom-check.tsx --outDir dist-ssr --logLevel warn && node dist-ssr/dom-check.js",
     "test:browser": "playwright test",
     "test:browser:install": "playwright install --with-deps chromium",
     "test:browser:report": "playwright show-report",
@@ -21,7 +22,6 @@
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
-    "@fontsource/instrument-serif": "^5.3.0",
     "@supabase/postgrest-js": "^2.119.0",
     "@supabase/realtime-js": "^2.119.0",
     "@vercel/analytics": "^2.0.1",

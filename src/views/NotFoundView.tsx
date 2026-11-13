@@ -26,7 +26,7 @@ export function NotFoundView({ corridors }: { corridors: Corridor[] }) {
         action={
           <Link
             to="/"
-            className="inline-flex h-10 items-center gap-2 rounded-pill bg-marigold px-5 text-[13px] font-medium text-night-900 transition-colors duration-200 hover:bg-marigold-bright"
+            className="inline-flex h-10 items-center gap-2 rounded-pill bg-accent px-5 text-[13px] font-medium text-on-accent transition-colors duration-200 hover:bg-accent-bright"
           >
             Back to the board <IconArrow size={13} />
           </Link>
@@ -34,22 +34,22 @@ export function NotFoundView({ corridors }: { corridors: Corridor[] }) {
       />
 
       {suggestions.length > 0 ? (
-        <div className="rounded-card border border-line bg-night-900 p-4">
-          <span className="micro text-mist-faint">Open corridors</span>
+        <div className="rounded-card border border-rule bg-surface p-4">
+          <span className="micro text-ink-faint">Open corridors</span>
           <ul className="mt-3 grid list-none gap-2 sm:grid-cols-2">
             {suggestions.map((c) => (
               <li key={c.id}>
                 <Link
                   to={corridorPath(c.code)}
-                  className="flex items-center justify-between gap-3 rounded-card border border-line bg-night-850 px-3 py-2 transition-colors duration-200 hover:border-marigold/50"
+                  className="flex items-center justify-between gap-3 rounded-card border border-rule bg-raised px-3 py-2 transition-colors duration-200 hover:border-accent/50"
                 >
                   <span className="flex min-w-0 flex-col">
-                    <span className="micro text-ivory">{c.code}</span>
-                    <span className="truncate text-[11px] text-mist-faint">
+                    <span className="micro text-ink">{c.code}</span>
+                    <span className="truncate text-[11px] text-ink-faint">
                       {formatDate(c.departure_date)} · {c.origin_code}→{c.dest_code}
                     </span>
                   </span>
-                  <span className="tnum shrink-0 text-[12.5px] text-marigold">
+                  <span className="tnum shrink-0 text-[12.5px] text-accent-deep">
                     {rupees(landedPerSeat(c))}
                   </span>
                 </Link>

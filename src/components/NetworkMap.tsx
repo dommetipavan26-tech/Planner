@@ -113,7 +113,7 @@ export function NetworkMap({
 
   return (
     <figure className={className}>
-      <div className="relative overflow-hidden rounded-card border border-line bg-night-900">
+      <div className="relative overflow-hidden rounded-card border border-rule bg-surface">
         <svg
           viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
           className="block h-auto w-full"
@@ -135,7 +135,7 @@ export function NetworkMap({
             </radialGradient>
           </defs>
 
-          <g className="stroke-line" strokeWidth="0.6" aria-hidden="true">
+          <g className="stroke-rule" strokeWidth="0.6" aria-hidden="true">
             {meridians.map((lon) => {
               const { x } = project(LAT_MIN, lon);
               return (
@@ -150,7 +150,7 @@ export function NetworkMap({
             })}
           </g>
 
-          <g className="fill-mist-faint" fontSize="7" aria-hidden="true">
+          <g className="fill-ink-faint" fontSize="7" aria-hidden="true">
             {meridians.map((lon) => {
               const { x } = project(LAT_MIN, lon);
               return (
@@ -203,7 +203,7 @@ export function NetworkMap({
                       d={path}
                       className={cn(
                         'animate-dash',
-                        corridor.mode === 'bus' ? 'stroke-lagoon' : 'stroke-marigold',
+                        corridor.mode === 'bus' ? 'stroke-lagoon-deep' : 'stroke-accent-deep',
                       )}
                       strokeWidth={Math.max(1.1, weight * 0.45)}
                       strokeDasharray="3 9"
@@ -235,8 +235,8 @@ export function NetworkMap({
                   r={hub ? 4 : 3}
                   strokeWidth="1.2"
                   className={cn(
-                    'stroke-night transition-[fill] duration-200',
-                    active ? 'fill-ivory' : hub ? 'fill-marigold' : 'fill-mist',
+                    'stroke-page transition-[fill] duration-200',
+                    active ? 'fill-ink' : hub ? 'fill-accent' : 'fill-ink-soft',
                   )}
                 />
                 <text
@@ -247,7 +247,7 @@ export function NetworkMap({
                   letterSpacing="0.14em"
                   className={cn(
                     'transition-[fill] duration-200',
-                    active ? 'fill-ivory' : 'fill-mist',
+                    active ? 'fill-ink' : 'fill-ink-soft',
                   )}
                   style={{ fontFamily: 'var(--font-mono)' }}
                 >
@@ -262,18 +262,18 @@ export function NetworkMap({
           className="map-veil pointer-events-none absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-3 px-4 pb-3 pt-12"
         >
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-            <LegendLine stroke="stroke-marigold" label="Air corridor" />
-            <LegendLine stroke="stroke-lagoon" label="Coach corridor" />
-            <LegendLine stroke="stroke-ivory" label="Dashed = tier locked" dashed />
+            <LegendLine stroke="stroke-accent-deep" label="Air corridor" />
+            <LegendLine stroke="stroke-lagoon-deep" label="Coach corridor" />
+            <LegendLine stroke="stroke-ink" label="Dashed = tier locked" dashed />
           </div>
-          <p className="micro text-mist-faint">
+          <p className="micro text-ink-faint">
             {nodes.length} nodes · {arcs.length} routes
           </p>
         </div>
       </div>
 
       <figcaption className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <p className="max-w-md text-[11.5px] leading-relaxed text-mist-faint">
+        <p className="max-w-md text-[11.5px] leading-relaxed text-ink-faint">
           Routing diagram only. Arc weight tracks pledged seats against the carrier allotment, not
           distance or price. Node chips below are keyboard-reachable.
         </p>
@@ -293,8 +293,8 @@ export function NetworkMap({
                 className={
                   'micro rounded-pill border px-2 py-1 transition-colors duration-200 ' +
                   (hovered === node.code
-                    ? 'border-marigold/60 bg-marigold-veil text-marigold'
-                    : 'border-line bg-night-850 text-mist-dim hover:border-line-bright hover:text-mist')
+                    ? 'border-accent/60 bg-accent-tint text-accent-deep'
+                    : 'border-rule bg-raised text-ink-muted hover:border-rule-strong hover:text-ink-soft')
                 }
               >
                 {node.code}
@@ -322,7 +322,7 @@ function LegendLine({ stroke, label, dashed }: { stroke: string; label: string; 
           strokeDasharray={dashed ? '3 4' : undefined}
         />
       </svg>
-      <span className="micro text-mist-dim">{label}</span>
+      <span className="micro text-ink-muted">{label}</span>
     </span>
   );
 }
@@ -339,10 +339,10 @@ export function CorridorRail({ corridors }: { corridors: Corridor[] }) {
         <Link
           key={c.id}
           to={corridorPath(c.code)}
-          className="group inline-flex items-center gap-2 rounded-pill border border-line bg-night-850 px-3 py-1.5 transition-colors duration-200 hover:border-marigold/50 hover:bg-night-800"
+          className="group inline-flex items-center gap-2 rounded-pill border border-rule bg-raised px-3 py-1.5 transition-colors duration-200 hover:border-accent/50 hover:bg-sunken"
         >
-          <span className="micro text-mist-dim group-hover:text-marigold">{c.code}</span>
-          <span className="tnum text-[11.5px] text-mist-faint">
+          <span className="micro text-ink-muted group-hover:text-accent-deep">{c.code}</span>
+          <span className="tnum text-[11.5px] text-ink-faint">
             {c.pledged_seats}/{c.total_allotment}
           </span>
         </Link>

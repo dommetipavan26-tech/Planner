@@ -30,8 +30,8 @@
       content="Pooled group allotment for Sankranti, Ugadi and wedding-peak travel out of Andhra Pradesh. Live tier slabs, disclosed platform fee, nothing charged until a block confirms."
     />
     <!--/utsavair:meta-->
-    <meta name="theme-color" content="#06080E" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#F6F4EF" />
+    <meta name="color-scheme" content="light" />
 
     <!-- Installable, not offline. There is deliberately no service worker: a
          cache in front of this ledger would be able to serve a stale seat count
@@ -39,13 +39,13 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="UtsavAir" />
     <meta name="format-detection" content="telephone=no" />
 
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306080E'/%3E%3Cpath d='M8.5 22.5C14 21 18.5 17 23.5 9' stroke='%23E8A33D' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='8.5' cy='22.5' r='2.6' fill='%23F4F1EA'/%3E%3Ccircle cx='23.5' cy='9' r='2.6' fill='%23E8A33D'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23F6F4EF'/%3E%3Cpath d='M8.5 22.5C14 21 18.5 17 23.5 9' stroke='%23E8A33D' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='8.5' cy='22.5' r='2.6' fill='%2314181F'/%3E%3Ccircle cx='23.5' cy='9' r='2.6' fill='%23E8A33D'/%3E%3C/svg%3E"
     />
 
     <!-- Ledger lives in ap-south-1; warm the connection before first paint -->
@@ -54,16 +54,16 @@
 
     <!--utsavair:head-->
     <style>
-      /* First-paint shell so there is never a white flash before hydration.
-         This block paints before the bundled stylesheet exists, so it cannot
-         read the design system's custom properties and mirrors four tokens by
-         value instead: --color-night, --color-ivory, --color-mist-faint and
-         --color-marigold. Change one there, change it here. */
+      /* First-paint shell so there is never a flash of the wrong paper before
+         hydration. This block paints before the bundled stylesheet exists, so it
+         cannot read the design system's custom properties and mirrors four tokens
+         by value instead: --color-page, --color-ink, --color-ink-faint and
+         --color-accent. Change one there, change it here. */
       html,
       body {
         margin: 0;
-        background: #06080e; /* --color-night */
-        color: #f4f1ea; /* --color-ivory */
+        background: #f6f4ef; /* --color-page */
+        color: #14181f; /* --color-ink */
       }
       #boot {
         position: fixed;
@@ -75,13 +75,13 @@
         font: 500 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
         letter-spacing: 0.16em;
         text-transform: uppercase;
-        color: #7c8392; /* --color-mist-faint */
+        color: #5b6370; /* --color-ink-faint */
       }
       #boot span {
         width: 5px;
         height: 5px;
         border-radius: 50%;
-        background: #e8a33d; /* --color-marigold */
+        background: #e8a33d; /* --color-accent */
         animation: bootpulse 1.4s ease-in-out infinite;
       }
       #boot span:nth-child(2) {

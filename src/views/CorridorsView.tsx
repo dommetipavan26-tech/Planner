@@ -248,8 +248,8 @@ function Hero({
         : 'Platform fee disclosed on every figure';
 
   return (
-    <section className="relative overflow-hidden border-b border-line">
-      <div className="glow-marigold pointer-events-none absolute inset-0" aria-hidden="true" />
+    <section className="relative overflow-hidden border-b border-rule">
+      <div className="glow-accent pointer-events-none absolute inset-0" aria-hidden="true" />
       <div className="grid-veil pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden="true" />
 
       <div className="relative mx-auto grid w-full max-w-[1400px] gap-10 px-4 pt-12 pb-14 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:pt-16 lg:pb-20">
@@ -265,12 +265,12 @@ function Hero({
             ) : null}
           </div>
 
-          <h1 className="display text-[clamp(2.5rem,6.2vw,4.75rem)] text-ivory">
-            The festival surge is <em className="text-marigold">negotiable</em> — if enough of you ask
+          <h1 className="display text-[clamp(2.5rem,6.2vw,4.75rem)] text-ink">
+            The festival surge is <em className="text-accent-deep">negotiable</em> — if enough of you ask
             at once.
           </h1>
 
-          <p className="max-w-xl text-[14.5px] leading-relaxed text-mist">
+          <p className="max-w-xl text-[14.5px] leading-relaxed text-ink-soft">
             Carriers contract a block of seats for one departure. Travellers pledge into it. The moment
             a threshold clears, every pledged seat reprices down — including the ones that joined
             first. No card is charged until the block confirms.
@@ -279,14 +279,14 @@ function Hero({
           <div className="flex flex-wrap items-center gap-3">
             <a
               href="#board"
-              className="inline-flex h-11 items-center gap-2 rounded-pill bg-marigold px-5 text-[13.5px] font-medium text-night-900 shadow-marigold-lift transition-colors duration-200 hover:bg-marigold-bright"
+              className="inline-flex h-11 items-center gap-2 rounded-pill bg-accent px-5 text-[13.5px] font-medium text-on-accent shadow-accent-lift transition-colors duration-200 hover:bg-accent-bright"
             >
               See the live board
               <IconArrow size={14} />
             </a>
             <a
               href="#how"
-              className="inline-flex h-11 items-center gap-2 rounded-pill border border-line-bright px-5 text-[13.5px] text-mist transition-colors duration-200 hover:border-line-brightest hover:text-ivory"
+              className="inline-flex h-11 items-center gap-2 rounded-pill border border-rule-strong px-5 text-[13.5px] text-ink-soft transition-colors duration-200 hover:border-rule-strongest hover:text-ink"
             >
               How a pledge works
             </a>
@@ -301,7 +301,7 @@ function Hero({
 
         <div className="flex flex-col gap-4">
           <NetworkMap corridors={corridors} />
-          <div className="rounded-card border border-line bg-night-900/80 p-4">
+          <div className="rounded-card border border-rule bg-surface/80 p-4">
             <Eyebrow>Busiest right now</Eyebrow>
             <div className="mt-3">
               <CorridorRail corridors={corridors} />
@@ -315,8 +315,8 @@ function Hero({
 
 function TrustItem({ icon, text }: { icon: ReactNode; text: string }) {
   return (
-    <li className="inline-flex items-center gap-1.5 text-[11.5px] text-mist-dim">
-      <span className="text-jade">{icon}</span>
+    <li className="inline-flex items-center gap-1.5 text-[11.5px] text-ink-muted">
+      <span className="text-jade-deep">{icon}</span>
       {text}
     </li>
   );
@@ -355,19 +355,19 @@ function StatsBar({ totals }: { totals: Ledger['totals'] }) {
 
   return (
     <Reveal>
-      <dl className="grid gap-px overflow-hidden rounded-card border border-line bg-line sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <dl className="grid gap-px overflow-hidden rounded-card border border-rule bg-rule-strong sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {stats.map((stat) => (
-          <div key={stat.label} className="flex flex-col gap-1 bg-night-900 px-4 py-4">
-            <dt className="micro text-mist-faint">{stat.label}</dt>
+          <div key={stat.label} className="flex flex-col gap-1 bg-surface px-4 py-4">
+            <dt className="micro text-ink-faint">{stat.label}</dt>
             <dd
               className={cn(
                 'tnum text-[24px] leading-none font-medium',
-                stat.tone === 'jade' ? 'text-jade' : stat.tone === 'clay' ? 'text-clay' : 'text-ivory',
+                stat.tone === 'jade' ? 'text-jade-deep' : stat.tone === 'clay' ? 'text-clay-deep' : 'text-ink',
               )}
             >
               {stat.value}
             </dd>
-            <dd className="text-[11px] text-mist-faint">{stat.note}</dd>
+            <dd className="text-[11px] text-ink-faint">{stat.note}</dd>
           </div>
         ))}
       </dl>
@@ -405,11 +405,11 @@ function FilterBar({
   filtersActive: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-card border border-line bg-night-900/70 p-3 lg:flex-row lg:items-center">
+    <div className="flex flex-col gap-3 rounded-card border border-rule bg-surface/70 p-3 lg:flex-row lg:items-center">
       <div className="relative min-w-0 flex-1">
         <IconSearch
           size={14}
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-mist-faint"
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint"
         />
         <TextInput
           type="search"
@@ -424,7 +424,7 @@ function FilterBar({
             type="button"
             onClick={() => onQuery('')}
             aria-label="Clear search"
-            className="absolute right-2.5 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-pill text-mist-faint transition-colors duration-200 hover:bg-night-800 hover:text-ivory"
+            className="absolute right-2.5 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-pill text-ink-faint transition-colors duration-200 hover:bg-sunken hover:text-ink"
           >
             <IconClose size={12} />
           </button>
@@ -464,21 +464,21 @@ function FilterBar({
           className={cn(
             'h-10 rounded-pill border px-3 text-[12.5px] transition-colors duration-200',
             hideClosed
-              ? 'border-marigold/50 bg-marigold-veil text-marigold'
-              : 'border-line text-mist-dim hover:border-line-bright hover:text-mist',
+              ? 'border-accent/50 bg-accent-tint text-accent-deep'
+              : 'border-rule text-ink-muted hover:border-rule-strong hover:text-ink-soft',
           )}
         >
           Hide closed
         </button>
       </div>
 
-      <p className="tnum micro shrink-0 text-mist-faint lg:border-l lg:border-line lg:pl-3">
+      <p className="tnum micro shrink-0 text-ink-faint lg:border-l lg:border-rule lg:pl-3">
         {count} of {total} shown
         {filtersActive ? (
           <button
             type="button"
             onClick={onClear}
-            className="ml-2 normal-case tracking-normal text-marigold underline underline-offset-2 hover:decoration-2"
+            className="ml-2 normal-case tracking-normal text-accent-deep underline underline-offset-2 hover:decoration-2"
           >
             clear
           </button>
@@ -500,15 +500,15 @@ function CompareTable({
   now: number;
 }) {
   return (
-    <div className="mt-6 overflow-hidden rounded-card border border-line">
+    <div className="mt-6 overflow-hidden rounded-card border border-rule">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[900px] border-collapse text-left">
           <caption className="sr-only">
             Comparison of {corridors.length} festival corridors: surge fare, pooled landed fare,
             saving, cohort fill and lock countdown
           </caption>
-          <thead className="bg-night-850">
-            <tr className="micro text-mist-faint">
+          <thead className="bg-raised">
+            <tr className="micro text-ink-faint">
               <th scope="col" className="px-3 py-2.5 font-medium">Corridor</th>
               <th scope="col" className="px-3 py-2.5 font-medium">Route</th>
               <th scope="col" className="px-3 py-2.5 text-right font-medium">Surge</th>
@@ -521,7 +521,7 @@ function CompareTable({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-line-soft bg-night-900">
+          <tbody className="divide-y divide-rule-soft bg-surface">
             {corridors.map((corridor) => (
               <CorridorRow
                 key={corridor.id}
@@ -532,7 +532,7 @@ function CompareTable({
           </tbody>
         </table>
       </div>
-      <p className="border-t border-line bg-night-900 px-3 py-2 text-[11px] text-mist-faint">
+      <p className="border-t border-rule bg-surface px-3 py-2 text-[11px] text-ink-faint">
         Landed = carrier net fare at the corridor’s current slab, plus that corridor’s platform fee —
         stated on every card and never folded into the fare. Scroll sideways on small screens.
       </p>
@@ -559,28 +559,28 @@ function LatestHolds({ ledger }: { ledger: Ledger }) {
           const corridor = corridorFor(pledge.corridor_id);
           return (
             <Reveal key={pledge.id} as="li" delay={Math.min(i, 5) * 40}>
-              <div className="flex h-full flex-col gap-2.5 rounded-card border border-line bg-night-900 px-4 py-3.5 transition-colors duration-300 hover:border-line-bright">
+              <div className="flex h-full flex-col gap-2.5 rounded-card border border-rule bg-surface px-4 py-3.5 transition-colors duration-300 hover:border-rule-strong">
                 <div className="flex items-start justify-between gap-2">
-                  <span className="micro text-mist-faint">{pledge.booking_ref}</span>
+                  <span className="micro text-ink-faint">{pledge.booking_ref}</span>
                   <Chip tone={pledge.status === 'allotment_confirmed' ? 'jade' : 'marigold'}>
                     {pledge.status === 'allotment_confirmed' ? 'confirmed' : 'escrow'}
                   </Chip>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="tnum text-[17px] font-medium text-ivory">{pledge.seats}</span>
-                  <span className="text-[12px] text-mist-dim">
+                  <span className="tnum text-[17px] font-medium text-ink">{pledge.seats}</span>
+                  <span className="text-[12px] text-ink-muted">
                     seat{pledge.seats === 1 ? '' : 's'} ·{' '}
                     {corridor ? corridor.code : 'corridor removed'}
                   </span>
                 </div>
-                <p className="truncate text-[12px] text-mist">{pledge.passenger_name}</p>
-                <p className="truncate text-[11px] text-mist-faint">{pledge.passenger_cohort}</p>
-                <div className="mt-auto flex items-baseline justify-between gap-2 border-t border-line-soft pt-2.5">
-                  <span className="tnum text-[12.5px] text-marigold">
+                <p className="truncate text-[12px] text-ink-soft">{pledge.passenger_name}</p>
+                <p className="truncate text-[11px] text-ink-faint">{pledge.passenger_cohort}</p>
+                <div className="mt-auto flex items-baseline justify-between gap-2 border-t border-rule-soft pt-2.5">
+                  <span className="tnum text-[12.5px] text-accent-deep">
                     {rupees(pledge.locked_unit_fare)}
-                    <span className="text-mist-faint"> /seat net</span>
+                    <span className="text-ink-faint"> /seat net</span>
                   </span>
-                  <span className="tnum micro text-mist-faint">
+                  <span className="tnum micro text-ink-faint">
                     {formatDate(pledge.created_at)}
                   </span>
                 </div>
@@ -589,9 +589,9 @@ function LatestHolds({ ledger }: { ledger: Ledger }) {
           );
         })}
       </ul>
-      <p className="mt-4 text-[11.5px] text-mist-faint">
-        Ledger read at <ClockStamp className="text-mist-dim" /> IST · pledges are device-scoped for
-        this prototype, so your own holds appear under <em className="not-italic text-mist">My trips</em>.
+      <p className="mt-4 text-[11.5px] text-ink-faint">
+        Ledger read at <ClockStamp className="text-ink-muted" /> IST · pledges are device-scoped for
+        this prototype, so your own holds appear under <em className="not-italic text-ink-soft">My trips</em>.
       </p>
     </Section>
   );

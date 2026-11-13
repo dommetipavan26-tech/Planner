@@ -124,15 +124,15 @@ export function CorridorView({
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6 lg:py-10">
       <nav aria-label="Breadcrumb" className="mb-5">
-        <ol className="flex items-center gap-2 text-[11.5px] text-mist-faint">
+        <ol className="flex items-center gap-2 text-[11.5px] text-ink-faint">
           <li>
-            <Link to="/" className="transition-colors duration-200 hover:text-mist">
+            <Link to="/" className="transition-colors duration-200 hover:text-ink-soft">
               Corridors
             </Link>
           </li>
           <li aria-hidden="true">/</li>
           <li>
-            <span className="micro text-mist-dim" aria-current="page">
+            <span className="micro text-ink-muted" aria-current="page">
               {corridor.code}
             </span>
           </li>
@@ -140,8 +140,8 @@ export function CorridorView({
       </nav>
 
       {/* Route header */}
-      <header className="relative overflow-hidden rounded-card border border-line bg-night-900 shadow-panel">
-        <div className="glow-marigold pointer-events-none absolute inset-0 opacity-70" aria-hidden="true" />
+      <header className="relative overflow-hidden rounded-card border border-rule bg-surface shadow-panel">
+        <div className="glow-accent pointer-events-none absolute inset-0 opacity-70" aria-hidden="true" />
         <div className="relative flex flex-col gap-6 p-5 sm:p-7">
           {/* The visible title of this page is the pair of oversized endpoint
               codes below, which are spans: a screen-reader user would otherwise
@@ -160,8 +160,8 @@ export function CorridorView({
             <Chip tone="neutral">
               {corridor.mode === 'bus' ? 'Coach block' : 'Air block'}
             </Chip>
-            <span className="micro text-mist-faint">{corridor.festival}</span>
-            <span className="micro ml-auto text-mist-faint">{corridor.contract_ref}</span>
+            <span className="micro text-ink-faint">{corridor.festival}</span>
+            <span className="micro ml-auto text-ink-faint">{corridor.contract_ref}</span>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
@@ -175,15 +175,15 @@ export function CorridorView({
                   align="left"
                 />
                 <div className="flex min-w-[7rem] flex-1 flex-col items-center gap-1.5 pb-2">
-                  <span className="micro text-mist-faint">{corridor.duration_label}</span>
+                  <span className="micro text-ink-faint">{corridor.duration_label}</span>
                   <span className="relative flex w-full items-center" aria-hidden="true">
-                    <span className="h-px flex-1 bg-line-bright" />
-                    <span className="mx-2 grid h-7 w-7 place-items-center rounded-pill border border-line bg-night-850 text-marigold">
+                    <span className="h-px flex-1 bg-rule-strongest" />
+                    <span className="mx-2 grid h-7 w-7 place-items-center rounded-pill border border-rule bg-raised text-accent-deep">
                       {corridor.mode === 'bus' ? <IconBus size={14} /> : <IconPlane size={14} />}
                     </span>
-                    <span className="h-px flex-1 bg-line-bright" />
+                    <span className="h-px flex-1 bg-rule-strongest" />
                   </span>
-                  <span className="tnum micro text-mist-faint">{corridor.service_number}</span>
+                  <span className="tnum micro text-ink-faint">{corridor.service_number}</span>
                 </div>
                 <Endpoint
                   code={corridor.dest_code}
@@ -194,17 +194,17 @@ export function CorridorView({
                 />
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-mist-dim">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-ink-muted">
                 <span className="tnum inline-flex items-center gap-1.5">
-                  <IconClock size={13} className="text-mist-faint" />
+                  <IconClock size={13} className="text-ink-faint" />
                   {formatDateYear(corridor.departure_date)} · departs {corridor.departure_time} IST
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <IconUsers size={13} className="text-mist-faint" />
+                  <IconUsers size={13} className="text-ink-faint" />
                   {corridor.carrier_name}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <IconPin size={13} className="text-mist-faint" />
+                  <IconPin size={13} className="text-ink-faint" />
                   {corridor.pickup_hub}
                 </span>
               </div>
@@ -215,14 +215,14 @@ export function CorridorView({
                 <Eyebrow>Landed per seat</Eyebrow>
                 <div className="flex items-baseline gap-2.5">
                   <LandedFigure corridor={corridor} />
-                  <span className="tnum text-[13px] text-mist-faint line-through">
+                  <span className="tnum text-[13px] text-ink-faint line-through">
                     {rupees(corridor.festival_surge_fare)}
                   </span>
                 </div>
-                <span className="text-[11.5px] text-mist-dim">
+                <span className="text-[11.5px] text-ink-muted">
                   incl. {pct(corridor.platform_fee_pct, 1)} fee · surge{' '}
                   {surgeMultiple(corridor).toFixed(1)}× · save{' '}
-                  <span className="tnum text-jade">{rupees(savingPerSeat(corridor))}</span> per seat
+                  <span className="tnum text-jade-deep">{rupees(savingPerSeat(corridor))}</span> per seat
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -264,7 +264,7 @@ export function CorridorView({
             eyebrow={`Cohort at ${corridor.pledged_seats} of ${corridor.total_allotment} seats`}
           >
             <TierLadder corridor={corridor} projectedSeats={projected} />
-            <p className="mt-3 text-[11.5px] leading-relaxed text-mist-faint">
+            <p className="mt-3 text-[11.5px] leading-relaxed text-ink-faint">
               Preview assumes your party of {previewSeats} joins. Slabs are contractual minimums from{' '}
               {corridor.contract_ref}: crossing one reprices every pledged seat on the corridor, not
               just the newest.
@@ -272,7 +272,7 @@ export function CorridorView({
           </Section>
 
           <Section title="Operations" eyebrow="What the manifest needs from you">
-            <dl className="grid gap-px overflow-hidden rounded-card border border-line bg-line sm:grid-cols-2">
+            <dl className="grid gap-px overflow-hidden rounded-card border border-rule bg-rule-strong sm:grid-cols-2">
               <Detail icon={<IconPin size={13} />} label="Pickup hub" value={corridor.pickup_hub} />
               <Detail
                 icon={<IconLuggage size={13} />}
@@ -309,7 +309,7 @@ export function CorridorView({
               <div className="flex flex-col gap-2.5">
                 <Eyebrow>Boarding points</Eyebrow>
                 {corridor.boarding_points.length === 0 ? (
-                  <p className="text-[12.5px] text-mist-dim">
+                  <p className="text-[12.5px] text-ink-muted">
                     Not published yet — the desk adds feeder points once the block confirms.
                   </p>
                 ) : (
@@ -317,12 +317,12 @@ export function CorridorView({
                     {corridor.boarding_points.map((point, i) => (
                       <li
                         key={point}
-                        className="flex items-start gap-2.5 rounded-card border border-line bg-night-900 px-3 py-2"
+                        className="flex items-start gap-2.5 rounded-card border border-rule bg-surface px-3 py-2"
                       >
-                        <span className="tnum micro mt-0.5 shrink-0 text-mist-faint">
+                        <span className="tnum micro mt-0.5 shrink-0 text-ink-faint">
                           {String(i + 1).padStart(2, '0')}
                         </span>
-                        <span className="text-[12.5px] leading-snug text-mist">{point}</span>
+                        <span className="text-[12.5px] leading-snug text-ink-soft">{point}</span>
                       </li>
                     ))}
                   </ol>
@@ -331,12 +331,12 @@ export function CorridorView({
               <div className="flex flex-col gap-2.5">
                 <Eyebrow>Included</Eyebrow>
                 {corridor.amenities.length === 0 ? (
-                  <p className="text-[12.5px] text-mist-dim">Standard carrier inclusions apply.</p>
+                  <p className="text-[12.5px] text-ink-muted">Standard carrier inclusions apply.</p>
                 ) : (
                   <ul className="flex list-none flex-col gap-1.5">
                     {corridor.amenities.map((item) => (
-                      <li key={item} className="flex items-start gap-2 text-[12.5px] text-mist">
-                        <IconCheck size={13} className="mt-0.5 shrink-0 text-jade" />
+                      <li key={item} className="flex items-start gap-2 text-[12.5px] text-ink-soft">
+                        <IconCheck size={13} className="mt-0.5 shrink-0 text-jade-deep" />
                         {item}
                       </li>
                     ))}
@@ -345,9 +345,9 @@ export function CorridorView({
               </div>
             </div>
 
-            <div className="mt-5 rounded-card border border-line bg-night-850 px-4 py-3.5">
+            <div className="mt-5 rounded-card border border-rule bg-raised px-4 py-3.5">
               <Eyebrow>Refund & release rule</Eyebrow>
-              <p className="mt-2 text-[12.5px] leading-relaxed text-mist">{corridor.refund_rule}</p>
+              <p className="mt-2 text-[12.5px] leading-relaxed text-ink-soft">{corridor.refund_rule}</p>
             </div>
           </Section>
 
@@ -373,22 +373,22 @@ export function CorridorView({
                 {pledges.map((pledge) => (
                   <li
                     key={pledge.id}
-                    className="flex items-center gap-3 rounded-card border border-line bg-night-900 px-3.5 py-2.5"
+                    className="flex items-center gap-3 rounded-card border border-rule bg-surface px-3.5 py-2.5"
                   >
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-pill border border-line-bright bg-night-800 text-[11px] text-mist">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-pill border border-rule-strong bg-sunken text-[11px] text-ink-soft">
                       {initials(pledge.passenger_name)}
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate text-[12.5px] text-ivory">
+                      <span className="truncate text-[12.5px] text-ink">
                         {pledge.passenger_name}
                       </span>
-                      <span className="truncate text-[11px] text-mist-faint">
+                      <span className="truncate text-[11px] text-ink-faint">
                         {pledge.passenger_cohort} · {relativeTime(pledge.created_at, now)}
                       </span>
                     </span>
                     <span className="tnum shrink-0 text-right">
-                      <span className="block text-[13px] text-ivory">{pledge.seats}</span>
-                      <span className="micro block text-mist-faint">
+                      <span className="block text-[13px] text-ink">{pledge.seats}</span>
+                      <span className="micro block text-ink-faint">
                         seat{pledge.seats === 1 ? '' : 's'}
                       </span>
                     </span>
@@ -406,10 +406,10 @@ export function CorridorView({
 
           <Section title="Carrier bid behind this block" eyebrow="Supply side, published">
             {bids.length === 0 ? (
-              <p className="text-[12.5px] leading-relaxed text-mist-dim">
+              <p className="text-[12.5px] leading-relaxed text-ink-muted">
                 No bid row is published for {corridor.code}. The allotment is held directly against
                 contract {corridor.contract_ref}; carrier desks can log a competing bid from the{' '}
-                <Link to="/carriers" className="text-marigold underline underline-offset-2 hover:decoration-2">
+                <Link to="/carriers" className="text-accent-deep underline underline-offset-2 hover:decoration-2">
                   carrier desk
                 </Link>
                 .
@@ -419,12 +419,12 @@ export function CorridorView({
                 {bids.map((bid) => (
                   <li
                     key={bid.id}
-                    className="rounded-card border border-line bg-night-900 px-4 py-3.5"
+                    className="rounded-card border border-rule bg-surface px-4 py-3.5"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="flex flex-col gap-1">
-                        <span className="text-[13.5px] text-ivory">{bid.carrier_name}</span>
-                        <span className="micro text-mist-faint">
+                        <span className="text-[13.5px] text-ink">{bid.carrier_name}</span>
+                        <span className="micro text-ink-faint">
                           {bid.desk_ref ? `Desk ${bid.desk_ref}` : 'Desk attribution pending'}
                         </span>
                       </div>
@@ -449,7 +449,7 @@ export function CorridorView({
                         value={relativeTime(bid.created_at, now)}
                       />
                     </dl>
-                    <p className="mt-3 text-[12px] leading-relaxed text-mist-dim">
+                    <p className="mt-3 text-[12px] leading-relaxed text-ink-muted">
                       {bid.baggage_terms}
                       {bid.notes ? ` ${bid.notes}` : ''}
                     </p>
@@ -503,8 +503,8 @@ export function CorridorView({
             >
               {full ? 'Block full' : closed ? 'Lock closed' : 'Hold seats'}
             </Button>
-            <p className="flex items-start gap-2 text-[11px] leading-snug text-mist-faint">
-              <IconShield size={13} className="mt-px shrink-0 text-jade" />
+            <p className="flex items-start gap-2 text-[11px] leading-snug text-ink-faint">
+              <IconShield size={13} className="mt-px shrink-0 text-jade-deep" />
               Nothing is charged today. If Tier I is not crossed by{' '}
               {formatDate(corridor.lock_deadline)}, every pledge on this corridor is released.
             </p>
@@ -540,19 +540,19 @@ export function CorridorView({
                   <li key={c.id}>
                     <Link
                       to={corridorPath(c.code)}
-                      className="flex items-center justify-between gap-3 rounded-card border border-line bg-night-850 px-3 py-2 transition-colors duration-200 hover:border-line-bright"
+                      className="flex items-center justify-between gap-3 rounded-card border border-rule bg-raised px-3 py-2 transition-colors duration-200 hover:border-rule-strong"
                     >
                       <span className="flex flex-col">
-                        <span className="micro text-ivory">{c.code}</span>
-                        <span className="text-[11px] text-mist-faint">
+                        <span className="micro text-ink">{c.code}</span>
+                        <span className="text-[11px] text-ink-faint">
                           {formatDate(c.departure_date)} · {c.pledged_seats}/{c.total_allotment} pledged
                         </span>
                       </span>
                       <span className="flex items-center gap-2">
-                        <span className="tnum text-[12.5px] text-mist">
+                        <span className="tnum text-[12.5px] text-ink-soft">
                           {rupees(landedPerSeat(c))}
                         </span>
-                        <IconArrow size={12} className="text-mist-faint" />
+                        <IconArrow size={12} className="text-ink-faint" />
                       </span>
                     </Link>
                   </li>
@@ -584,17 +584,17 @@ function Endpoint({
   const telugu = teluguFor(city);
   return (
     <div className={cn('flex min-w-0 flex-col gap-1', align === 'right' && 'items-end text-right')}>
-      <span className="tnum display text-[clamp(2.4rem,6vw,3.6rem)] leading-none text-ivory">
+      <span className="tnum display text-[clamp(2.4rem,6vw,3.6rem)] leading-none text-ink">
         {code}
       </span>
-      <span className="tnum micro-md text-marigold">{time} IST</span>
-      <span className="text-[12.5px] text-mist">{city}</span>
+      <span className="tnum micro-md text-accent-deep">{time} IST</span>
+      <span className="text-[12.5px] text-ink-soft">{city}</span>
       {telugu ? (
-        <span className="telugu text-[12px] text-mist-dim" lang="te">
+        <span className="telugu text-[12px] text-ink-muted" lang="te">
           {telugu}
         </span>
       ) : null}
-      <span className="text-[11px] text-mist-faint">{state}</span>
+      <span className="text-[11px] text-ink-faint">{state}</span>
     </div>
   );
 }
@@ -611,9 +611,9 @@ function Section({
   return (
     <Reveal>
       <section className="scroll-mt-24">
-        <div className="flex flex-col gap-1.5 border-b border-line pb-3">
+        <div className="flex flex-col gap-1.5 border-b border-rule pb-3">
           {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-          <h2 className="display text-[clamp(1.5rem,3vw,2rem)] text-ivory">{title}</h2>
+          <h2 className="display text-[clamp(1.5rem,3vw,2rem)] text-ink">{title}</h2>
         </div>
         <div className="pt-5">{children}</div>
       </section>
@@ -634,14 +634,14 @@ function Detail({
   // dt + dd. The icon lives inside the dt it decorates, because a <dl> may hold
   // nothing that is not a term, a description, or a div wrapping those.
   return (
-    <div className="bg-night-900 px-4 py-3.5">
-      <dt className="micro flex items-center gap-1.5 text-mist-faint">
+    <div className="bg-surface px-4 py-3.5">
+      <dt className="micro flex items-center gap-1.5 text-ink-faint">
         <span className="shrink-0" aria-hidden="true">
           {icon}
         </span>
         {label}
       </dt>
-      <dd className="mt-1 text-[12.5px] leading-snug text-mist">{value}</dd>
+      <dd className="mt-1 text-[12.5px] leading-snug text-ink-soft">{value}</dd>
     </div>
   );
 }
@@ -649,8 +649,8 @@ function Detail({
 function SmallCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="micro text-mist-faint">{label}</dt>
-      <dd className="tnum text-[12.5px] text-ivory">{value}</dd>
+      <dt className="micro text-ink-faint">{label}</dt>
+      <dd className="tnum text-[12.5px] text-ink">{value}</dd>
     </div>
   );
 }
@@ -668,12 +668,12 @@ function Row({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <dt className={cn('text-[12px]', strong ? 'text-ivory' : 'text-mist-dim')}>{label}</dt>
+      <dt className={cn('text-[12px]', strong ? 'text-ink' : 'text-ink-muted')}>{label}</dt>
       <dd
         className={cn(
           'tnum shrink-0',
           strong ? 'text-[16px] font-medium' : 'text-[12.5px]',
-          tone === 'jade' ? 'text-jade' : tone === 'clay' ? 'text-clay' : 'text-ivory',
+          tone === 'jade' ? 'text-jade-deep' : tone === 'clay' ? 'text-clay-deep' : 'text-ink',
         )}
       >
         {value}
@@ -699,16 +699,16 @@ function Deadline({
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="flex flex-col gap-0.5">
-        <span className="text-[12.5px] text-mist">{label}</span>
-        <span className="text-[11px] text-mist-faint">{note}</span>
+        <span className="text-[12.5px] text-ink-soft">{label}</span>
+        <span className="text-[11px] text-ink-faint">{note}</span>
       </div>
       <div className="flex flex-col items-end gap-0.5">
         <Countdown
           iso={iso}
           closedLabel="passed"
-          className={cn('text-[13px]', passed ? 'text-mist-faint' : 'text-marigold')}
+          className={cn('text-[13px]', passed ? 'text-ink-faint' : 'text-accent-deep')}
         />
-        <span className="tnum micro text-mist-faint">
+        <span className="tnum micro text-ink-faint">
           {passed ? formatDate(iso) : `${days}d · ${formatDate(iso)}`}
         </span>
       </div>
@@ -728,10 +728,10 @@ function SeatMap({ corridor }: { corridor: Corridor }) {
   ];
 
   return (
-    <div className="flex flex-col gap-2.5 border-t border-line-soft pt-4">
+    <div className="flex flex-col gap-2.5 border-t border-rule-soft pt-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <Eyebrow>Allotment map</Eyebrow>
-        <span className="tnum text-[11.5px] text-mist-dim">
+        <span className="tnum text-[11.5px] text-ink-muted">
           {filled} pledged · {seatsLeft(corridor)} open · {corridor.total_allotment} contracted
         </span>
       </div>
@@ -749,8 +749,8 @@ function SeatMap({ corridor }: { corridor: Corridor }) {
               title={markIndex >= 0 ? `${marks[markIndex]?.label} at seat ${i + 1}` : undefined}
               className={cn(
                 'h-[7px] w-[7px] rounded-[1.5px] transition-colors duration-500',
-                isFilled ? 'bg-marigold' : 'bg-night-750',
-                markIndex >= 0 && 'ring-1 ring-inset ring-line-bright',
+                isFilled ? 'bg-accent' : 'bg-hover',
+                markIndex >= 0 && 'ring-1 ring-inset ring-rule-strong',
               )}
             />
           );
@@ -762,11 +762,11 @@ function SeatMap({ corridor }: { corridor: Corridor }) {
             <span
               className={cn(
                 'h-1.5 w-1.5 rounded-full',
-                corridor.pledged_seats >= m.at ? 'bg-jade' : 'bg-night-700',
+                corridor.pledged_seats >= m.at ? 'bg-jade' : 'bg-press',
               )}
               aria-hidden="true"
             />
-            <span className="tnum micro text-mist-faint">
+            <span className="tnum micro text-ink-faint">
               {m.label} at {m.at}
             </span>
           </span>
@@ -788,7 +788,7 @@ function UnknownCorridor({ code, corridors }: { code: string; corridors: Corrido
           <div className="mt-2 flex flex-col items-center gap-3">
             <Link
               to="/"
-              className="inline-flex h-9 items-center gap-2 rounded-pill bg-marigold px-4 text-[12.5px] font-medium text-night-900 transition-colors duration-200 hover:bg-marigold-bright"
+              className="inline-flex h-9 items-center gap-2 rounded-pill bg-accent px-4 text-[12.5px] font-medium text-on-accent transition-colors duration-200 hover:bg-accent-bright"
             >
               Back to the board
             </Link>
@@ -798,7 +798,7 @@ function UnknownCorridor({ code, corridors }: { code: string; corridors: Corrido
                   <Link
                     key={c.id}
                     to={corridorPath(c.code)}
-                    className="micro rounded-pill border border-line px-2.5 py-1 text-mist-dim transition-colors duration-200 hover:border-marigold/50 hover:text-marigold"
+                    className="micro rounded-pill border border-rule px-2.5 py-1 text-ink-muted transition-colors duration-200 hover:border-accent/50 hover:text-accent-deep"
                   >
                     {c.code}
                   </Link>
@@ -816,7 +816,7 @@ function CorridorSkeleton() {
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6">
       <Skeleton className="h-3 w-40" />
-      <div className="mt-5 rounded-card border border-line bg-night-900 p-6">
+      <div className="mt-5 rounded-card border border-rule bg-surface p-6">
         <div className="flex items-center gap-2">
           <Skeleton className="h-5 w-28 rounded-pill" />
           <Skeleton className="h-5 w-20 rounded-pill" />

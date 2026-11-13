@@ -113,11 +113,11 @@ export function AppTree({ views }: { views: RoutedViews }) {
         {showSnapshotBanner ? (
           <div
             role="status"
-            className="border-b border-clay-line bg-clay-veil/95 backdrop-blur-md"
+            className="border-b border-clay-line bg-clay-tint/95 backdrop-blur-md"
           >
             <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 sm:px-6">
-              <IconAlert size={14} className="shrink-0 text-clay" />
-              <p className="flex-1 text-[12px] leading-snug text-clay">
+              <IconAlert size={14} className="shrink-0 text-clay-deep" />
+              <p className="flex-1 text-[12px] leading-snug text-clay-deep">
                 Postgres is unreachable from this browser, so the desk is serving its bundled mirror of
                 the ledger. Figures are correct as of the last build; pledges and watches you make now
                 are stored on this device only.
@@ -130,7 +130,7 @@ export function AppTree({ views }: { views: RoutedViews }) {
                   type="button"
                   onClick={() => setBannerDismissed(true)}
                   aria-label="Dismiss snapshot notice"
-                  className="grid h-7 w-7 place-items-center rounded-pill text-clay transition-colors duration-200 hover:bg-clay-veil-bright"
+                  className="grid h-7 w-7 place-items-center rounded-pill text-clay-deep transition-colors duration-200 hover:bg-clay-tint-strong"
                 >
                   <IconClose size={13} />
                 </button>

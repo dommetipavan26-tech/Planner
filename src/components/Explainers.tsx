@@ -33,11 +33,11 @@ export function Section({
 }) {
   return (
     <section id={id} className={cn('scroll-mt-24', className)}>
-      <div className="flex flex-col gap-4 border-b border-line pb-4 md:flex-row md:items-end md:justify-between">
+      <div className="flex flex-col gap-4 border-b border-rule pb-4 md:flex-row md:items-end md:justify-between">
         <div className="flex max-w-2xl flex-col gap-2">
           {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-          <h2 className="display text-[clamp(1.75rem,3.6vw,2.5rem)] text-ivory">{title}</h2>
-          {lede ? <p className="text-[13.5px] leading-relaxed text-mist-dim">{lede}</p> : null}
+          <h2 className="display text-[clamp(1.75rem,3.6vw,2.5rem)] text-ink">{title}</h2>
+          {lede ? <p className="text-[13.5px] leading-relaxed text-ink-muted">{lede}</p> : null}
         </div>
         {aside ? <div className="shrink-0">{aside}</div> : null}
       </div>
@@ -77,30 +77,30 @@ export function HowItWorks() {
       title="Three steps, and one of them is free"
       lede="This is not a queue and not a lottery. It is a volume commitment split across the people who need it, with the price break written into the carrier contract."
     >
-      <ol className="grid gap-px overflow-hidden rounded-card border border-line bg-line md:grid-cols-3">
+      <ol className="grid gap-px overflow-hidden rounded-card border border-rule bg-rule-strong md:grid-cols-3">
         {STEPS.map((step, i) => (
           <Reveal
             key={step.n}
             as="li"
             delay={i * 70}
-            className="flex h-full flex-col gap-3 bg-night-900 px-5 py-6"
+            className="flex h-full flex-col gap-3 bg-surface px-5 py-6"
           >
             <div className="flex items-center justify-between">
-              <span className="tnum display text-[26px] leading-none text-mist-faint">{step.n}</span>
-              <step.icon size={17} className="text-marigold" />
+              <span className="tnum display text-[26px] leading-none text-ink-faint">{step.n}</span>
+              <step.icon size={17} className="text-accent-deep" />
             </div>
-            <h3 className="display text-[20px] leading-tight text-ivory">{step.title}</h3>
-            <p className="text-[12.5px] leading-relaxed text-mist-dim">{step.body}</p>
+            <h3 className="display text-[20px] leading-tight text-ink">{step.title}</h3>
+            <p className="text-[12.5px] leading-relaxed text-ink-muted">{step.body}</p>
           </Reveal>
         ))}
       </ol>
-      <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11.5px] text-mist-faint">
+      <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11.5px] text-ink-faint">
         <span className="inline-flex items-center gap-1.5">
-          <IconShield size={13} className="text-jade" />
+          <IconShield size={13} className="text-jade-deep" />
           Pledges are released automatically if the block never confirms
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <IconCheck size={13} className="text-jade" />
+          <IconCheck size={13} className="text-jade-deep" />
           Seat counts, thresholds and fees update live from Postgres
         </span>
       </p>
@@ -140,18 +140,18 @@ export function TierExplainer({ corridor }: { corridor: Corridor | undefined }) 
       aside={
         <Link
           to={corridorPath(c.code)}
-          className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-[12.5px] text-mist transition-colors duration-200 hover:border-marigold/50 hover:text-marigold"
+          className="inline-flex items-center gap-1.5 rounded-pill border border-rule px-3 py-1.5 text-[12.5px] text-ink-soft transition-colors duration-200 hover:border-accent/50 hover:text-accent-deep"
         >
           Open {c.code} <IconArrow size={12} />
         </Link>
       }
     >
-      <div className="grid gap-px overflow-hidden rounded-card border border-line bg-line lg:grid-cols-[1.1fr_1fr]">
-        <div className="bg-night-900 p-5">
+      <div className="grid gap-px overflow-hidden rounded-card border border-rule bg-rule-strong lg:grid-cols-[1.1fr_1fr]">
+        <div className="bg-surface p-5">
           <table className="w-full border-collapse">
             <caption className="sr-only">Tier slabs for {c.code}</caption>
             <thead>
-              <tr className="micro text-mist-faint">
+              <tr className="micro text-ink-faint">
                 <th scope="col" className="pb-2.5 text-left font-medium">Slab</th>
                 <th scope="col" className="pb-2.5 text-right font-medium">Seats</th>
                 <th scope="col" className="pb-2.5 text-right font-medium">Net</th>
@@ -163,44 +163,44 @@ export function TierExplainer({ corridor }: { corridor: Corridor | undefined }) 
             </thead>
             <tbody>
               {rows.map((r, i) => (
-                <tr key={r.label} className={cn('border-t border-line-soft', i === 0 && 'border-t-0')}>
-                  <th scope="row" className="py-2.5 text-left text-[12.5px] font-normal text-ivory">
+                <tr key={r.label} className={cn('border-t border-rule-soft', i === 0 && 'border-t-0')}>
+                  <th scope="row" className="py-2.5 text-left text-[12.5px] font-normal text-ink">
                     {r.label}
                   </th>
-                  <td className="tnum py-2.5 text-right text-[12.5px] text-mist-dim">{r.min}+</td>
-                  <td className="tnum py-2.5 text-right text-[12.5px] text-mist">{rupees(r.net)}</td>
-                  <td className="tnum py-2.5 text-right text-[12.5px] text-clay">{rupees(r.fee)}</td>
-                  <td className="tnum py-2.5 text-right text-[13.5px] font-medium text-ivory">
+                  <td className="tnum py-2.5 text-right text-[12.5px] text-ink-muted">{r.min}+</td>
+                  <td className="tnum py-2.5 text-right text-[12.5px] text-ink-soft">{rupees(r.net)}</td>
+                  <td className="tnum py-2.5 text-right text-[12.5px] text-clay-deep">{rupees(r.fee)}</td>
+                  <td className="tnum py-2.5 text-right text-[13.5px] font-medium text-ink">
                     {rupees(r.landed)}
                   </td>
                 </tr>
               ))}
-              <tr className="border-t border-line-soft">
-                <th scope="row" className="py-2.5 text-left text-[12.5px] font-normal text-mist-faint">
+              <tr className="border-t border-rule-soft">
+                <th scope="row" className="py-2.5 text-left text-[12.5px] font-normal text-ink-faint">
                   Public surge
                 </th>
-                <td className="py-2.5 text-right text-[12.5px] text-mist-faint">1</td>
+                <td className="py-2.5 text-right text-[12.5px] text-ink-faint">1</td>
                 <td className="py-2.5" colSpan={2} />
-                <td className="tnum py-2.5 text-right text-[13.5px] text-ember line-through">
+                <td className="tnum py-2.5 text-right text-[13.5px] text-ember-deep line-through">
                   {rupees(c.festival_surge_fare)}
                 </td>
               </tr>
             </tbody>
           </table>
           <Divider className="my-4" />
-          <p className="text-[11.5px] leading-relaxed text-mist-faint">
+          <p className="text-[11.5px] leading-relaxed text-ink-faint">
             Slabs are contractual minimums, not targets: at {c.pledged_seats} pledged seats the
             corridor is priced at{' '}
-            <span className="tnum text-mist">{rupees(landedPerSeat(c))}</span> landed, a{' '}
-            <span className="tnum text-jade">{pct(savingPct(c))}</span>{' '}
+            <span className="tnum text-ink-soft">{rupees(landedPerSeat(c))}</span> landed, a{' '}
+            <span className="tnum text-jade-deep">{pct(savingPct(c))}</span>{' '}
             reduction against the surge fare.
           </p>
         </div>
 
-        <div className="flex flex-col justify-between gap-5 bg-night-850 p-5">
+        <div className="flex flex-col justify-between gap-5 bg-raised p-5">
           <div className="flex flex-col gap-3">
             <Eyebrow>Why a group beats a queue</Eyebrow>
-            <p className="text-[12.5px] leading-relaxed text-mist">
+            <p className="text-[12.5px] leading-relaxed text-ink-soft">
               Airline and coach revenue management sells the last few seats at a premium because they
               are scarce. A block sold 60 days out is the opposite: guaranteed load factor, one
               manifest, one settlement. Carriers price that certainty, and this desk passes the whole
@@ -245,12 +245,12 @@ function MiniStat({
   note: string;
   tone: 'jade' | 'ember' | 'marigold';
 }) {
-  const colour = tone === 'jade' ? 'text-jade' : tone === 'ember' ? 'text-ember' : 'text-marigold';
+  const colour = tone === 'jade' ? 'text-jade-deep' : tone === 'ember' ? 'text-ember-deep' : 'text-accent-deep';
   return (
-    <div className="flex flex-col gap-1 rounded-card border border-line bg-night-900 px-3 py-2.5">
-      <span className="micro text-mist-faint">{label}</span>
+    <div className="flex flex-col gap-1 rounded-card border border-rule bg-surface px-3 py-2.5">
+      <span className="micro text-ink-faint">{label}</span>
       <span className={cn('tnum text-[19px] leading-none font-medium', colour)}>{value}</span>
-      <span className="text-[10.5px] text-mist-faint">{note}</span>
+      <span className="text-[10.5px] text-ink-faint">{note}</span>
     </div>
   );
 }
@@ -295,8 +295,8 @@ export function FeeDisclosure({ corridor }: { corridor: Corridor | undefined }) 
       title="One fee, stated on every figure"
       lede={`UtsavAir charges ${pct(c.platform_fee_pct, 1)} of the carrier net fare. It is never hidden in the fare, never a percentage of your saving, and never charged before the block confirms.`}
     >
-      <div className="grid gap-px overflow-hidden rounded-card border border-line bg-line lg:grid-cols-[1fr_1.15fr]">
-        <div className="flex flex-col gap-4 bg-night-900 p-5">
+      <div className="grid gap-px overflow-hidden rounded-card border border-rule bg-rule-strong lg:grid-cols-[1fr_1.15fr]">
+        <div className="flex flex-col gap-4 bg-surface p-5">
           <Eyebrow>Worked example · {c.code} at full slab</Eyebrow>
           <dl className="flex flex-col gap-2">
             <Line label={`Carrier net fare (Tier III, ${example.seats}+ seats)`} value={rupees(example.net)} />
@@ -316,7 +316,7 @@ export function FeeDisclosure({ corridor }: { corridor: Corridor | undefined }) 
             />
             <Line label="Cohort saving" value={rupees(example.saved)} tone="jade" strong />
           </dl>
-          <p className="text-[11.5px] leading-relaxed text-mist-faint">
+          <p className="text-[11.5px] leading-relaxed text-ink-faint">
             That is {rupees(example.perSeatFee)} per seat of platform revenue against a{' '}
             {rupees(example.saved / example.seats)} per-seat saving for the traveller. Where the fee
             cannot carry the corridor — long-haul air with thin slabs — the desk runs it at cost and
@@ -324,18 +324,18 @@ export function FeeDisclosure({ corridor }: { corridor: Corridor | undefined }) 
           </p>
         </div>
 
-        <div className="flex flex-col gap-4 bg-night-850 p-5">
+        <div className="flex flex-col gap-4 bg-raised p-5">
           <Eyebrow>What the fee pays for · indicative allocation</Eyebrow>
           <ul className="flex flex-col gap-3">
             {allocation.map((row) => (
               <li key={row.label} className="flex flex-col gap-1.5">
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-[12.5px] text-mist">{row.label}</span>
-                  <span className="tnum micro text-mist-dim">{row.share}%</span>
+                  <span className="text-[12.5px] text-ink-soft">{row.label}</span>
+                  <span className="tnum micro text-ink-muted">{row.share}%</span>
                 </div>
-                <span className="h-[3px] w-full overflow-hidden rounded-pill bg-night-750">
+                <span className="h-[3px] w-full overflow-hidden rounded-pill bg-hover">
                   <span
-                    className="block h-full rounded-pill bg-marigold/80"
+                    className="block h-full rounded-pill bg-accent/80"
                     style={{ width: `${row.share}%` }}
                   />
                 </span>
@@ -343,15 +343,15 @@ export function FeeDisclosure({ corridor }: { corridor: Corridor | undefined }) 
             ))}
           </ul>
           <Divider className="my-1" />
-          <div className="flex flex-col gap-2 text-[11.5px] leading-relaxed text-mist-faint">
+          <div className="flex flex-col gap-2 text-[11.5px] leading-relaxed text-ink-faint">
             <p>
-              <span className="text-mist">Not included:</span> airport or operator levies that the
+              <span className="text-ink-soft">Not included:</span> airport or operator levies that the
               carrier passes through at cost, and any optional add-ons (extra baggage, meals beyond
               the contracted allowance). Those appear separately on the manifest, never folded into
               the slab price.
             </p>
             <p>
-              <span className="text-mist">Escrow:</span> pledges are held, not captured. Money moves
+              <span className="text-ink-soft">Escrow:</span> pledges are held, not captured. Money moves
               only after the corridor clears Tier I and the carrier has confirmed the allotment in
               writing.
             </p>
@@ -377,13 +377,13 @@ function Line({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className={cn('text-[12.5px]', strong ? 'text-ivory' : 'text-mist-dim')}>{label}</dt>
+      <dt className={cn('text-[12.5px]', strong ? 'text-ink' : 'text-ink-muted')}>{label}</dt>
       <dd
         className={cn(
           'tnum shrink-0',
           strong ? 'text-[15px] font-medium' : 'text-[13px]',
-          tone === 'jade' ? 'text-jade' : tone === 'clay' ? 'text-clay' : 'text-ivory',
-          strike && 'text-mist-faint line-through',
+          tone === 'jade' ? 'text-jade-deep' : tone === 'clay' ? 'text-clay-deep' : 'text-ink',
+          strike && 'text-ink-faint line-through',
         )}
       >
         {value}
@@ -426,20 +426,20 @@ export function RefundRule({ corridor }: { corridor: Corridor | undefined }) {
       lede="Four outcomes, stated plainly. The corridor you are looking at carries its own rule verbatim from the carrier contract."
       aside={
         corridor ? (
-          <div className="max-w-sm rounded-card border border-line bg-night-900 px-4 py-3">
+          <div className="max-w-sm rounded-card border border-rule bg-surface px-4 py-3">
             <Eyebrow>{corridor.code} · contracted rule</Eyebrow>
-            <p className="mt-2 text-[12.5px] leading-relaxed text-mist">{corridor.refund_rule}</p>
-            <p className="mt-2 text-[11px] text-mist-faint">
+            <p className="mt-2 text-[12.5px] leading-relaxed text-ink-soft">{corridor.refund_rule}</p>
+            <p className="mt-2 text-[11px] text-ink-faint">
               Contract {corridor.contract_ref} · hold window published per corridor
             </p>
           </div>
         ) : null
       }
     >
-      <div className="grid gap-px overflow-hidden rounded-card border border-line bg-line sm:grid-cols-2">
+      <div className="grid gap-px overflow-hidden rounded-card border border-rule bg-rule-strong sm:grid-cols-2">
         {items.map((item, i) => (
           <Reveal key={item.title} delay={i * 60}>
-            <div className="flex h-full flex-col gap-2 bg-night-900 px-5 py-5">
+            <div className="flex h-full flex-col gap-2 bg-surface px-5 py-5">
               <div className="flex items-center gap-2">
                 <span
                   className={cn(
@@ -447,21 +447,21 @@ export function RefundRule({ corridor }: { corridor: Corridor | undefined }) {
                     item.tone === 'jade'
                       ? 'bg-jade'
                       : item.tone === 'marigold'
-                        ? 'bg-marigold'
+                        ? 'bg-accent'
                         : item.tone === 'clay'
                           ? 'bg-clay'
                           : 'bg-ember',
                   )}
                   aria-hidden="true"
                 />
-                <h3 className="text-[13.5px] font-medium text-ivory">{item.title}</h3>
+                <h3 className="text-[13.5px] font-medium text-ink">{item.title}</h3>
               </div>
-              <p className="text-[12.5px] leading-relaxed text-mist-dim">{item.body}</p>
+              <p className="text-[12.5px] leading-relaxed text-ink-muted">{item.body}</p>
             </div>
           </Reveal>
         ))}
       </div>
-      <p className="mt-4 text-[11.5px] leading-relaxed text-mist-faint">
+      <p className="mt-4 text-[11.5px] leading-relaxed text-ink-faint">
         Large totals are written in Indian numbering — lakh and crore. Every rupee amount is a
         per-seat value unless the row says otherwise, and every percentage is stated against the
         figure it was computed from.
