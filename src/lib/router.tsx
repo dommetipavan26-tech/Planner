@@ -10,8 +10,8 @@ import {
 } from 'react';
 
 /**
- * A 60-line router. Five routes, no dependency, path-based URLs with a SPA
- * rewrite in vercel.json. Nothing here needs the weight of react-router.
+ * A router in about 130 lines. Five routes, no dependency, path-based URLs with
+ * a SPA rewrite in vercel.json. Nothing here needs the weight of react-router.
  */
 
 export interface RouteMatch {
@@ -51,8 +51,19 @@ interface RouterApi {
 
 const RouterContext = createContext<RouterApi | null>(null);
 
-export function RouterProvider({ children }: { children: ReactNode }) {
-  const [path, setPath] = useState<string>(currentPath);
+export function RouterProvider({
+  children,
+  initialPath,
+}: {
+  children: ReactNode;
+  /**
+   * The path to render, for a build-time prerender where there is no location to
+   * read. The browser never passes it: `currentPath()` is the only honest source
+   * of truth on a client.
+   */
+  initialPath?: string;
+}) {
+  const [path, setPath] = useState<string>(() => initialPath ?? currentPath());
 
   useEffect(() => {
     const onPop = () => setPath(currentPath());

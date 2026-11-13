@@ -1,5 +1,5 @@
 import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import { createRoot, hydrateRoot } from 'react-dom/client';
 
 // Type: Geist for UI, Geist Mono for money and codes, Instrument Serif for
 // display. Each @font-face is unicode-ranged, so the browser only ever fetches
@@ -15,6 +15,7 @@ import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { RouterProvider } from './lib/router';
 import { ClockProvider } from './hooks/useClock';
+import { PRERENDERED_ROUTE } from './lib/buildTime';
 
 const container = document.getElementById('root');
 
@@ -22,11 +23,7 @@ if (!container) {
   throw new Error('Root container #root is missing from index.html');
 }
 
-// The boot loader in index.html is only scaffolding for first paint; React owns
-// the container from here.
-container.innerHTML = '';
-
-createRoot(container).render(
+const tree = (
   <StrictMode>
     <ErrorBoundary>
       <ClockProvider>
@@ -35,5 +32,27 @@ createRoot(container).render(
         </RouterProvider>
       </ClockProvider>
     </ErrorBoundary>
-  </StrictMode>,
+  </StrictMode>
 );
+
+/** Trailing slashes removed, the way `matchPath` reads a path. */
+function normalise(path: string): string {
+  const trimmed = path.replace(/\/+$/, '');
+  return trimmed === '' ? '/' : trimmed;
+}
+
+const served = PRERENDERED_ROUTE === null ? null : normalise(PRERENDERED_ROUTE);
+const here = normalise(window.location.pathname);
+
+if (served === here && container.firstElementChild !== null) {
+  // This document was rendered for this route, so its markup is the first paint
+  // and React adopts it instead of repainting over it.
+  hydrateRoot(container, tree);
+} else {
+  // Either the page was not prerendered, or the SPA fallback served another
+  // route's HTML for this path — an unknown URL, for instance. Hydrating that
+  // would ask React to adopt markup for a different page, so render fresh. The
+  // boot loader in index.html is only scaffolding for that first paint.
+  container.innerHTML = '';
+  createRoot(container).render(tree);
+}

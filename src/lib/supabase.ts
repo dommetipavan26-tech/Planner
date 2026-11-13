@@ -74,3 +74,30 @@ export function ledgerClient(): Promise<LedgerClient | null> {
 export function isConnectivityError(message: string): boolean {
   return /fetch|network|timeout|timed out|econn|socket|offline|failed to/i.test(message);
 }
+
+/**
+ * The SQLSTATE `utsav_join_cohort` raises when it is refusing a *pace*, not a
+ * pledge: a second join from one device inside five seconds, or a thirteenth
+ * live pledge. It is its own code so the client never has to guess from prose,
+ * and never mistakes a refusal for a dropped connection — a throttled write did
+ * not happen, so it must not be mirrored locally as though it had.
+ */
+export const THROTTLED_SQLSTATE = 'UT429';
+
+/** Shape of the error object a PostgREST call hands back. */
+export interface LedgerError {
+  message?: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+}
+
+/** True when the ledger refused the write because the caller is going too fast. */
+export function isThrottleError(error: LedgerError | null | undefined): boolean {
+  if (!error) return false;
+  if (error.code === THROTTLED_SQLSTATE) return true;
+  // Fall back to the text: an older edge or a proxy can strip the SQLSTATE.
+  return /wait a moment before holding again|already holds \d+ live pledges/i.test(
+    error.message ?? '',
+  );
+}

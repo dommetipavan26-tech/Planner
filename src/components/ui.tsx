@@ -2,7 +2,6 @@ import {
   useCallback,
   useEffect,
   useId,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -12,12 +11,9 @@ import {
   type Ref,
 } from 'react';
 import { countdown, formatClockMs } from '../lib/format';
+import { useIsoLayoutEffect } from '../lib/useIsoLayoutEffect';
 import { useNow } from '../hooks/useClock';
 import { IconAlert, IconCheck, IconClose, IconMinus, IconPlus, IconRefresh } from './icons';
-
-/** useLayoutEffect warns during a server render; swap it for useEffect there. */
-const useIsoLayoutEffect =
-  typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
@@ -612,17 +608,26 @@ export function EmptyState({
   body,
   action,
   icon,
+  as: Heading = 'h3',
 }: {
   title: string;
   body: string;
   action?: ReactNode;
   icon?: ReactNode;
+  /**
+   * Where this sits in the page's heading outline. It is often the only heading
+   * a filtered-empty or unknown-route page has, so the caller names the level:
+   * h1 when it *is* the page title, h2 when it follows one, h3 inside a section.
+   * axe's heading-order rule fails the build otherwise — and a screen-reader
+   * user navigating by heading lands somewhere different from what they see.
+   */
+  as?: 'h1' | 'h2' | 'h3';
 }) {
   return (
     <div className="flex flex-col items-center gap-3 rounded-card border border-dashed border-line-bright bg-night-900/40 px-6 py-12 text-center">
       {icon ? <span className="text-mist-faint">{icon}</span> : null}
       <div className="flex flex-col gap-1.5">
-        <h3 className="display text-[22px] text-ivory">{title}</h3>
+        <Heading className="display text-[22px] text-ivory">{title}</Heading>
         <p className="mx-auto max-w-sm text-[13px] leading-relaxed text-mist-dim">{body}</p>
       </div>
       {action}

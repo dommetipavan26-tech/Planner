@@ -413,17 +413,25 @@
 }
 
 /* Scroll reveal — driven by IntersectionObserver in <Reveal /> */
+/* Scroll reveals.
+   The hidden state is applied only once JavaScript has announced itself, via the
+   `js` class that index.html sets on <html> before first paint. That ordering is
+   the whole point: a prerendered page has to be readable by a crawler, by a
+   reader with the bundle blocked, and by anyone whose connection drops before it
+   arrives. Without the class the content is simply there. */
 .reveal {
-  opacity: 0;
-  transform: translateY(14px);
   transition:
     opacity 0.6s var(--ease-out-expo),
     transform 0.6s var(--ease-out-expo);
-  will-change: opacity, transform;
 }
 .reveal[data-shown='true'] {
   opacity: 1;
   transform: none;
+}
+html.js .reveal:not([data-shown='true']) {
+  opacity: 0;
+  transform: translateY(14px);
+  will-change: opacity, transform;
 }
 
 /* Scrollbars */
@@ -460,8 +468,10 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .reveal {
+  .reveal,
+  html.js .reveal:not([data-shown='true']) {
     opacity: 1;
     transform: none;
+    will-change: auto;
   }
 }

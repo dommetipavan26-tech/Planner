@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   verify:
-    name: Typecheck · render checks · build
+    name: Typecheck · render checks · build · accessibility
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -33,15 +33,32 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      # Renders every view in Node with no DOM and asserts 50 properties:
+      # Renders every view in Node with no DOM and asserts 87 properties:
       # no NaN or bare undefined reaching the reader, no phone number in the
-      # public feed, and internal consistency of every snapshot corridor.
+      # public feed, internal consistency of every snapshot corridor, one h1 and
+      # no skipped heading level in any view, route titles and descriptions
+      # shaped for a search result, and the same tree rendering byte-identically
+      # twice — which is what makes the prerender safe to hydrate.
       # Needs no network and no Supabase credentials — it reads the snapshot.
       - name: Render checks
         run: npm run verify
 
-      - name: Production build
+      # Builds the client bundle, then writes all 12 routes to static HTML in
+      # dist/ (scripts/prerender.tsx). A route that renders its error boundary,
+      # loses the wordmark, or omits its own corridor code fails the build here
+      # rather than shipping an empty shell that looks prerendered.
+      - name: Production build and prerender
         run: npm run build
+
+      # axe-core over the documents that actually ship, plus assertions axe
+      # cannot make in jsdom: one h1 per page, a skip link that lands somewhere
+      # real, a canonical URL matching the file it sits in, no literal colour in
+      # inline styles, the hydration guard naming the right route, and a sitemap
+      # that lists exactly the routes the router produces.
+      # colour-contrast is off because jsdom has no layout engine to resolve the
+      # cascade; contrast is gated by the design-token audit instead.
+      - name: Accessibility and document gate
+        run: npm run audit
 
       # Mirrors vite.config.ts chunkSizeWarningLimit: 260. Vite only warns, so
       # the budget is enforced here instead of left to a reader noticing.

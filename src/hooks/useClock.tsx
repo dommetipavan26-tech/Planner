@@ -5,6 +5,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { PRERENDERED_AT } from '../lib/buildTime';
+import { useIsoLayoutEffect } from '../lib/useIsoLayoutEffect';
 
 /**
  * Two shared clocks, one provider.
@@ -21,8 +23,20 @@ const CoarseClock = createContext<number>(0);
 const COARSE_MS = 30_000;
 
 export function ClockProvider({ children }: { children: ReactNode }) {
-  const [now, setNow] = useState(() => Date.now());
-  const [coarse, setCoarse] = useState(() => Date.now());
+  // Both clocks start at the instant this HTML was rendered. For a prerendered
+  // page that is the build time, injected into the document, so the server
+  // render and the browser's first render produce identical markup and hydration
+  // has nothing to disagree about.
+  const [now, setNow] = useState(() => PRERENDERED_AT);
+  const [coarse, setCoarse] = useState(() => PRERENDERED_AT);
+
+  // Correct to the real clock before the browser paints, so a countdown built
+  // hours ago is never visible — it is only ever mismatch-free.
+  useIsoLayoutEffect(() => {
+    const t = Date.now();
+    setNow(t);
+    setCoarse(t);
+  }, []);
 
   useEffect(() => {
     // Re-anchor on resume so a backgrounded tab never shows a stale countdown.
@@ -50,14 +64,20 @@ export function ClockProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/* The `0` sentinel means no ClockProvider is mounted. Falling back to
+   PRERENDERED_AT rather than Date.now() keeps these hooks safe to call during a
+   server render — a prerender that called Date.now() would produce markup the
+   browser could never match. The cost is that the fallback is a frozen instant:
+   a countdown read outside the provider does not tick. Mount the provider. */
+
 /** 1 Hz. Use inside small leaves only — every consumer re-renders each tick. */
 export function useNow(): number {
   const value = useContext(FineClock);
-  return value === 0 ? Date.now() : value;
+  return value === 0 ? PRERENDERED_AT : value;
 }
 
 /** 30 s. For statuses and relative timestamps on larger components. */
 export function useCoarseNow(): number {
   const value = useContext(CoarseClock);
-  return value === 0 ? Date.now() : value;
+  return value === 0 ? PRERENDERED_AT : value;
 }

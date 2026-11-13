@@ -245,6 +245,7 @@ export function RequestsView({
           {filtered.length === 0 ? (
             <EmptyState
               icon={<IconSearch size={22} />}
+              as="h2"
               title="No request matches that"
               body="Nothing on the board for that city pair or festival yet — which is precisely the gap a request fills. File one and other groups on the same route can add their weight to it."
               action={

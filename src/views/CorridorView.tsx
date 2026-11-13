@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, corridorPath } from '../lib/router';
+import { routeTitle } from '../lib/meta';
 import { useCoarseNow } from '../hooks/useClock';
 import { rememberCode } from '../lib/device';
 import type { Ledger } from '../hooks/useLedger';
@@ -82,7 +83,9 @@ export function CorridorView({
   useEffect(() => {
     if (!corridor) return;
     const previous = document.title;
-    document.title = `${corridor.code} · ${corridor.origin_city} → ${corridor.dest_city} · UtsavAir`;
+    // Same function the prerender used to write <title>, so adopting this page's
+    // markup never flickers a different string in the tab.
+    document.title = routeTitle({ name: 'corridor', code: corridor.code }, corridor);
     return () => {
       document.title = previous;
     };
@@ -139,6 +142,16 @@ export function CorridorView({
       <header className="relative overflow-hidden rounded-card border border-line bg-night-900 shadow-panel">
         <div className="glow-marigold pointer-events-none absolute inset-0 opacity-70" aria-hidden="true" />
         <div className="relative flex flex-col gap-6 p-5 sm:p-7">
+          {/* The visible title of this page is the pair of oversized endpoint
+              codes below, which are spans: a screen-reader user would otherwise
+              reach the sections' h2s with no page heading above them. This names
+              the page for assistive tech without repeating what the codes
+              already show, so it is clipped rather than displayed. */}
+          <h1 className="sr-only">
+            {corridor.code}: {corridor.origin_city} to {corridor.dest_city},{' '}
+            {corridor.mode === 'bus' ? 'coach' : 'flight'} block,{' '}
+            {formatDateYear(corridor.departure_date)}
+          </h1>
           <div className="flex flex-wrap items-center gap-2">
             <Chip tone={statusTone(corridor, now)} dot={!closed && !full}>
               {statusLabel(corridor, now)}
@@ -753,6 +766,7 @@ function UnknownCorridor({ code, corridors }: { code: string; corridors: Corrido
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-20 sm:px-6">
       <EmptyState
+        as="h1"
         icon={<IconArrow size={22} />}
         title={`No corridor coded ${code}`}
         body="The code may have been retired when its block closed, or the link was mistyped. The corridors below are open for pledges right now."

@@ -181,6 +181,7 @@ export function CorridorsView({
             <div className="mt-6">
               <EmptyState
                 icon={<IconSearch size={22} />}
+                as="h2"
                 title="No corridor matches that"
                 body={
                   filtersActive

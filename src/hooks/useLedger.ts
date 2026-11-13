@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FN, TABLE, isConnectivityError, ledgerClient } from '../lib/supabase';
+import { FN, TABLE, isConnectivityError, isThrottleError, ledgerClient } from '../lib/supabase';
 import {
   toBid,
   toBids,
@@ -57,6 +57,19 @@ export interface Result<T> {
   error?: string;
   /** True when the write could not reach Postgres and lives on this device only. */
   simulated?: boolean;
+  /**
+   * True when the ledger refused the *pace* rather than the pledge — a repeat
+   * inside five seconds, or a thirteenth live pledge. The write did not happen,
+   * so unlike `simulated` there is nothing local to show for it.
+   */
+  throttled?: boolean;
+  /**
+   * True when the pledge returned was already on the ledger: the server treats a
+   * repeat of the same device, corridor, seat count and lead passenger inside
+   * two minutes as a retry and hands back the row it wrote the first time. One
+   * seat hold, however many times the button was pressed.
+   */
+  duplicate?: boolean;
 }
 
 export interface JoinInput {
@@ -320,8 +333,21 @@ export function useLedger(): Ledger {
         });
         if (!error) {
           const pledge = toPledge(data as Record<string, unknown>);
+          // `mine` still holds the pre-call list, so a pledge id that is already
+          // in it came back from the server's idempotent path rather than from
+          // this call. Say so, or a retry reads as a second seat held.
+          const duplicate = mine.some((p) => p.id === pledge.id);
           await Promise.all([readCorridors(), readMine(), readRoster()]);
-          return { ok: true, data: pledge };
+          return { ok: true, data: pledge, duplicate };
+        }
+        if (isThrottleError(error)) {
+          // Refused for pace. Nothing was written, so there is no local mirror
+          // to fall back on and no seat to show.
+          return {
+            ok: false,
+            throttled: true,
+            error: humanise(error.message ?? 'Too many attempts from this device.'),
+          };
         }
         if (!isConnectivityError(error.message ?? '')) {
           return { ok: false, error: humanise(error.message ?? 'The ledger rejected that pledge.') };
@@ -377,7 +403,7 @@ export function useLedger(): Ledger {
       );
       return { ok: true, data: local, simulated: true };
     },
-    [corridors, device, getClient, readCorridors, readMine, readRoster],
+    [corridors, device, getClient, mine, readCorridors, readMine, readRoster],
   );
 
   const isWatched = useCallback(
@@ -614,6 +640,10 @@ function toFeedRow(p: Pledge): PublicPledge {
 }
 
 function humanise(message: string): string {
+  if (/wait a moment before holding again/i.test(message))
+    return 'Give it a few seconds — this device just held a seat.';
+  if (/already holds \d+ live pledges/i.test(message))
+    return 'This device is holding as many seats as one device can. Release a pledge and try again.';
   if (/exceed remaining/i.test(message))
     return 'That block has fewer seats left than you asked for. Lower the seat count and try again.';
   if (/between 1 and 8/i.test(message)) return 'A single pledge can hold between 1 and 8 seats.';

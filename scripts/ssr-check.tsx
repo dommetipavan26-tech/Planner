@@ -26,6 +26,8 @@ import {
   SNAPSHOT_ROSTER,
 } from '../src/data/snapshot';
 import { activeNetFare, feeOn, landedPerSeat } from '../src/lib/format';
+import { routeDescription, routeTitle } from '../src/lib/meta';
+import type { RouteMatch } from '../src/lib/router';
 import type { Pledge } from '../src/lib/types';
 
 /**
@@ -68,6 +70,29 @@ function contains(name: string, rawHtml: string, needles: string[]): void {
   const html = plain(rawHtml);
   const missing = needles.filter((needle) => !html.includes(needle));
   check(name, missing.length === 0, missing.length ? `missing ${missing.join(', ')}` : '');
+}
+
+/**
+ * The heading outline of a rendered view, in document order.
+ *
+ * A page with no h1, or one that steps h1 → h3, is a page a screen-reader user
+ * navigates differently from a sighted one. `npm run audit` catches this in the
+ * prerendered documents; this catches it before a build exists, and for states
+ * the prerender never shows (an empty filter result, an unknown route).
+ */
+function outline(name: string, html: string): void {
+  const levels = [...html.matchAll(/<h([1-6])[\s>]/g)].map((m) => Number(m[1]));
+  const ones = levels.filter((l) => l === 1).length;
+  check(`${name} has exactly one h1`, ones === 1, `found ${ones}`);
+  for (let i = 1; i < levels.length; i += 1) {
+    const previous = levels[i - 1] ?? 1;
+    const current = levels[i] ?? previous;
+    if (current > previous + 1) {
+      check(`${name} heading outline`, false, `jumps h${previous} → h${current}`);
+      return;
+    }
+  }
+  check(`${name} heading outline`, true);
 }
 
 function mockLedger(overrides: Partial<Ledger> = {}): Ledger {
@@ -177,6 +202,7 @@ function main(): void {
   );
 
   // 3. Corridor detail for each seeded code.
+  let detailHtml = '';
   for (const corridor of SNAPSHOT_CORRIDORS) {
     const detail = render(
       <CorridorView
@@ -187,6 +213,7 @@ function main(): void {
         onWatch={() => {}}
       />,
     );
+    if (corridor === SNAPSHOT_CORRIDORS[0]) detailHtml = detail;
     contains(`${corridor.code} detail`, detail, [
       corridor.code,
       corridor.origin_code,
@@ -289,6 +316,75 @@ function main(): void {
         c.festival_surge_fare > c.tier1_fare,
     );
   }
+
+  // 10. Heading outlines, including the states a prerender never shows.
+  outline('board', board);
+  outline('corridor detail', detailHtml);
+  outline('unknown corridor', unknown);
+  outline('trips', trips);
+  outline('empty trips', emptyTrips);
+  outline('carrier desk', carriers);
+  outline('request board', requests);
+  outline('not found', render(<NotFoundView corridors={SNAPSHOT_CORRIDORS} />));
+
+  // 11. Route metadata. These two functions are what the prerender writes into
+  //     <title> and <meta name="description">, and what the client sets after
+  //     hydration — they have to agree, or adopting the markup flickers a
+  //     different title into the tab.
+  const ROUTE_NAMES: RouteMatch['name'][] = [
+    'corridors',
+    'corridor',
+    'trips',
+    'carriers',
+    'requests',
+    'notfound',
+  ];
+  for (const name of ROUTE_NAMES) {
+    const route: RouteMatch = { name };
+    const title = routeTitle(route);
+    const description = routeDescription(route);
+    check(
+      `${name} metadata is title-shaped`,
+      title.length > 0 && title.length <= 70 && title.includes('UtsavAir'),
+      `"${title}" is ${title.length} characters`,
+    );
+    check(
+      `${name} metadata is description-shaped`,
+      description.length >= 50 &&
+        description.length <= 320 &&
+        !description.includes('NaN') &&
+        !description.includes('undefined') &&
+        !description.includes('××'),
+      description.length >= 50 && description.length <= 320
+        ? `contains a formatting artefact: ${description}`
+        : `${description.length} characters, want 50–320`,
+    );
+  }
+  for (const corridor of SNAPSHOT_CORRIDORS) {
+    const route: RouteMatch = { name: 'corridor', code: corridor.code };
+    const title = routeTitle(route, corridor);
+    const description = routeDescription(route, corridor);
+    check(
+      `${corridor.code} metadata names the corridor`,
+      title.includes(corridor.code) &&
+        description.includes(`${corridor.pledged_seats} of ${corridor.total_allotment}`) &&
+        !description.includes('××') &&
+        !description.includes('NaN'),
+      `"${title}" / "${description}"`,
+    );
+  }
+
+  // 12. Render determinism. The prerender is only safe to hydrate if the same
+  //     inputs produce the same markup twice — which rules out Date.now(),
+  //     Math.random() and anything read from localStorage during render.
+  const deterministicLedger = mockLedger();
+  const firstPass = render(
+    <CorridorsView ledger={deterministicLedger} onHold={() => {}} onWatch={() => {}} />,
+  );
+  const secondPass = render(
+    <CorridorsView ledger={deterministicLedger} onHold={() => {}} onWatch={() => {}} />,
+  );
+  check('the board renders identically twice', firstPass === secondPass);
 
   console.log(
     `\n${checks - failures}/${checks} checks passed${failures ? ` · ${failures} FAILED` : ''}`,
