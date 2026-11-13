@@ -36,9 +36,32 @@ for (const route of DOCUMENT_ROUTES) {
       await expect(page.locator('h1')).toHaveCount(1);
       expect(await page.locator('h1').first().innerText()).not.toBe('');
 
+      // When this fails, the message carries the browser's own account of what
+      // happened: whether the init script tagged anything, what the document
+      // claims to be, what the URL is, and whether the node on screen is the
+      // node that was parsed. A hydration gate that only says "false" costs a
+      // CI round per guess.
+      const hydration = await page.evaluate(() => {
+        const w = window as unknown as {
+          __prerenderFirst?: Element;
+          __UTSAVAIR_ROUTE__?: string;
+        };
+        const root = document.getElementById('root');
+        const first = root?.firstElementChild ?? null;
+        return {
+          tagged: Boolean(w.__prerenderFirst),
+          same: Boolean(w.__prerenderFirst && first === w.__prerenderFirst),
+          marker: w.__UTSAVAIR_ROUTE__ ?? null,
+          path: window.location.pathname,
+          firstTag: first?.tagName ?? null,
+          firstClass: String(first?.className ?? '').slice(0, 48),
+          taggedClass: String(w.__prerenderFirst?.className ?? '').slice(0, 48),
+          children: root?.children.length ?? -1,
+        };
+      });
       expect(
-        await hydratedThePrerender(page),
-        'React should hydrate the prerendered element, not replace it',
+        hydration.same,
+        `React should hydrate the prerendered element, not replace it — ${JSON.stringify(hydration)}`,
       ).toBe(true);
 
       const unexpected = errors.filter((message) => !/realtime|websocket|socket/i.test(message));
