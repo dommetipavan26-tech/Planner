@@ -6,7 +6,7 @@ import { useLedger } from './hooks/useLedger';
 import type { Corridor } from './lib/types';
 import { AppShell } from './components/AppShell';
 import { JoinSheet } from './components/JoinSheet';
-import { Button, useToasts, ToastStack } from './components/ui';
+import { Button, ConfirmDialog, useToasts, ToastStack } from './components/ui';
 import { CorridorsView } from './views/CorridorsView';
 import { IconAlert, IconClose } from './components/icons';
 import { RouteFallback } from './components/RouteFallback';
@@ -64,6 +64,8 @@ export function AppTree({ views }: { views: RoutedViews }) {
 
   const [holdCode, setHoldCode] = useState<string | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [watchingId, setWatchingId] = useState<string | null>(null);
+  const [unwatchTarget, setUnwatchTarget] = useState<Corridor | null>(null);
 
   // Keep the sheet bound to a code, not an object: realtime updates to that
   // corridor then flow straight into the open dialog.
@@ -81,9 +83,11 @@ export function AppTree({ views }: { views: RoutedViews }) {
     setHoldCode(corridor.code);
   }, []);
 
-  const handleWatch = useCallback(
+  const executeWatch = useCallback(
     async (corridor: Corridor) => {
+      setWatchingId(corridor.id);
       const result = await ledger.toggleWatch(corridor);
+      setWatchingId((curr) => (curr === corridor.id ? null : curr));
       if (!result.ok) {
         push(result.error ?? `Could not update the watch on ${corridor.code}.`, 'error');
         return;
@@ -97,6 +101,25 @@ export function AppTree({ views }: { views: RoutedViews }) {
     },
     [ledger, push],
   );
+
+  const handleWatch = useCallback(
+    (corridor: Corridor) => {
+      if (watchingId === corridor.id) return;
+      if (ledger.isWatched(corridor.id)) {
+        setUnwatchTarget(corridor);
+        return;
+      }
+      void executeWatch(corridor);
+    },
+    [watchingId, ledger, executeWatch],
+  );
+
+  const confirmUnwatch = useCallback(async () => {
+    if (!unwatchTarget) return;
+    const target = unwatchTarget;
+    await executeWatch(target);
+    setUnwatchTarget(null);
+  }, [unwatchTarget, executeWatch]);
 
   const showSnapshotBanner = ledger.status === 'offline' && !bannerDismissed;
 
@@ -130,9 +153,9 @@ export function AppTree({ views }: { views: RoutedViews }) {
                   type="button"
                   onClick={() => setBannerDismissed(true)}
                   aria-label="Dismiss snapshot notice"
-                  className="grid h-7 w-7 place-items-center rounded-pill text-clay-deep transition-colors duration-200 hover:bg-clay-tint-strong"
+                  className="grid h-11 w-11 place-items-center rounded-pill text-clay-deep transition-colors duration-200 hover:bg-clay-tint-strong"
                 >
-                  <IconClose size={13} />
+                  <IconClose size={14} />
                 </button>
               </div>
             </div>
@@ -140,7 +163,12 @@ export function AppTree({ views }: { views: RoutedViews }) {
         ) : null}
 
         {route.name === 'corridors' ? (
-          <CorridorsView ledger={ledger} onHold={handleHold} onWatch={(c) => void handleWatch(c)} />
+          <CorridorsView
+            ledger={ledger}
+            onHold={handleHold}
+            onWatch={handleWatch}
+            watchingId={watchingId}
+          />
         ) : null}
 
         <Suspense fallback={<RouteFallback route={route.name} />}>
@@ -150,12 +178,18 @@ export function AppTree({ views }: { views: RoutedViews }) {
               ledger={ledger}
               allCorridors={ledger.corridors}
               onHold={handleHold}
-              onWatch={(c) => void handleWatch(c)}
+              onWatch={handleWatch}
+              watchingId={watchingId}
             />
           ) : null}
 
           {route.name === 'trips' ? (
-            <TripsView ledger={ledger} onWatch={(c) => void handleWatch(c)} onToast={push} />
+            <TripsView
+              ledger={ledger}
+              onWatch={handleWatch}
+              watchingId={watchingId}
+              onToast={push}
+            />
           ) : null}
 
           {route.name === 'carriers' ? <CarriersView ledger={ledger} onToast={push} /> : null}
@@ -174,6 +208,22 @@ export function AppTree({ views }: { views: RoutedViews }) {
         onClose={() => setHoldCode(null)}
         onJoin={ledger.join}
         onToast={push}
+      />
+
+      <ConfirmDialog
+        open={unwatchTarget !== null}
+        onCancel={() => setUnwatchTarget(null)}
+        onConfirm={() => void confirmUnwatch()}
+        loading={unwatchTarget !== null && watchingId === unwatchTarget.id}
+        title={unwatchTarget ? `Stop watching ${unwatchTarget.code}?` : 'Stop watching?'}
+        body={
+          unwatchTarget
+            ? `You will stop receiving tier-threshold alerts for ${unwatchTarget.origin_city} → ${unwatchTarget.dest_city} on this device.`
+            : ''
+        }
+        cancelLabel="Keep watching"
+        confirmLabel="Stop watching"
+        tone="danger"
       />
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />

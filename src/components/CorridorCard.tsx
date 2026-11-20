@@ -18,7 +18,7 @@ import {
 } from '../lib/format';
 import type { Corridor } from '../lib/types';
 import { teluguFor } from '../lib/telugu';
-import { Button, Chip, Countdown, Meter, cn, type Tone } from './ui';
+import { Button, Chip, Countdown, Disclosure, Meter, Spinner, cn, type Tone } from './ui';
 import { TierLadder } from './Pricing';
 import {
   IconArrow,
@@ -66,6 +66,7 @@ function ModeIcon({ mode, size = 15 }: { mode: Corridor['mode']; size?: number }
 interface CardProps {
   corridor: Corridor;
   watched?: boolean;
+  watchingBusy?: boolean;
   onWatch?: (corridor: Corridor) => void;
   onHold?: (corridor: Corridor) => void;
   holding?: boolean;
@@ -78,7 +79,7 @@ interface CardProps {
  * single action. Every number on it is derived in lib/format — the card does no
  * arithmetic of its own.
  */
-function CorridorCardBase({ corridor, watched, onWatch, onHold, holding }: CardProps) {
+function CorridorCardBase({ corridor, watched, watchingBusy, onWatch, onHold, holding }: CardProps) {
   const now = useCoarseNow();
   const closed = isClosed(corridor, now);
   const full = isFull(corridor);
@@ -207,8 +208,7 @@ function CorridorCardBase({ corridor, watched, onWatch, onHold, holding }: CardP
           total={corridor.total_allotment}
           tone={closed ? 'lagoon' : activeTier(corridor) >= 2 ? 'marigold' : 'lagoon'}
         />
-        <TierLadder corridor={corridor} compact />
-        <p className="mt-2 text-[11.5px] leading-snug text-ink-muted">
+        <p className="mt-2.5 text-[11.5px] leading-snug text-ink-muted">
           {full ? (
             <>Allotment is full. Join the waitlist from the corridor page.</>
           ) : closed ? (
@@ -231,13 +231,20 @@ function CorridorCardBase({ corridor, watched, onWatch, onHold, holding }: CardP
             </>
           )}
         </p>
+        <Disclosure
+          className="mt-3"
+          label="Price slabs"
+          summary={`${rupees(tierILanded)} → ${rupees(tier3Landed)}`}
+        >
+          <TierLadder corridor={corridor} compact />
+        </Disclosure>
       </div>
 
       {/* Actions */}
-      <footer className="mt-auto flex items-center gap-2 border-t border-rule-soft px-4 py-3">
+      <footer className="mt-auto flex items-center gap-2.5 border-t border-rule-soft px-4 py-3">
         <Link
           to={corridorPath(corridor.code)}
-          className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-pill border border-rule text-[12.5px] text-ink-soft transition-colors duration-200 hover:border-rule-strong hover:text-ink"
+          className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-pill border border-rule text-[12.5px] text-ink-soft transition-colors duration-200 hover:border-rule-strong hover:text-ink"
         >
           Details
           <IconArrow size={12} />
@@ -246,24 +253,37 @@ function CorridorCardBase({ corridor, watched, onWatch, onHold, holding }: CardP
           <button
             type="button"
             onClick={() => onWatch(corridor)}
+            disabled={watchingBusy}
             aria-pressed={watched}
-            aria-label={watched ? `Stop watching ${corridor.code}` : `Watch ${corridor.code}`}
+            aria-busy={watchingBusy || undefined}
+            aria-label={
+              watchingBusy
+                ? `Updating watch for ${corridor.code}`
+                : watched
+                  ? `Stop watching ${corridor.code}`
+                  : `Watch ${corridor.code}`
+            }
             title={watched ? 'Watching — you get tier updates' : 'Watch this corridor'}
             className={cn(
-              'grid h-9 w-9 shrink-0 place-items-center rounded-pill border transition-colors duration-200',
+              'grid h-11 w-11 shrink-0 place-items-center rounded-pill border transition-colors duration-200 disabled:opacity-60',
               watched
                 ? 'border-accent/50 bg-accent-tint text-accent-deep'
                 : 'border-rule text-ink-muted hover:border-rule-strong hover:text-ink',
             )}
           >
-            {watched ? <IconBell size={14} /> : <IconBellOff size={14} />}
+            {watchingBusy ? (
+              <Spinner size={14} />
+            ) : watched ? (
+              <IconBell size={15} />
+            ) : (
+              <IconBellOff size={15} />
+            )}
           </button>
         ) : null}
         {onHold ? (
           <Button
             size="sm"
             variant="primary"
-            className="h-9"
             disabled={closed || full}
             loading={holding}
             icon={<IconTicket size={13} />}
@@ -378,7 +398,7 @@ export function CorridorRow({
         ) : (
           <Link
             to={corridorPath(corridor.code)}
-            className="micro inline-flex items-center gap-1 text-ink-muted hover:text-accent-deep"
+            className="micro inline-flex min-h-11 items-center gap-1 px-3 text-ink-muted hover:text-accent-deep"
           >
             Open <IconArrow size={11} />
           </Link>

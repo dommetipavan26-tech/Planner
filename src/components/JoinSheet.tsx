@@ -23,8 +23,11 @@ import type { JoinInput, Result } from '../hooks/useLedger';
 import {
   Button,
   Chip,
+  Disclosure,
   Divider,
   Field,
+  FormAlert,
+  FormSection,
   SelectInput,
   Sheet,
   Stepper,
@@ -111,6 +114,10 @@ export function JoinSheet({
   const [errors, setErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [copiedRef, setCopiedRef] = useState(false);
   const [receipt, setReceipt] = useState<Pledge | null>(null);
   const [simulated, setSimulated] = useState(false);
 
@@ -127,11 +134,27 @@ export function JoinSheet({
     setSeats(Math.min(2, Math.max(1, seatsLeft(corridor))));
     setErrors({});
     setTouched({});
+    setReviewing(false);
+    setConfirmDiscard(false);
+    setSubmitError(null);
+    setCopiedRef(false);
     setReceipt(null);
     setSimulated(false);
     setBoardingPoint(points[0] ?? '');
     // Re-seeding on corridor change is deliberate: `points` is derived from it.
   }, [open, corridor?.id, points]);
+
+  const isDirty = Boolean(!receipt && (name.trim() !== '' || phone.trim() !== ''));
+
+  const requestClose = useCallback(() => {
+    if (submitting) return;
+    if (isDirty && !confirmDiscard) {
+      setConfirmDiscard(true);
+      return;
+    }
+    setConfirmDiscard(false);
+    onClose();
+  }, [submitting, isDirty, confirmDiscard, onClose]);
 
   const q = useMemo(() => (corridor ? quote(corridor, seats) : null), [corridor, seats]);
 
@@ -154,21 +177,19 @@ export function JoinSheet({
       else if (key === 'phone') setPhone(value as string);
       else setBoardingPoint(value as string);
       setTouched((t) => ({ ...t, [key]: true }));
+      setSubmitError(null);
+      setConfirmDiscard(false);
       revalidate({ [key]: value } as never);
     },
     [revalidate],
   );
 
-  const submit = useCallback(async () => {
-    if (!corridor) return;
-    // A second press while the first is still in flight is the commonest way a
-    // traveller ends up holding four seats they wanted two of. The server now
-    // treats that repeat as a retry and returns the pledge it already wrote, but
-    // the request should not have been made twice in the first place.
-    if (submitting) return;
+  const proceedToReview = useCallback(() => {
+    if (!corridor || submitting) return;
     const found = validate({ name, phone, boardingPoint, seats, maxSeats });
     setErrors(found);
     setTouched({ name: true, phone: true, boardingPoint: true, seats: true });
+    setSubmitError(null);
 
     if (found.name) {
       nameRef.current?.focus();
@@ -184,7 +205,30 @@ export function JoinSheet({
     }
     if (found.seats) return;
 
+    setReviewing(true);
+  }, [corridor, submitting, name, phone, boardingPoint, seats, maxSeats]);
+
+  const submit = useCallback(async () => {
+    if (!corridor) return;
+    // A second press while the first is still in flight is the commonest way a
+    // traveller ends up holding four seats they wanted two of. The server now
+    // treats that repeat as a retry and returns the pledge it already wrote, but
+    // the request should not have been made twice in the first place.
+    if (submitting) return;
+    const found = validate({ name, phone, boardingPoint, seats, maxSeats });
+    setErrors(found);
+    setTouched({ name: true, phone: true, boardingPoint: true, seats: true });
+
+    if (found.name || found.phone || found.boardingPoint || found.seats) {
+      setReviewing(false);
+      if (found.name) nameRef.current?.focus();
+      else if (found.phone) phoneRef.current?.focus();
+      else if (found.boardingPoint) boardingRef.current?.focus();
+      return;
+    }
+
     setSubmitting(true);
+    setSubmitError(null);
     const result = await onJoin({
       corridorId: corridor.id,
       name: name.trim(),
@@ -196,14 +240,27 @@ export function JoinSheet({
     setSubmitting(false);
 
     if (!result.ok || !result.data) {
+      const msg = result.error ?? 'The ledger rejected that pledge. Try again.';
+      // Map server validation errors directly back to the relevant field.
+      if (/seat|allotment|block has fewer/i.test(msg)) {
+        setErrors((prev) => ({ ...prev, seats: msg }));
+        setReviewing(false);
+      } else if (/mobile|phone|10-digit/i.test(msg)) {
+        setErrors((prev) => ({ ...prev, phone: msg }));
+        setReviewing(false);
+      } else if (/passenger name|3 characters/i.test(msg)) {
+        setErrors((prev) => ({ ...prev, name: msg }));
+        setReviewing(false);
+      } else {
+        setSubmitError(msg);
+      }
       // A throttle is a refusal of pace, not a failed pledge: nothing was
       // written, so it is worth a nudge rather than an alarm.
-      onToast(
-        result.error ?? 'The ledger rejected that pledge. Try again.',
-        result.throttled ? 'info' : 'error',
-      );
+      onToast(msg, result.throttled ? 'info' : 'error');
       return;
     }
+    setReviewing(false);
+    setConfirmDiscard(false);
     setReceipt(result.data);
     setSimulated(Boolean(result.simulated));
     onToast(
@@ -220,6 +277,8 @@ export function JoinSheet({
     if (!receipt) return;
     try {
       await navigator.clipboard.writeText(receipt.booking_ref);
+      setCopiedRef(true);
+      window.setTimeout(() => setCopiedRef(false), 2200);
       onToast('Booking reference copied', 'info');
     } catch {
       onToast(`Reference: ${receipt.booking_ref}`, 'info');
@@ -229,21 +288,30 @@ export function JoinSheet({
   if (!corridor) return null;
 
   const closed = isFull(corridor) || isClosed(corridor, now);
+  const cleanPhone = phone.replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '');
 
   return (
     <Sheet
       open={open}
-      onClose={onClose}
+      onClose={requestClose}
       width="max-w-3xl"
-      title={receipt ? `Held · ${receipt.booking_ref}` : `Hold seats · ${corridor.code}`}
+      title={
+        receipt
+          ? `Held · ${receipt.booking_ref}`
+          : reviewing
+            ? `Confirm hold · ${corridor.code}`
+            : `Hold seats · ${corridor.code}`
+      }
       description={
         receipt
           ? `Nothing is charged until ${corridor.tier1_min} seats are pledged. Save this reference.`
-          : `${corridor.origin_city} → ${corridor.dest_city} · ${formatDateYear(corridor.departure_date)} · ${corridor.carrier_name}`
+          : reviewing
+            ? `Review your passenger and seat details before writing to the live ledger.`
+            : `${corridor.origin_city} → ${corridor.dest_city} · ${formatDateYear(corridor.departure_date)} · ${corridor.carrier_name}`
       }
       footer={
         receipt ? (
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[11.5px] leading-snug text-ink-muted">
               Manifest closes{' '}
               <span className="tnum text-ink-soft">
@@ -251,17 +319,78 @@ export function JoinSheet({
               </span>
               . Name changes are free until then.
             </p>
-            <div className="flex gap-2">
-              <Button size="sm" variant="quiet" onClick={copyRef}>
-                Copy reference
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="quiet"
+                onClick={copyRef}
+                icon={copiedRef ? <IconCheck size={13} /> : undefined}
+              >
+                {copiedRef ? 'Copied' : 'Copy reference'}
               </Button>
               <Link
                 to="/trips"
                 onClick={onClose}
-                className="inline-flex h-8 items-center justify-center rounded-pill bg-accent px-3 text-[12.5px] font-medium text-on-accent transition-colors duration-200 hover:bg-accent-bright"
+                className="inline-flex h-11 items-center justify-center rounded-pill bg-accent px-4 text-[13px] font-medium text-on-accent transition-colors duration-200 hover:bg-accent-bright"
               >
                 View my trips
               </Link>
+            </div>
+          </div>
+        ) : confirmDiscard ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" role="alert">
+            <p className="flex items-center gap-2 text-[12.5px] font-medium text-ember-deep">
+              <IconAlert size={15} className="shrink-0" />
+              Discard unsaved passenger details?
+            </p>
+            <div className="flex gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setConfirmDiscard(false)}>
+                Keep editing
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => {
+                  setConfirmDiscard(false);
+                  onClose();
+                }}
+              >
+                Discard
+              </Button>
+            </div>
+          </div>
+        ) : reviewing ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="flex items-start gap-2 text-[11.5px] leading-snug text-ink-muted">
+              <IconShield size={14} className="mt-px shrink-0 text-jade-deep" />
+              <span>
+                Confirming locks <span className="tnum text-ink-soft">{seats} {pluralise(seats, 'seat')}</span>{' '}
+                under <span className="text-ink-soft">{name.trim()}</span>. Nothing is charged today.
+              </span>
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="md"
+                disabled={submitting}
+                onClick={() => setReviewing(false)}
+              >
+                Edit details
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                loading={submitting}
+                disabled={closed || submitting}
+                onClick={() => void submit()}
+                icon={<IconCheck size={14} />}
+              >
+                {submitting
+                  ? 'Holding seats…'
+                  : q
+                    ? `Confirm hold · ${rupees(q.total)}`
+                    : 'Confirm seat hold'}
+              </Button>
             </div>
           </div>
         ) : (
@@ -276,22 +405,21 @@ export function JoinSheet({
               </span>
             </p>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={onClose}>
+              <Button variant="ghost" size="sm" onClick={requestClose}>
                 Cancel
               </Button>
               <Button
                 variant="primary"
                 size="md"
-                loading={submitting}
                 disabled={closed || submitting}
-                onClick={submit}
+                onClick={proceedToReview}
                 icon={<IconTicket size={14} />}
               >
                 {closed
                   ? 'Block closed'
                   : q
-                    ? `Hold ${seats} ${seats === 1 ? 'seat' : 'seats'} · ${rupees(q.total)}`
-                    : 'Hold seats'}
+                    ? `Review ${seats} ${seats === 1 ? 'seat' : 'seats'} · ${rupees(q.total)}`
+                    : 'Review hold'}
               </Button>
             </div>
           </div>
@@ -300,134 +428,210 @@ export function JoinSheet({
     >
       {receipt ? (
         <Receipt pledge={receipt} corridor={corridor} simulated={simulated} />
+      ) : reviewing ? (
+        <div className="flex flex-col gap-4">
+          <FormAlert message={submitError} />
+          <div className="rounded-card border border-rule-strong bg-raised p-4">
+            <div className="flex items-center justify-between gap-2 border-b border-rule-soft pb-3">
+              <span className="micro text-ink-muted">Step 2 of 2 · Verify seat hold</span>
+              <Chip tone="marigold">Escrow only · ₹0 due today</Chip>
+            </div>
+            <dl className="mt-3.5 grid gap-3 sm:grid-cols-2">
+              <Cell label="Lead passenger" value={name.trim()} />
+              <Cell label="Mobile number" value={maskPhone(cleanPhone)} />
+              <Cell label="Boarding point" value={boardingPoint} />
+              <Cell label="Seats held" value={`${seats} ${pluralise(seats, 'seat')} (${cohort})`} />
+            </dl>
+            {q ? (
+              <div className="mt-4 border-t border-rule-soft pt-3.5">
+                <QuoteBreakdown corridor={corridor} seats={seats} />
+              </div>
+            ) : null}
+          </div>
+          <p className="flex items-start gap-2 rounded-card border border-accent-line bg-accent-tint/70 px-3.5 py-2.5 text-[11.5px] leading-snug text-accent-deep">
+            <IconAlert size={14} className="mt-px shrink-0" />
+            <span>
+              Confirming writes a live pledge row for your device and counts toward the per-device
+              quota. Names remain free to swap until 72 hours before departure.
+            </span>
+          </p>
+        </div>
       ) : (
         <div className="grid gap-5 md:grid-cols-[1fr_260px]">
           <form
             className="flex flex-col gap-4"
             onSubmit={(e) => {
               e.preventDefault();
-              void submit();
+              proceedToReview();
             }}
             noValidate
           >
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div className="flex flex-col gap-1.5">
-                <span className="micro text-ink-muted">Seats in your party</span>
-                <Stepper
-                  value={seats}
-                  min={1}
-                  max={Math.max(1, maxSeats)}
-                  onChange={(next) => update('seats', next)}
-                  label="Seats"
-                  disabled={closed}
-                />
+            <FormAlert message={submitError} />
+
+            <FormSection
+              step="01"
+              title="Seats & boarding"
+              description="Choose how many seats to hold and where your party boards."
+            >
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <span className="micro text-ink-muted">Seats in your party</span>
+                  <Stepper
+                    value={seats}
+                    min={1}
+                    max={Math.max(1, maxSeats)}
+                    onChange={(next) => update('seats', next)}
+                    label="Seats"
+                    disabled={closed}
+                    invalid={Boolean(errors.seats && touched.seats)}
+                    describedBy={errors.seats && touched.seats ? 'join-seats-error' : undefined}
+                  />
+                </div>
+                <p className="tnum text-[11.5px] text-ink-muted">
+                  {seatsLeft(corridor)} of {corridor.total_allotment} left in the block
+                </p>
               </div>
-              <p className="tnum text-[11.5px] text-ink-muted">
-                {seatsLeft(corridor)} of {corridor.total_allotment} left in the block
-              </p>
-            </div>
-            {errors.seats && touched.seats ? (
-              <p role="alert" className="flex items-center gap-1.5 text-[11.5px] text-ember-deep">
-                <IconAlert size={12} /> {errors.seats}
-              </p>
-            ) : null}
+              {errors.seats && touched.seats ? (
+                <p
+                  id="join-seats-error"
+                  role="alert"
+                  className="flex items-center gap-1.5 text-[11.5px] text-ember-deep"
+                >
+                  <IconAlert size={12} /> {errors.seats}
+                </p>
+              ) : null}
 
-            <Field
-              label="Lead passenger"
-              htmlFor="join-name"
-              required
-              error={touched.name ? errors.name : null}
-              hint={`${name.trim().length}/3 characters`}
-            >
-              <TextInput
-                id="join-name"
-                ref={nameRef}
-                value={name}
-                autoComplete="name"
-                placeholder="As printed on government ID"
-                invalid={Boolean(touched.name && errors.name)}
-                onChange={(e) => update('name', e.target.value)}
-                onBlur={() => {
-                  setTouched((t) => ({ ...t, name: true }));
-                  revalidate({});
-                }}
-              />
-            </Field>
-
-            <Field
-              label="Mobile number"
-              htmlFor="join-phone"
-              required
-              error={touched.phone ? errors.phone : null}
-              hint="used only for manifest alerts"
-            >
-              <TextInput
-                id="join-phone"
-                ref={phoneRef}
-                value={phone}
-                type="tel"
-                inputMode="numeric"
-                autoComplete="tel-national"
-                maxLength={13}
-                placeholder="10-digit number"
-                className="tnum"
-                invalid={Boolean(touched.phone && errors.phone)}
-                onChange={(e) => update('phone', e.target.value.replace(/[^\d+\s-]/g, ''))}
-                onBlur={() => {
-                  setTouched((t) => ({ ...t, phone: true }));
-                  revalidate({});
-                }}
-              />
-            </Field>
-
-            <Field label="Boarding point" htmlFor="join-boarding" required error={touched.boardingPoint ? errors.boardingPoint : null}>
-              <SelectInput
-                id="join-boarding"
-                ref={boardingRef}
-                value={boardingPoint}
-                invalid={Boolean(touched.boardingPoint && errors.boardingPoint)}
-                onChange={(e) => update('boardingPoint', e.target.value)}
+              <Field
+                label="Boarding point"
+                htmlFor="join-boarding"
+                required
+                error={touched.boardingPoint ? errors.boardingPoint : null}
+                errorId="join-boarding-error"
               >
-                {points.length === 0 ? <option value="">No boarding point published</option> : null}
-                {points.map((point) => (
-                  <option key={point} value={point}>
-                    {point}
-                  </option>
-                ))}
-              </SelectInput>
-            </Field>
+                <SelectInput
+                  id="join-boarding"
+                  ref={boardingRef}
+                  value={boardingPoint}
+                  aria-describedby={
+                    touched.boardingPoint && errors.boardingPoint ? 'join-boarding-error' : undefined
+                  }
+                  invalid={Boolean(touched.boardingPoint && errors.boardingPoint)}
+                  onChange={(e) => update('boardingPoint', e.target.value)}
+                >
+                  {points.length === 0 ? <option value="">No boarding point published</option> : null}
+                  {points.map((point) => (
+                    <option key={point} value={point}>
+                      {point}
+                    </option>
+                  ))}
+                </SelectInput>
+              </Field>
+            </FormSection>
 
-            <Field label="Travelling as" htmlFor="join-cohort" hint="helps the carrier desk group manifests">
-              <SelectInput id="join-cohort" value={cohort} onChange={(e) => setCohort(e.target.value)}>
-                {COHORTS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </SelectInput>
-            </Field>
+            <FormSection
+              step="02"
+              title="Lead passenger"
+              description="Required for the carrier manifest. No payment details needed now."
+            >
+              <Field
+                label="Lead passenger"
+                htmlFor="join-name"
+                required
+                error={touched.name ? errors.name : null}
+                errorId="join-name-error"
+                hint={`${name.trim().length}/3 characters`}
+              >
+                <TextInput
+                  id="join-name"
+                  ref={nameRef}
+                  value={name}
+                  autoComplete="name"
+                  placeholder="As printed on government ID"
+                  aria-describedby={touched.name && errors.name ? 'join-name-error' : undefined}
+                  invalid={Boolean(touched.name && errors.name)}
+                  onChange={(e) => update('name', e.target.value)}
+                  onBlur={() => {
+                    setTouched((t) => ({ ...t, name: true }));
+                    revalidate({});
+                  }}
+                />
+              </Field>
 
-            {corridor.mode === 'bus' ? (
-              <p className="flex items-start gap-2 rounded-card border border-rule bg-raised px-3 py-2.5 text-[11.5px] leading-snug text-ink-muted">
-                <IconBus size={14} className="mt-px shrink-0 text-lagoon-deep" />
-                <span>
-                  Coach blocks assign berths at manifest close, in pledge order. Families travelling
-                  together are seated together where the layout allows it.
-                </span>
-              </p>
-            ) : (
-              <p className="flex items-start gap-2 rounded-card border border-rule bg-raised px-3 py-2.5 text-[11.5px] leading-snug text-ink-muted">
-                <IconPlane size={14} className="mt-px shrink-0 text-accent-deep" />
-                <span>
-                  Group PNRs are issued to the lead passenger at manifest close. Names can be swapped
-                  free until 72 hours before departure.
-                </span>
-              </p>
-            )}
+              <Field
+                label="Mobile number"
+                htmlFor="join-phone"
+                required
+                error={touched.phone ? errors.phone : null}
+                errorId="join-phone-error"
+                hint="used only for manifest alerts"
+              >
+                <TextInput
+                  id="join-phone"
+                  ref={phoneRef}
+                  value={phone}
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  maxLength={13}
+                  placeholder="10-digit number"
+                  className="tnum"
+                  aria-describedby={touched.phone && errors.phone ? 'join-phone-error' : undefined}
+                  invalid={Boolean(touched.phone && errors.phone)}
+                  onChange={(e) => update('phone', e.target.value.replace(/[^\d+\s-]/g, ''))}
+                  onBlur={() => {
+                    setTouched((t) => ({ ...t, phone: true }));
+                    revalidate({});
+                  }}
+                />
+              </Field>
+            </FormSection>
+
+            <Disclosure
+              label="Optional · Group type & manifest notes"
+              summary={cohort}
+            >
+              <div className="flex flex-col gap-3">
+                <Field
+                  label="Travelling as"
+                  htmlFor="join-cohort"
+                  hint="helps the carrier desk group manifests"
+                >
+                  <SelectInput
+                    id="join-cohort"
+                    value={cohort}
+                    onChange={(e) => setCohort(e.target.value)}
+                  >
+                    {COHORTS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </SelectInput>
+                </Field>
+
+                {corridor.mode === 'bus' ? (
+                  <p className="flex items-start gap-2 rounded-card border border-rule bg-raised px-3 py-2.5 text-[11.5px] leading-snug text-ink-muted">
+                    <IconBus size={14} className="mt-px shrink-0 text-lagoon-deep" />
+                    <span>
+                      Coach blocks assign berths at manifest close, in pledge order. Families travelling
+                      together are seated together where the layout allows it.
+                    </span>
+                  </p>
+                ) : (
+                  <p className="flex items-start gap-2 rounded-card border border-rule bg-raised px-3 py-2.5 text-[11.5px] leading-snug text-ink-muted">
+                    <IconPlane size={14} className="mt-px shrink-0 text-accent-deep" />
+                    <span>
+                      Group PNRs are issued to the lead passenger at manifest close. Names can be swapped
+                      free until 72 hours before departure.
+                    </span>
+                  </p>
+                )}
+              </div>
+            </Disclosure>
 
             {/* Hidden submit so Enter works inside the form */}
             <button type="submit" className="sr-only" tabIndex={-1} aria-hidden="true">
-              Hold seats
+              Review hold
             </button>
           </form>
 
@@ -598,7 +802,7 @@ function Receipt({
         </span>
         <Link
           to={`/corridor/${encodeURIComponent(corridor.code)}`}
-          className="inline-flex items-center gap-1 text-ink-muted transition-colors duration-200 hover:text-accent-deep"
+          className="inline-flex min-h-11 items-center gap-1 px-2 text-ink-muted transition-colors duration-200 hover:text-accent-deep"
         >
           Back to {corridor.code} <IconArrow size={11} />
         </Link>

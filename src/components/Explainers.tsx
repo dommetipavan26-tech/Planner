@@ -10,7 +10,7 @@ import {
   surgeMultiple,
 } from '../lib/format';
 import type { Corridor } from '../lib/types';
-import { Chip, Divider, Eyebrow, Reveal, cn } from './ui';
+import { Chip, Disclosure, Divider, Eyebrow, Reveal, cn } from './ui';
 import { IconArrow, IconCheck, IconHandshake, IconShield, IconUsers } from './icons';
 
 /** Section wrapper: consistent rhythm, an id for the footer links, an eyebrow. */
@@ -140,7 +140,7 @@ export function TierExplainer({ corridor }: { corridor: Corridor | undefined }) 
       aside={
         <Link
           to={corridorPath(c.code)}
-          className="inline-flex items-center gap-1.5 rounded-pill border border-rule px-3 py-1.5 text-[12.5px] text-ink-soft transition-colors duration-200 hover:border-accent/50 hover:text-accent-deep"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-pill border border-rule px-4 py-2 text-[12.5px] text-ink-soft transition-colors duration-200 hover:border-accent/50 hover:text-accent-deep"
         >
           Open {c.code} <IconArrow size={12} />
         </Link>
@@ -198,15 +198,23 @@ export function TierExplainer({ corridor }: { corridor: Corridor | undefined }) 
         </div>
 
         <div className="flex flex-col justify-between gap-5 bg-raised p-5">
-          <div className="flex flex-col gap-3">
-            <Eyebrow>Why a group beats a queue</Eyebrow>
-            <p className="text-[12.5px] leading-relaxed text-ink-soft">
-              Airline and coach revenue management sells the last few seats at a premium because they
-              are scarce. A block sold 60 days out is the opposite: guaranteed load factor, one
-              manifest, one settlement. Carriers price that certainty, and this desk passes the whole
-              break through to the cohort rather than keeping the spread.
-            </p>
-          </div>
+          <Disclosure label="Why a group beats a queue" summary="economics & inclusions" defaultOpen={false}>
+            <div className="flex flex-col gap-4">
+              <p className="text-[12.5px] leading-relaxed text-ink-soft">
+                Airline and coach revenue management sells the last few seats at a premium because they
+                are scarce. A block sold 60 days out is the opposite: guaranteed load factor, one
+                manifest, one settlement. Carriers price that certainty, and this desk passes the whole
+                break through to the cohort rather than keeping the spread.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {c.amenities.slice(0, 4).map((a) => (
+                  <Chip key={a} tone="neutral">
+                    {a}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+          </Disclosure>
           <div className="grid grid-cols-2 gap-3">
             <MiniStat
               label="Surge multiple"
@@ -220,13 +228,6 @@ export function TierExplainer({ corridor }: { corridor: Corridor | undefined }) 
               tone="jade"
               note={`at ${c.pledged_seats} pledged`}
             />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {c.amenities.slice(0, 4).map((a) => (
-              <Chip key={a} tone="neutral">
-                {a}
-              </Chip>
-            ))}
           </div>
         </div>
       </div>
@@ -325,41 +326,47 @@ export function FeeDisclosure({ corridor }: { corridor: Corridor | undefined }) 
         </div>
 
         <div className="flex flex-col gap-4 bg-raised p-5">
-          <Eyebrow>What the fee pays for · indicative allocation</Eyebrow>
-          <ul className="flex flex-col gap-3">
-            {allocation.map((row) => (
-              <li key={row.label} className="flex flex-col gap-1.5">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-[12.5px] text-ink-soft">{row.label}</span>
-                  <span className="tnum micro text-ink-muted">{row.share}%</span>
-                </div>
-                <span className="h-[3px] w-full overflow-hidden rounded-pill bg-hover">
-                  {/* Opaque deep cut: bright marigold at 80% over the track was
-                      1.49:1, a bar that could not be seen to have a length. The
-                      percentage is printed beside it, so the bar is a second
-                      reading of the same figure rather than the only one. */}
-                  <span
-                    className="block h-full rounded-pill bg-accent-deep"
-                    style={{ width: `${row.share}%` }}
-                  />
-                </span>
-              </li>
-            ))}
-          </ul>
-          <Divider className="my-1" />
-          <div className="flex flex-col gap-2 text-[11.5px] leading-relaxed text-ink-faint">
-            <p>
-              <span className="text-ink-soft">Not included:</span> airport or operator levies that the
-              carrier passes through at cost, and any optional add-ons (extra baggage, meals beyond
-              the contracted allowance). Those appear separately on the manifest, never folded into
-              the slab price.
-            </p>
-            <p>
-              <span className="text-ink-soft">Escrow:</span> pledges are held, not captured. Money moves
-              only after the corridor clears Tier I and the carrier has confirmed the allotment in
-              writing.
-            </p>
-          </div>
+          <Disclosure
+            label="What the fee pays for"
+            summary="indicative cost breakdown & escrow exclusions"
+          >
+            <div className="flex flex-col gap-4">
+              <ul className="flex flex-col gap-3">
+                {allocation.map((row) => (
+                  <li key={row.label} className="flex flex-col gap-1.5">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="text-[12.5px] text-ink-soft">{row.label}</span>
+                      <span className="tnum micro text-ink-muted">{row.share}%</span>
+                    </div>
+                    <span className="h-[3px] w-full overflow-hidden rounded-pill bg-hover">
+                      {/* Opaque deep cut: bright marigold at 80% over the track was
+                          1.49:1, a bar that could not be seen to have a length. The
+                          percentage is printed beside it, so the bar is a second
+                          reading of the same figure rather than the only one. */}
+                      <span
+                        className="block h-full rounded-pill bg-accent-deep"
+                        style={{ width: `${row.share}%` }}
+                      />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <Divider className="my-1" />
+              <div className="flex flex-col gap-2 text-[11.5px] leading-relaxed text-ink-faint">
+                <p>
+                  <span className="text-ink-soft">Not included:</span> airport or operator levies that the
+                  carrier passes through at cost, and any optional add-ons (extra baggage, meals beyond
+                  the contracted allowance). Those appear separately on the manifest, never folded into
+                  the slab price.
+                </p>
+                <p>
+                  <span className="text-ink-soft">Escrow:</span> pledges are held, not captured. Money moves
+                  only after the corridor clears Tier I and the carrier has confirmed the allotment in
+                  writing.
+                </p>
+              </div>
+            </div>
+          </Disclosure>
         </div>
       </div>
     </Section>

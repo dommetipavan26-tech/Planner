@@ -13,7 +13,7 @@ import {
 import { countdown, formatClockMs } from '../lib/format';
 import { useIsoLayoutEffect } from '../lib/useIsoLayoutEffect';
 import { useNow } from '../hooks/useClock';
-import { IconAlert, IconCheck, IconClose, IconMinus, IconPlus, IconRefresh } from './icons';
+import { IconAlert, IconCheck, IconChevron, IconClose, IconMinus, IconPlus, IconRefresh } from './icons';
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
@@ -98,9 +98,9 @@ const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
 };
 
 const BUTTON_SIZES: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3 text-[12.5px]',
-  md: 'h-10 px-4 text-[13.5px]',
-  lg: 'h-12 px-6 text-[14.5px]',
+  sm: 'min-h-11 h-11 px-3.5 text-[12.5px]',
+  md: 'min-h-11 h-11 px-4 text-[13.5px]',
+  lg: 'min-h-12 h-12 px-6 text-[14.5px]',
 };
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -261,6 +261,7 @@ export function Field({
   label,
   hint,
   error,
+  errorId,
   children,
   htmlFor,
   className,
@@ -269,6 +270,7 @@ export function Field({
   label: string;
   hint?: ReactNode;
   error?: string | null;
+  errorId?: string;
   children: ReactNode;
   htmlFor?: string;
   className?: string;
@@ -288,11 +290,138 @@ export function Field({
       </label>
       {children}
       {error ? (
-        <p role="alert" className="flex items-start gap-1.5 text-[11.5px] leading-snug text-ember-deep">
+        <p
+          id={errorId}
+          role="alert"
+          className="flex items-start gap-1.5 text-[11.5px] leading-snug text-ember-deep"
+        >
           <IconAlert size={12} className="mt-px shrink-0" />
           <span>{error}</span>
         </p>
       ) : null}
+    </div>
+  );
+}
+
+export function FormSection({
+  step,
+  title,
+  description,
+  children,
+  className,
+}: {
+  step?: string;
+  title: string;
+  description?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <fieldset
+      className={cn(
+        'flex flex-col gap-3.5 rounded-card border border-rule bg-surface/60 p-3.5',
+        className,
+      )}
+    >
+      <legend className="px-1">
+        <span className="inline-flex items-center gap-2">
+          {step ? (
+            <span className="tnum micro rounded-pill border border-rule-strong bg-raised px-2 py-0.5 text-ink-muted">
+              {step}
+            </span>
+          ) : null}
+          <span className="text-[13px] font-medium text-ink">{title}</span>
+        </span>
+      </legend>
+      {description ? (
+        <p className="-mt-1 text-[11.5px] leading-snug text-ink-muted">{description}</p>
+      ) : null}
+      {children}
+    </fieldset>
+  );
+}
+
+export function FormAlert({
+  message,
+  tone = 'error',
+  className,
+}: {
+  message: string | null | undefined;
+  tone?: 'error' | 'info';
+  className?: string;
+}) {
+  if (!message) return null;
+  return (
+    <div
+      role="alert"
+      className={cn(
+        'flex items-start gap-2 rounded-card border px-3.5 py-2.5 text-[12px] leading-snug',
+        tone === 'error'
+          ? 'border-ember-line bg-ember-tint text-ember-deep'
+          : 'border-clay-line bg-clay-tint text-clay-deep',
+        className,
+      )}
+    >
+      <IconAlert size={14} className="mt-px shrink-0" />
+      <span>{message}</span>
+    </div>
+  );
+}
+
+export function Disclosure({
+  label,
+  summary,
+  defaultOpen = false,
+  open: controlledOpen,
+  onOpenChange,
+  children,
+  className,
+}: {
+  label: string;
+  summary?: ReactNode;
+  defaultOpen?: boolean;
+  open?: boolean;
+  onOpenChange?: (next: boolean) => void;
+  children: ReactNode;
+  className?: string;
+}) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    if (controlledOpen === undefined) setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  };
+  const panelId = useId();
+
+  return (
+    <div className={cn('rounded-card border border-rule bg-surface/65', className)}>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen(!open)}
+        className="flex min-h-11 w-full items-center justify-between gap-3 rounded-card px-3.5 py-2.5 text-left transition-colors duration-200 hover:bg-raised"
+      >
+        <span className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+          <span className="text-[12.5px] font-medium text-ink-soft">{label}</span>
+          {summary ? (
+            <span className="text-[11px] text-ink-faint">{summary}</span>
+          ) : null}
+        </span>
+        <IconChevron
+          size={14}
+          className={cn(
+            'shrink-0 text-ink-muted transition-transform duration-200 ease-out-expo',
+            open && 'rotate-180',
+          )}
+        />
+      </button>
+      <div
+        id={panelId}
+        className={cn('border-t border-rule-soft px-3.5 py-3', !open && 'hidden')}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -306,7 +435,7 @@ export function TextInput({
     <input
       className={cn(
         FIELD_SHELL,
-        'h-10 px-3 text-[13.5px]',
+        'h-11 px-3 text-[13.5px]',
         invalid ? 'border-ember-deep' : 'border-edge',
         className,
       )}
@@ -346,7 +475,7 @@ export function SelectInput({
       <select
         className={cn(
           FIELD_SHELL,
-          'h-10 appearance-none pl-3 pr-9 text-[13.5px]',
+          'h-11 appearance-none pl-3 pr-9 text-[13.5px]',
           invalid ? 'border-ember-deep' : 'border-edge',
           className,
         )}
@@ -380,6 +509,8 @@ export function Stepper({
   onChange,
   label,
   disabled,
+  invalid,
+  describedBy,
 }: {
   value: number;
   min: number;
@@ -387,6 +518,8 @@ export function Stepper({
   onChange: (next: number) => void;
   label: string;
   disabled?: boolean;
+  invalid?: boolean;
+  describedBy?: string;
 }) {
   const clamp = useCallback(
     (n: number) => Math.min(max, Math.max(min, Math.trunc(n) || min)),
@@ -398,7 +531,8 @@ export function Stepper({
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-1 rounded-pill border border-rule bg-raised p-1',
+        'inline-flex items-center gap-1.5 rounded-pill border bg-raised p-1',
+        invalid ? 'border-ember-deep' : 'border-rule',
         disabled && 'opacity-50',
       )}
       role="group"
@@ -409,7 +543,7 @@ export function Stepper({
         aria-label={`Decrease ${label}`}
         disabled={disabled || atMin}
         onClick={() => onChange(clamp(value - 1))}
-        className="grid h-8 w-8 place-items-center rounded-pill text-ink-soft transition-colors duration-200 hover:bg-hover hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent"
+        className="grid h-11 w-11 place-items-center rounded-pill text-ink-soft transition-colors duration-200 hover:bg-hover hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent"
       >
         <IconMinus size={14} />
       </button>
@@ -417,19 +551,21 @@ export function Stepper({
         type="number"
         inputMode="numeric"
         aria-label={label}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
         value={value}
         min={min}
         max={max}
         disabled={disabled}
         onChange={(e) => onChange(clamp(Number(e.target.value)))}
-        className="tnum h-8 w-11 border-0 bg-transparent text-center text-[14px] font-medium text-ink focus:outline-none disabled:cursor-not-allowed"
+        className="tnum h-11 w-12 border-0 bg-transparent text-center text-[14px] font-medium text-ink focus:outline-none disabled:cursor-not-allowed"
       />
       <button
         type="button"
         aria-label={`Increase ${label}`}
         disabled={disabled || atMax}
         onClick={() => onChange(clamp(value + 1))}
-        className="grid h-8 w-8 place-items-center rounded-pill text-ink-soft transition-colors duration-200 hover:bg-hover hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent"
+        className="grid h-11 w-11 place-items-center rounded-pill text-ink-soft transition-colors duration-200 hover:bg-hover hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent"
       >
         <IconPlus size={14} />
       </button>
@@ -455,7 +591,7 @@ export function Segmented<T extends string>({
       role="radiogroup"
       aria-label={label}
       className={cn(
-        'inline-flex items-center gap-0.5 rounded-pill border border-rule bg-surface p-0.5',
+        'inline-flex items-center gap-1 rounded-pill border border-rule bg-surface p-1',
         className,
       )}
     >
@@ -469,7 +605,7 @@ export function Segmented<T extends string>({
             aria-checked={active}
             onClick={() => onChange(option.value)}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-[12.5px] transition-colors duration-200 ease-out-expo',
+              'inline-flex min-h-11 items-center gap-1.5 rounded-pill px-3.5 py-2 text-[12.5px] transition-colors duration-200 ease-out-expo',
               active
                 ? 'bg-hover text-ink shadow-tab-inset'
                 : 'text-ink-muted hover:text-ink-soft',
@@ -710,9 +846,9 @@ export function ToastStack({
               type="button"
               onClick={() => onDismiss(toast.id)}
               aria-label="Dismiss notification"
-              className="shrink-0 rounded-pill p-0.5 text-current opacity-55 transition-opacity duration-200 hover:opacity-100"
+              className="-my-2 -mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-pill text-current opacity-65 transition-opacity duration-200 hover:opacity-100"
             >
-              <IconClose size={13} />
+              <IconClose size={14} />
             </button>
           </div>
         );
@@ -892,7 +1028,7 @@ export function Sheet({
             type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="-mr-1 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-pill text-ink-muted transition-colors duration-200 hover:bg-sunken hover:text-ink"
+            className="-mr-2 -mt-1.5 grid h-11 w-11 shrink-0 place-items-center rounded-pill text-ink-muted transition-colors duration-200 hover:bg-sunken hover:text-ink"
           >
             <IconClose size={15} />
           </button>
@@ -901,6 +1037,124 @@ export function Sheet({
         {footer ? (
           <footer className="border-t border-rule bg-page/40 px-5 py-3.5">{footer}</footer>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* ConfirmDialog (destructive & irreversible action safeguard)                */
+/* -------------------------------------------------------------------------- */
+
+export function ConfirmDialog({
+  open,
+  onCancel,
+  onConfirm,
+  title,
+  body,
+  confirmLabel = 'Confirm',
+  cancelLabel = 'Cancel',
+  tone = 'danger',
+  loading = false,
+}: {
+  open: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+  title: string;
+  body: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  tone?: 'danger' | 'primary';
+  loading?: boolean;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const restoreRef = useRef<HTMLElement | null>(null);
+  const titleId = useId();
+  const bodyId = useId();
+
+  useIsoLayoutEffect(() => {
+    if (!open) return;
+    restoreRef.current = document.activeElement as HTMLElement | null;
+    const panel = panelRef.current;
+    const first = panel?.querySelector<HTMLElement>(FOCUSABLE);
+    (first ?? panel)?.focus();
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      restoreRef.current?.focus?.();
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        if (!loading) onCancel();
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
+  }, [open, loading, onCancel]);
+
+  const labelId = useMemo(() => titleId.replace(/:/g, ''), [titleId]);
+  const descId = useMemo(() => bodyId.replace(/:/g, ''), [bodyId]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-90 flex items-end justify-center sm:items-center">
+      <div
+        className="animate-fade absolute inset-0 bg-page/80 backdrop-blur-[3px]"
+        onClick={() => {
+          if (!loading) onCancel();
+        }}
+        aria-hidden="true"
+      />
+      <div
+        ref={panelRef}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={labelId}
+        aria-describedby={descId}
+        tabIndex={-1}
+        className="animate-sheet relative w-full max-w-md overflow-hidden rounded-t-[10px] border border-rule-strong bg-surface p-5 shadow-lift sm:rounded-card"
+      >
+        <div className="flex items-start gap-3">
+          <span
+            className={cn(
+              'grid h-10 w-10 shrink-0 place-items-center rounded-pill border',
+              tone === 'danger'
+                ? 'border-ember-line bg-ember-tint text-ember-deep'
+                : 'border-accent-line bg-accent-tint text-accent-deep',
+            )}
+          >
+            <IconAlert size={16} />
+          </span>
+          <div className="flex flex-col gap-1.5">
+            <h2 id={labelId} className="display text-[19px] leading-tight text-ink">
+              {title}
+            </h2>
+            <p id={descId} className="text-[12.5px] leading-relaxed text-ink-muted">
+              {body}
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="secondary" size="md" onClick={onCancel} disabled={loading}>
+            {cancelLabel}
+          </Button>
+          <Button
+            variant={tone === 'danger' ? 'danger' : 'primary'}
+            size="md"
+            loading={loading}
+            onClick={onConfirm}
+          >
+            {confirmLabel}
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -31,6 +31,7 @@ import {
   Button,
   Chip,
   Countdown,
+  Disclosure,
   Divider,
   EmptyState,
   Eyebrow,
@@ -62,12 +63,14 @@ export function CorridorView({
   ledger,
   onHold,
   onWatch,
+  watchingId,
   allCorridors,
 }: {
   code: string;
   ledger: Ledger;
   onHold: (corridor: Corridor) => void;
   onWatch: (corridor: Corridor) => void;
+  watchingId?: string | null;
   allCorridors: Corridor[];
 }) {
   const now = useCoarseNow();
@@ -106,6 +109,7 @@ export function CorridorView({
   const pledges = ledger.roster.filter((p) => p.corridor_id === corridor.id);
   const bids = ledger.bids.filter((b) => b.corridor_code === corridor.code);
   const watched = ledger.isWatched(corridor.id);
+  const watchingBusy = watchingId === corridor.id;
 
   const projected = corridor.pledged_seats + previewSeats;
   const projectedNet = netFareAt(corridor, projected);
@@ -123,10 +127,13 @@ export function CorridorView({
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6 lg:py-10">
-      <nav aria-label="Breadcrumb" className="mb-5">
-        <ol className="flex items-center gap-2 text-[11.5px] text-ink-faint">
+      <nav aria-label="Breadcrumb" className="mb-3">
+        <ol className="flex items-center gap-2 text-[12px] text-ink-faint">
           <li>
-            <Link to="/" className="transition-colors duration-200 hover:text-ink-soft">
+            <Link
+              to="/"
+              className="inline-flex min-h-11 items-center px-1 transition-colors duration-200 hover:text-ink-soft"
+            >
               Corridors
             </Link>
           </li>
@@ -225,15 +232,16 @@ export function CorridorView({
                   <span className="tnum text-jade-deep">{rupees(savingPerSeat(corridor))}</span> per seat
                 </span>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2.5">
                 <Button
                   variant={watched ? 'secondary' : 'quiet'}
                   size="sm"
+                  loading={watchingBusy}
                   onClick={() => onWatch(corridor)}
                   aria-pressed={watched}
                   icon={watched ? <IconBell size={13} /> : <IconBellOff size={13} />}
                 >
-                  {watched ? 'Watching' : 'Watch'}
+                  {watchingBusy ? 'Updating…' : watched ? 'Watching' : 'Watch'}
                 </Button>
                 <Button
                   variant="primary"
@@ -305,49 +313,55 @@ export function CorridorView({
               />
             </dl>
 
-            <div className="mt-5 grid gap-5 sm:grid-cols-2">
-              <div className="flex flex-col gap-2.5">
-                <Eyebrow>Boarding points</Eyebrow>
-                {corridor.boarding_points.length === 0 ? (
-                  <p className="text-[12.5px] text-ink-muted">
-                    Not published yet — the desk adds feeder points once the block confirms.
-                  </p>
-                ) : (
-                  <ol className="flex list-none flex-col gap-1.5">
-                    {corridor.boarding_points.map((point, i) => (
-                      <li
-                        key={point}
-                        className="flex items-start gap-2.5 rounded-card border border-rule bg-surface px-3 py-2"
-                      >
-                        <span className="tnum micro mt-0.5 shrink-0 text-ink-faint">
-                          {String(i + 1).padStart(2, '0')}
-                        </span>
-                        <span className="text-[12.5px] leading-snug text-ink-soft">{point}</span>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </div>
-              <div className="flex flex-col gap-2.5">
-                <Eyebrow>Included</Eyebrow>
-                {corridor.amenities.length === 0 ? (
-                  <p className="text-[12.5px] text-ink-muted">Standard carrier inclusions apply.</p>
-                ) : (
-                  <ul className="flex list-none flex-col gap-1.5">
-                    {corridor.amenities.map((item) => (
-                      <li key={item} className="flex items-start gap-2 text-[12.5px] text-ink-soft">
-                        <IconCheck size={13} className="mt-0.5 shrink-0 text-jade-deep" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
+            <div className="mt-5 flex flex-col gap-3">
+              <Disclosure
+                label="Boarding points & inclusions"
+                summary={`${corridor.boarding_points.length} stops · ${corridor.amenities.length} included`}
+              >
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2.5">
+                    <Eyebrow>Boarding points</Eyebrow>
+                    {corridor.boarding_points.length === 0 ? (
+                      <p className="text-[12.5px] text-ink-muted">
+                        Not published yet — the desk adds feeder points once the block confirms.
+                      </p>
+                    ) : (
+                      <ol className="flex list-none flex-col gap-1.5">
+                        {corridor.boarding_points.map((point, i) => (
+                          <li
+                            key={point}
+                            className="flex items-start gap-2.5 rounded-card border border-rule bg-surface px-3 py-2"
+                          >
+                            <span className="tnum micro mt-0.5 shrink-0 text-ink-faint">
+                              {String(i + 1).padStart(2, '0')}
+                            </span>
+                            <span className="text-[12.5px] leading-snug text-ink-soft">{point}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2.5">
+                    <Eyebrow>Included</Eyebrow>
+                    {corridor.amenities.length === 0 ? (
+                      <p className="text-[12.5px] text-ink-muted">Standard carrier inclusions apply.</p>
+                    ) : (
+                      <ul className="flex list-none flex-col gap-1.5">
+                        {corridor.amenities.map((item) => (
+                          <li key={item} className="flex items-start gap-2 text-[12.5px] text-ink-soft">
+                            <IconCheck size={13} className="mt-0.5 shrink-0 text-jade-deep" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </Disclosure>
 
-            <div className="mt-5 rounded-card border border-rule bg-raised px-4 py-3.5">
-              <Eyebrow>Refund & release rule</Eyebrow>
-              <p className="mt-2 text-[12.5px] leading-relaxed text-ink-soft">{corridor.refund_rule}</p>
+              <Disclosure label="Refund & release rule" summary={corridor.contract_ref}>
+                <p className="text-[12.5px] leading-relaxed text-ink-soft">{corridor.refund_rule}</p>
+              </Disclosure>
             </div>
           </Section>
 
@@ -362,100 +376,115 @@ export function CorridorView({
                 body="This block is contracted and open, but no traveller has pledged into it since the ledger was last read. Yours would be the first row."
                 action={
                   closed || full ? undefined : (
-                    <Button size="sm" variant="primary" onClick={() => onHold(corridor)}>
+                    <Button size="md" variant="primary" onClick={() => onHold(corridor)}>
                       Hold seats
                     </Button>
                   )
                 }
               />
             ) : (
-              <ul className="grid list-none gap-2 sm:grid-cols-2">
-                {pledges.map((pledge) => (
-                  <li
-                    key={pledge.id}
-                    className="flex items-center gap-3 rounded-card border border-rule bg-surface px-3.5 py-2.5"
-                  >
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-pill border border-rule-strong bg-sunken text-[11px] text-ink-soft">
-                      {initials(pledge.passenger_name)}
-                    </span>
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate text-[12.5px] text-ink">
-                        {pledge.passenger_name}
-                      </span>
-                      <span className="truncate text-[11px] text-ink-faint">
-                        {pledge.passenger_cohort} · {relativeTime(pledge.created_at, now)}
-                      </span>
-                    </span>
-                    <span className="tnum shrink-0 text-right">
-                      <span className="block text-[13px] text-ink">{pledge.seats}</span>
-                      <span className="micro block text-ink-faint">
-                        seat{pledge.seats === 1 ? '' : 's'}
-                      </span>
-                    </span>
-                    <Chip
-                      tone={pledge.status === 'allotment_confirmed' ? 'jade' : 'marigold'}
-                      className="hidden sm:inline-flex"
+              <Disclosure
+                label="View cohort roster"
+                summary={`${pluralise(pledges.length, 'pledge')} on ledger`}
+              >
+                <ul className="grid list-none gap-2 sm:grid-cols-2">
+                  {pledges.map((pledge) => (
+                    <li
+                      key={pledge.id}
+                      className="flex items-center gap-3 rounded-card border border-rule bg-surface px-3.5 py-2.5"
                     >
-                      {pledge.status === 'allotment_confirmed' ? 'confirmed' : 'escrow'}
-                    </Chip>
-                  </li>
-                ))}
-              </ul>
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-pill border border-rule-strong bg-sunken text-[11px] text-ink-soft">
+                        {initials(pledge.passenger_name)}
+                      </span>
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="truncate text-[12.5px] text-ink">
+                          {pledge.passenger_name}
+                        </span>
+                        <span className="truncate text-[11px] text-ink-faint">
+                          {pledge.passenger_cohort} · {relativeTime(pledge.created_at, now)}
+                        </span>
+                      </span>
+                      <span className="tnum shrink-0 text-right">
+                        <span className="block text-[13px] text-ink">{pledge.seats}</span>
+                        <span className="micro block text-ink-faint">
+                          seat{pledge.seats === 1 ? '' : 's'}
+                        </span>
+                      </span>
+                      <Chip
+                        tone={pledge.status === 'allotment_confirmed' ? 'jade' : 'marigold'}
+                        className="hidden sm:inline-flex"
+                      >
+                        {pledge.status === 'allotment_confirmed' ? 'confirmed' : 'escrow'}
+                      </Chip>
+                    </li>
+                  ))}
+                </ul>
+              </Disclosure>
             )}
           </Section>
 
           <Section title="Carrier bid behind this block" eyebrow="Supply side, published">
             {bids.length === 0 ? (
-              <p className="text-[12.5px] leading-relaxed text-ink-muted">
-                No bid row is published for {corridor.code}. The allotment is held directly against
-                contract {corridor.contract_ref}; carrier desks can log a competing bid from the{' '}
-                <Link to="/carriers" className="text-accent-deep underline underline-offset-2 hover:decoration-2">
-                  carrier desk
-                </Link>
-                .
-              </p>
-            ) : (
-              <ul className="flex list-none flex-col gap-3">
-                {bids.map((bid) => (
-                  <li
-                    key={bid.id}
-                    className="rounded-card border border-rule bg-surface px-4 py-3.5"
+              <EmptyState
+                icon={<IconTicket size={20} />}
+                title="Direct contract allotment"
+                body={`No separate bid row is published for ${corridor.code}; seats are held directly under contract ${corridor.contract_ref}. Carrier desks can log competing bids on the desk.`}
+                action={
+                  <Link
+                    to="/carriers"
+                    className="inline-flex h-11 items-center gap-2 rounded-pill bg-accent px-5 text-[13px] font-medium text-on-accent transition-colors duration-200 hover:bg-accent-bright"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[13.5px] text-ink">{bid.carrier_name}</span>
-                        <span className="micro text-ink-faint">
-                          {bid.desk_ref ? `Desk ${bid.desk_ref}` : 'Desk attribution pending'}
-                        </span>
+                    Open carrier desk <IconArrow size={13} />
+                  </Link>
+                }
+              />
+            ) : (
+              <Disclosure
+                label="Carrier bid details"
+                summary={`${bids.length} ${pluralise(bids.length, 'bid')} · ${corridor.contract_ref}`}
+              >
+                <ul className="flex list-none flex-col gap-3">
+                  {bids.map((bid) => (
+                    <li
+                      key={bid.id}
+                      className="rounded-card border border-rule bg-surface px-4 py-3.5"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[13.5px] text-ink">{bid.carrier_name}</span>
+                          <span className="micro text-ink-faint">
+                            {bid.desk_ref ? `Desk ${bid.desk_ref}` : 'Desk attribution pending'}
+                          </span>
+                        </div>
+                        <Chip
+                          tone={
+                            bid.bid_status === 'accepted'
+                              ? 'jade'
+                              : bid.bid_status === 'countered'
+                                ? 'clay'
+                                : 'marigold'
+                          }
+                        >
+                          {bid.bid_status.replace('_', ' ')}
+                        </Chip>
                       </div>
-                      <Chip
-                        tone={
-                          bid.bid_status === 'accepted'
-                            ? 'jade'
-                            : bid.bid_status === 'countered'
-                              ? 'clay'
-                              : 'marigold'
-                        }
-                      >
-                        {bid.bid_status.replace('_', ' ')}
-                      </Chip>
-                    </div>
-                    <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      <SmallCell label="Offered seats" value={String(bid.offered_seats)} />
-                      <SmallCell label="Net group fare" value={rupees(bid.net_group_fare)} />
-                      <SmallCell label="Hold window" value={`${bid.hold_window_hours} h`} />
-                      <SmallCell
-                        label="Logged"
-                        value={relativeTime(bid.created_at, now)}
-                      />
-                    </dl>
-                    <p className="mt-3 text-[12px] leading-relaxed text-ink-muted">
-                      {bid.baggage_terms}
-                      {bid.notes ? ` ${bid.notes}` : ''}
-                    </p>
-                  </li>
-                ))}
-              </ul>
+                      <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <SmallCell label="Offered seats" value={String(bid.offered_seats)} />
+                        <SmallCell label="Net group fare" value={rupees(bid.net_group_fare)} />
+                        <SmallCell label="Hold window" value={`${bid.hold_window_hours} h`} />
+                        <SmallCell
+                          label="Logged"
+                          value={relativeTime(bid.created_at, now)}
+                        />
+                      </dl>
+                      <p className="mt-3 text-[12px] leading-relaxed text-ink-muted">
+                        {bid.baggage_terms}
+                        {bid.notes ? ` ${bid.notes}` : ''}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </Disclosure>
             )}
           </Section>
         </div>
@@ -797,17 +826,17 @@ function UnknownCorridor({ code, corridors }: { code: string; corridors: Corrido
           <div className="mt-2 flex flex-col items-center gap-3">
             <Link
               to="/"
-              className="inline-flex h-9 items-center gap-2 rounded-pill bg-accent px-4 text-[12.5px] font-medium text-on-accent transition-colors duration-200 hover:bg-accent-bright"
+              className="inline-flex h-11 items-center gap-2 rounded-pill bg-accent px-5 text-[13px] font-medium text-on-accent transition-colors duration-200 hover:bg-accent-bright"
             >
               Back to the board
             </Link>
             {corridors.length > 0 ? (
-              <div className="flex flex-wrap justify-center gap-1.5">
+              <div className="flex flex-wrap justify-center gap-2">
                 {corridors.slice(0, 6).map((c) => (
                   <Link
                     key={c.id}
                     to={corridorPath(c.code)}
-                    className="micro rounded-pill border border-rule px-2.5 py-1 text-ink-muted transition-colors duration-200 hover:border-accent/50 hover:text-accent-deep"
+                    className="micro inline-flex min-h-11 items-center rounded-pill border border-rule px-3.5 py-2 text-ink-muted transition-colors duration-200 hover:border-accent/50 hover:text-accent-deep"
                   >
                     {c.code}
                   </Link>

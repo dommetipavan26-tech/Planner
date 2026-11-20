@@ -7,10 +7,13 @@ import type { CarrierBid, DeskSession } from '../lib/types';
 import {
   Button,
   Chip,
+  Disclosure,
   Divider,
   EmptyState,
   Eyebrow,
   Field,
+  FormAlert,
+  FormSection,
   Panel,
   Reveal,
   Segmented,
@@ -21,6 +24,7 @@ import {
   cn,
 } from '../components/ui';
 import {
+  IconAlert,
   IconArrow,
   IconCheck,
   IconClock,
@@ -121,6 +125,24 @@ export function CarriersView({
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 py-10 sm:px-6 lg:py-14">
+      <nav aria-label="Breadcrumb" className="mb-3">
+        <ol className="flex items-center gap-2 text-[12px] text-ink-faint">
+          <li>
+            <Link
+              to="/"
+              className="inline-flex min-h-11 items-center px-1 transition-colors duration-200 hover:text-ink-soft"
+            >
+              Corridors
+            </Link>
+          </li>
+          <li aria-hidden="true">/</li>
+          <li>
+            <span className="micro text-ink-muted" aria-current="page">
+              Carrier desk
+            </span>
+          </li>
+        </ol>
+      </nav>
       <header className="flex flex-col gap-5 border-b border-rule pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex max-w-2xl flex-col gap-2.5">
           <Eyebrow>Supply side · published</Eyebrow>
@@ -210,25 +232,28 @@ export function CarriersView({
             icon={<IconSearch size={22} />}
             as="h2"
             title="No bid matches that filter"
-            body="Carrier desks log bids as allotments are released for the festival window. Widen the filter, or log the bid you are holding."
+            body={
+              statusFilter !== 'all' || query
+                ? 'No logged bid matches that status or search term. Clear the active filters to inspect every bid on the board.'
+                : 'Carrier desks log bids here as allotments are released for the festival window. Sign in to log the first bid.'
+            }
             action={
-              <div className="flex gap-2">
-                {statusFilter !== 'all' || query ? (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      setStatusFilter('all');
-                      setQuery('');
-                    }}
-                  >
-                    Clear filters
-                  </Button>
-                ) : null}
-                <Button size="sm" variant="primary" onClick={() => setSheetOpen(true)}>
+              statusFilter !== 'all' || query ? (
+                <Button
+                  size="md"
+                  variant="primary"
+                  onClick={() => {
+                    setStatusFilter('all');
+                    setQuery('');
+                  }}
+                >
+                  Clear filters
+                </Button>
+              ) : (
+                <Button size="md" variant="primary" onClick={() => setSheetOpen(true)}>
                   {desk ? 'Log a bid' : 'Sign in to the carrier desk'}
                 </Button>
-              </div>
+              )
             }
           />
         </div>
@@ -264,12 +289,12 @@ export function CarriersView({
                     {corridor ? (
                       <Link
                         to={corridorPath(corridor.code)}
-                        className="micro inline-flex items-center gap-1.5 rounded-pill border border-rule bg-raised px-2.5 py-1 text-ink-soft transition-colors duration-200 hover:border-accent/50 hover:text-accent-deep"
+                        className="micro inline-flex min-h-11 items-center gap-1.5 rounded-pill border border-rule bg-raised px-3.5 py-2 text-ink-soft transition-colors duration-200 hover:border-accent/50 hover:text-accent-deep"
                       >
                         {corridor.code} <IconArrow size={11} />
                       </Link>
                     ) : (
-                      <span className="micro rounded-pill border border-rule bg-raised px-2.5 py-1 text-ink-muted">
+                      <span className="micro inline-flex min-h-11 items-center rounded-pill border border-rule bg-raised px-3.5 py-2 text-ink-muted">
                         {bid.corridor_code} · unmatched
                       </span>
                     )}
@@ -336,36 +361,38 @@ export function CarriersView({
               Four terms, and nothing else
             </h2>
           </div>
-          <ol className="flex list-none flex-col gap-3">
-            {[
-              {
-                title: 'A hard allotment, not a soft quote',
-                body: 'Seat count, cabin or berth layout, and a contract reference we can print on the corridor. If the allotment is withdrawable at will, we publish it as conditional and say so on the board.',
-              },
-              {
-                title: 'A hold window we can commit to travellers',
-                body: 'Typically 48–96 hours. It has to outlast the lock deadline we advertise, otherwise the cohort is being asked to pledge against inventory that can vanish mid-countdown.',
-              },
-              {
-                title: 'Name-change terms in writing',
-                body: 'Free swaps until T-72h on air, 6 hours on coach. Festival groups change constantly — a relative falls ill, a student’s exam shifts — and a rigid name policy turns a good fare into a support queue.',
-              },
-              {
-                title: 'One settlement, one manifest',
-                body: 'A single invoice against the block at manifest close, with the EMD schedule stated up front. This is what makes the slab price possible: the carrier trades distribution cost for load-factor certainty.',
-              },
-            ].map((item, i) => (
-              <li key={item.title} className="flex gap-3">
-                <span className="tnum micro mt-0.5 shrink-0 text-ink-faint">
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                <div className="flex flex-col gap-1">
-                  <span className="text-[13px] text-ink">{item.title}</span>
-                  <span className="text-[12px] leading-relaxed text-ink-muted">{item.body}</span>
-                </div>
-              </li>
-            ))}
-          </ol>
+          <Disclosure label="View contracting requirements" summary="4 terms for every block">
+            <ol className="flex list-none flex-col gap-3">
+              {[
+                {
+                  title: 'A hard allotment, not a soft quote',
+                  body: 'Seat count, cabin or berth layout, and a contract reference we can print on the corridor. If the allotment is withdrawable at will, we publish it as conditional and say so on the board.',
+                },
+                {
+                  title: 'A hold window we can commit to travellers',
+                  body: 'Typically 48–96 hours. It has to outlast the lock deadline we advertise, otherwise the cohort is being asked to pledge against inventory that can vanish mid-countdown.',
+                },
+                {
+                  title: 'Name-change terms in writing',
+                  body: 'Free swaps until T-72h on air, 6 hours on coach. Festival groups change constantly — a relative falls ill, a student’s exam shifts — and a rigid name policy turns a good fare into a support queue.',
+                },
+                {
+                  title: 'One settlement, one manifest',
+                  body: 'A single invoice against the block at manifest close, with the EMD schedule stated up front. This is what makes the slab price possible: the carrier trades distribution cost for load-factor certainty.',
+                },
+              ].map((item, i) => (
+                <li key={item.title} className="flex gap-3">
+                  <span className="tnum micro mt-0.5 shrink-0 text-ink-faint">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[13px] text-ink">{item.title}</span>
+                    <span className="text-[12px] leading-relaxed text-ink-muted">{item.body}</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </Disclosure>
         </section>
 
         <section className="flex flex-col gap-4">
@@ -375,63 +402,67 @@ export function CarriersView({
               Load factor, bought in one transaction
             </h2>
           </div>
-          <div className="grid gap-px overflow-hidden rounded-card border border-rule bg-rule-strong sm:grid-cols-2">
-            {[
-              {
-                label: 'Guaranteed load factor',
-                value: `${number(stats.seats)} seats`,
-                note: 'offered across live bids — sold as blocks, not one seat at a time',
-              },
-              {
-                label: 'Distribution cost',
-                value: 'Zero',
-                note: 'no OTA commission, no GDS segment fee, one manifest per departure',
-              },
-              {
-                label: 'Revenue management',
-                value: 'Intact',
-                note: 'the block is contracted out of the surge inventory, not the walk-up tail',
-              },
-              {
-                label: 'Our take',
-                value: airFee ? pct(airFee, 1) : '—',
-                note: `${coachFee ? pct(coachFee, 1) : '—'} on coach blocks — charged to the traveller, never netted off the carrier fare`,
-              },
-            ].map((item) => (
-              <div key={item.label} className="flex flex-col gap-1 bg-surface px-4 py-4">
-                <span className="micro text-ink-faint">{item.label}</span>
-                <span className="tnum text-[19px] leading-none font-medium text-ink">
-                  {item.value}
-                </span>
-                <span className="text-[11px] leading-snug text-ink-faint">{item.note}</span>
+          <Disclosure label="View carrier economics & ledger rules" summary="zero OTA commission">
+            <div className="flex flex-col gap-4">
+              <div className="grid gap-px overflow-hidden rounded-card border border-rule bg-rule-strong sm:grid-cols-2">
+                {[
+                  {
+                    label: 'Guaranteed load factor',
+                    value: `${number(stats.seats)} seats`,
+                    note: 'offered across live bids — sold as blocks, not one seat at a time',
+                  },
+                  {
+                    label: 'Distribution cost',
+                    value: 'Zero',
+                    note: 'no OTA commission, no GDS segment fee, one manifest per departure',
+                  },
+                  {
+                    label: 'Revenue management',
+                    value: 'Intact',
+                    note: 'the block is contracted out of the surge inventory, not the walk-up tail',
+                  },
+                  {
+                    label: 'Our take',
+                    value: airFee ? pct(airFee, 1) : '—',
+                    note: `${coachFee ? pct(coachFee, 1) : '—'} on coach blocks — charged to the traveller, never netted off the carrier fare`,
+                  },
+                ].map((item) => (
+                  <div key={item.label} className="flex flex-col gap-1 bg-surface px-4 py-4">
+                    <span className="micro text-ink-faint">{item.label}</span>
+                    <span className="tnum text-[19px] leading-none font-medium text-ink">
+                      {item.value}
+                    </span>
+                    <span className="text-[11px] leading-snug text-ink-faint">{item.note}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <Panel className="flex flex-col gap-2 p-4">
-            <span className="inline-flex items-center gap-2 text-[12.5px] text-ink-soft">
-              <IconShield size={14} className="text-jade-deep" />
-              Nothing on this desk is binding
-            </span>
-            <p className="text-[11.5px] leading-relaxed text-ink-faint">
-              A bid row is an offer recorded against a corridor, not a contract. Blocks become live only
-              when a contract reference is issued and the hold window covers the published lock
-              deadline. Traveller money is held, never captured, until that point — total fee exposure
-              across accepted bids today is{' '}
-              <span className="tnum text-clay-deep">{compactRupees(acceptedFeeExposure)}</span>{' '}
-              if every offered seat converts.
-            </p>
-          </Panel>
-          <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11.5px] text-ink-faint">
-            <li className="inline-flex items-center gap-1.5">
-              <IconCheck size={12} className="text-jade-deep" /> Bids are append-only from the anon key
-            </li>
-            <li className="inline-flex items-center gap-1.5">
-              <IconCheck size={12} className="text-jade-deep" /> Status changes are desk-side, never client-side
-            </li>
-            <li className="inline-flex items-center gap-1.5">
-              <IconUsers size={12} className="text-jade-deep" /> Realtime: a new bid appears on every open desk
-            </li>
-          </ul>
+              <Panel className="flex flex-col gap-2 p-4">
+                <span className="inline-flex items-center gap-2 text-[12.5px] text-ink-soft">
+                  <IconShield size={14} className="text-jade-deep" />
+                  Nothing on this desk is binding
+                </span>
+                <p className="text-[11.5px] leading-relaxed text-ink-faint">
+                  A bid row is an offer recorded against a corridor, not a contract. Blocks become live only
+                  when a contract reference is issued and the hold window covers the published lock
+                  deadline. Traveller money is held, never captured, until that point — total fee exposure
+                  across accepted bids today is{' '}
+                  <span className="tnum text-clay-deep">{compactRupees(acceptedFeeExposure)}</span>{' '}
+                  if every offered seat converts.
+                </p>
+              </Panel>
+              <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11.5px] text-ink-faint">
+                <li className="inline-flex items-center gap-1.5">
+                  <IconCheck size={12} className="text-jade-deep" /> Bids are append-only from the anon key
+                </li>
+                <li className="inline-flex items-center gap-1.5">
+                  <IconCheck size={12} className="text-jade-deep" /> Status changes are desk-side, never client-side
+                </li>
+                <li className="inline-flex items-center gap-1.5">
+                  <IconUsers size={12} className="text-jade-deep" /> Realtime: a new bid appears on every open desk
+                </li>
+              </ul>
+            </div>
+          </Disclosure>
         </section>
       </div>
 
@@ -588,18 +619,46 @@ function BidSheet({
   const [holdWindowHours, setHoldWindowHours] = useState(72);
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   const selected = corridors.find((c) => c.code === corridorCode);
   const feePct = selected?.platform_fee_pct ?? 4.5;
 
+  const isDirty = desk
+    ? Boolean(corridorCode || baggageTerms.trim() || notes.trim())
+    : Boolean(deskCode.trim() || passcode);
+
+  const requestClose = () => {
+    if (submitting || signingIn || signingOut) return;
+    if (isDirty && !confirmDiscard) {
+      setConfirmDiscard(true);
+      return;
+    }
+    setConfirmDiscard(false);
+    setConfirmSignOut(false);
+    setServerError(null);
+    onClose();
+  };
+
   /* ------------------------------------------------------------ signed out */
 
   if (!desk) {
-    const signIn = async () => {
+    const validateSignIn = (nextDesk = deskCode, nextPass = passcode): FormErrors => {
       const found: FormErrors = {};
-      if (deskCode.trim().length < 3) found.deskCode = 'The desk code operations issued you.';
-      if (!passcode) found.passcode = 'The desk passcode.';
+      if (nextDesk.trim().length < 3) found.deskCode = 'The desk code operations issued you.';
+      if (!nextPass) found.passcode = 'The desk passcode.';
+      return found;
+    };
+
+    const signIn = async () => {
+      const found = validateSignIn();
       setErrors(found);
+      setTouched({ deskCode: true, passcode: true });
+      setServerError(null);
       if (found.deskCode) {
         document.getElementById('desk-code')?.focus();
         return;
@@ -612,30 +671,60 @@ function BidSheet({
       if (result.ok) {
         setPasscode('');
         setErrors({});
+        setTouched({});
+        setServerError(null);
+        setConfirmDiscard(false);
+      } else {
+        setServerError(result.error ?? 'That sign-in was refused.');
       }
     };
 
     return (
       <Sheet
         open={open}
-        onClose={onClose}
+        onClose={requestClose}
         title="Sign in to the carrier desk"
         description="Bids are written by an authenticated desk. The ledger checks the passcode against its hash and mints a session that ends with this tab."
         width="max-w-lg"
         footer={
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[11.5px] leading-snug text-ink-muted">
-              Five wrong passcodes lock a desk for fifteen minutes.
-            </p>
-            <div className="flex gap-2">
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button variant="primary" size="md" loading={signingIn} onClick={() => void signIn()}>
-                Sign in
-              </Button>
+          confirmDiscard ? (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" role="alert">
+              <p className="flex items-center gap-2 text-[12.5px] font-medium text-ember-deep">
+                <IconAlert size={15} className="shrink-0" />
+                Discard entered credentials?
+              </p>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={() => setConfirmDiscard(false)}>
+                  Keep editing
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => {
+                    setConfirmDiscard(false);
+                    setServerError(null);
+                    onClose();
+                  }}
+                >
+                  Discard
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[11.5px] leading-snug text-ink-muted">
+                Five wrong passcodes lock a desk for fifteen minutes.
+              </p>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={requestClose}>
+                  Cancel
+                </Button>
+                <Button variant="primary" size="md" loading={signingIn} onClick={() => void signIn()}>
+                  {signingIn ? 'Signing in…' : 'Sign in'}
+                </Button>
+              </div>
+            </div>
+          )
         }
       >
         <form
@@ -646,7 +735,15 @@ function BidSheet({
             void signIn();
           }}
         >
-          <Field label="Desk code" htmlFor="desk-code" required error={errors.deskCode}>
+          <FormAlert message={serverError} />
+
+          <Field
+            label="Desk code"
+            htmlFor="desk-code"
+            required
+            error={touched.deskCode ? errors.deskCode : null}
+            errorId="desk-code-error"
+          >
             <TextInput
               id="desk-code"
               value={deskCode}
@@ -654,8 +751,19 @@ function BidSheet({
               autoCapitalize="characters"
               spellCheck={false}
               placeholder="AI-SOUTH"
-              invalid={Boolean(errors.deskCode)}
-              onChange={(e) => setDeskCode(e.target.value)}
+              aria-describedby={touched.deskCode && errors.deskCode ? 'desk-code-error' : undefined}
+              invalid={Boolean(touched.deskCode && errors.deskCode)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setDeskCode(v);
+                setServerError(null);
+                setConfirmDiscard(false);
+                if (touched.deskCode) setErrors(validateSignIn(v, passcode));
+              }}
+              onBlur={() => {
+                setTouched((t) => ({ ...t, deskCode: true }));
+                setErrors(validateSignIn(deskCode, passcode));
+              }}
             />
           </Field>
 
@@ -663,7 +771,8 @@ function BidSheet({
             label="Passcode"
             htmlFor="desk-passcode"
             required
-            error={errors.passcode}
+            error={touched.passcode ? errors.passcode : null}
+            errorId="desk-passcode-error"
             hint="never stored in the browser"
           >
             <TextInput
@@ -671,35 +780,47 @@ function BidSheet({
               type="password"
               value={passcode}
               autoComplete="current-password"
-              invalid={Boolean(errors.passcode)}
-              onChange={(e) => setPasscode(e.target.value)}
+              aria-describedby={touched.passcode && errors.passcode ? 'desk-passcode-error' : undefined}
+              invalid={Boolean(touched.passcode && errors.passcode)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setPasscode(v);
+                setServerError(null);
+                setConfirmDiscard(false);
+                if (touched.passcode) setErrors(validateSignIn(deskCode, v));
+              }}
+              onBlur={() => {
+                setTouched((t) => ({ ...t, passcode: true }));
+                setErrors(validateSignIn(deskCode, passcode));
+              }}
             />
           </Field>
 
-          <Divider label="what signing in proves" />
-          <ul className="flex list-none flex-col gap-2 text-[12px] leading-relaxed text-ink-muted">
-            <li className="flex gap-2">
-              <IconShield size={14} className="mt-0.5 shrink-0 text-jade-deep" />
-              <span>
-                Your bids carry your desk&rsquo;s name and code from the ledger, not from a text
-                field anybody could type into.
-              </span>
-            </li>
-            <li className="flex gap-2">
-              <IconClock size={14} className="mt-0.5 shrink-0 text-accent-deep" />
-              <span>
-                The session lasts eight hours and lives in this tab only. Closing the tab signs the
-                desk out.
-              </span>
-            </li>
-            <li className="flex gap-2">
-              <IconCheck size={14} className="mt-0.5 shrink-0 text-lagoon-deep" />
-              <span>
-                Every bid you log lands as <span className="text-ink">under review</span>.
-                Accepting a block stays an operations decision on the ledger.
-              </span>
-            </li>
-          </ul>
+          <Disclosure label="How carrier desk sessions work" summary="8-hour tab-scoped session">
+            <ul className="flex list-none flex-col gap-2 text-[12px] leading-relaxed text-ink-muted">
+              <li className="flex gap-2">
+                <IconShield size={14} className="mt-0.5 shrink-0 text-jade-deep" />
+                <span>
+                  Your bids carry your desk&rsquo;s name and code from the ledger, not from a text
+                  field anybody could type into.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <IconClock size={14} className="mt-0.5 shrink-0 text-accent-deep" />
+                <span>
+                  The session lasts eight hours and lives in this tab only. Closing the tab signs the
+                  desk out.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <IconCheck size={14} className="mt-0.5 shrink-0 text-lagoon-deep" />
+                <span>
+                  Every bid you log lands as <span className="text-ink">under review</span>.
+                  Accepting a block stays an operations decision on the ledger.
+                </span>
+              </li>
+            </ul>
+          </Disclosure>
 
           <button type="submit" className="sr-only" tabIndex={-1} aria-hidden="true">
             Sign in
@@ -712,19 +833,33 @@ function BidSheet({
   /* ------------------------------------------------------------- signed in */
 
   const reset = () => {
+    setCorridorCode('');
     setBaggageTerms('');
     setNotes('');
     setErrors({});
+    setTouched({});
+    setServerError(null);
+    setConfirmDiscard(false);
+    setConfirmSignOut(false);
   };
 
-  const validate = (): FormErrors => {
+  const validateBid = (overrides?: Partial<{
+    corridorCode: string;
+    offeredSeats: number;
+    netGroupFare: number;
+    holdWindowHours: number;
+  }>): FormErrors => {
+    const cCode = overrides?.corridorCode ?? corridorCode;
+    const seats = overrides?.offeredSeats ?? offeredSeats;
+    const fare = overrides?.netGroupFare ?? netGroupFare;
+    const hold = overrides?.holdWindowHours ?? holdWindowHours;
     const found: FormErrors = {};
-    if (!corridorCode) found.corridorCode = 'Pick the corridor this bid prices.';
-    if (!Number.isFinite(offeredSeats) || offeredSeats < 10 || offeredSeats > 400)
+    if (!cCode) found.corridorCode = 'Pick the corridor this bid prices.';
+    if (!Number.isFinite(seats) || seats < 10 || seats > 400)
       found.offeredSeats = 'Blocks run from 10 to 400 seats.';
-    if (!Number.isFinite(netGroupFare) || netGroupFare < 100 || netGroupFare > 200000)
+    if (!Number.isFinite(fare) || fare < 100 || fare > 200000)
       found.netGroupFare = 'Net fare per seat, in rupees.';
-    if (!Number.isFinite(holdWindowHours) || holdWindowHours < 6 || holdWindowHours > 336)
+    if (!Number.isFinite(hold) || hold < 6 || hold > 336)
       found.holdWindowHours = 'Hold window between 6 and 336 hours.';
     return found;
   };
@@ -733,8 +868,10 @@ function BidSheet({
   const landed = netGroupFare + fee;
 
   const submit = async () => {
-    const found = validate();
+    const found = validateBid();
     setErrors(found);
+    setTouched({ corridorCode: true, offeredSeats: true, netGroupFare: true, holdWindowHours: true });
+    setServerError(null);
     const firstInvalid = (
       [
         ['corridorCode', 'bid-corridor'],
@@ -755,153 +892,315 @@ function BidSheet({
       holdWindowHours: Math.round(holdWindowHours),
       notes,
     });
-    if (result.ok) reset();
+    if (result.ok) {
+      reset();
+    } else {
+      setServerError(result.error ?? 'The ledger rejected that bid.');
+    }
+  };
+
+  const handleConfirmSignOut = async () => {
+    setSigningOut(true);
+    await onSignOut();
+    setSigningOut(false);
+    setConfirmSignOut(false);
+    reset();
   };
 
   return (
     <Sheet
       open={open}
-      onClose={onClose}
+      onClose={requestClose}
       title="Log a carrier bid"
       description="Written to utsav_carrier_bids against your desk session, and visible on every open desk in realtime."
       width="max-w-2xl"
       footer={
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-[11.5px] leading-snug text-ink-muted">
-            Landed to the traveller at this net fare:{' '}
-            <span className="tnum text-accent-deep">{rupees(landed)}</span> ({rupees(netGroupFare)} +{' '}
-            {rupees(fee)} fee at {pct(feePct, 1)}).
-          </p>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="md" loading={submitting} onClick={() => void submit()}>
-              Submit bid
-            </Button>
+        confirmDiscard ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" role="alert">
+            <p className="flex items-center gap-2 text-[12.5px] font-medium text-ember-deep">
+              <IconAlert size={15} className="shrink-0" />
+              Discard unsaved bid details?
+            </p>
+            <div className="flex gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setConfirmDiscard(false)}>
+                Keep editing
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => {
+                  setConfirmDiscard(false);
+                  reset();
+                  onClose();
+                }}
+              >
+                Discard
+              </Button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[11.5px] leading-snug text-ink-muted">
+              Landed to the traveller at this net fare:{' '}
+              <span className="tnum text-accent-deep">{rupees(landed)}</span> ({rupees(netGroupFare)} +{' '}
+              {rupees(fee)} fee at {pct(feePct, 1)}). Bids are append-only once logged.
+            </p>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={requestClose}>
+                Cancel
+              </Button>
+              <Button variant="primary" size="md" loading={submitting} onClick={() => void submit()}>
+                {submitting ? 'Submitting bid…' : 'Submit bid'}
+              </Button>
+            </div>
+          </div>
+        )
       }
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-rule bg-surface px-4 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="truncate text-[13.5px] text-ink">{desk.carrierName}</span>
-          <span className="micro truncate text-ink-faint">
-            Desk {desk.deskRef} · {desk.deskContact} · session ends {untilLabel(desk.expiresAt, now)}
-          </span>
+      <div className="flex flex-col gap-3 rounded-card border border-rule bg-surface px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="truncate text-[13.5px] text-ink">{desk.carrierName}</span>
+            <span className="micro truncate text-ink-faint">
+              Desk {desk.deskRef} · {desk.deskContact} · session ends {untilLabel(desk.expiresAt, now)}
+            </span>
+          </div>
+          {confirmSignOut ? null : (
+            <Button variant="secondary" size="sm" onClick={() => setConfirmSignOut(true)}>
+              Sign out
+            </Button>
+          )}
         </div>
-        <Button variant="secondary" size="sm" onClick={() => void onSignOut()}>
-          Sign out
-        </Button>
+        {confirmSignOut ? (
+          <div
+            role="alert"
+            className="flex flex-col gap-2.5 border-t border-rule-soft pt-3 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p className="text-[12px] leading-snug text-ember-deep">
+              Sign out of {desk.deskRef}? Your session token will be revoked and unsaved bid fields cleared.
+            </p>
+            <div className="flex shrink-0 gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={signingOut}
+                onClick={() => setConfirmSignOut(false)}
+              >
+                Stay signed in
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                loading={signingOut}
+                onClick={() => void handleConfirmSignOut()}
+              >
+                {signingOut ? 'Signing out…' : 'Yes, sign out'}
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <form
-        className="mt-4 grid gap-4 sm:grid-cols-2"
+        className="mt-4 flex flex-col gap-4"
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
           void submit();
         }}
       >
-        <Field
-          label="Corridor"
-          htmlFor="bid-corridor"
-          required
-          error={errors.corridorCode}
-          className="sm:col-span-2"
+        <FormAlert message={serverError} />
+
+        <FormSection
+          step="01"
+          title="Corridor & allotment"
+          description="Select the corridor, seat count, and how long this block is held."
         >
-          <SelectInput
-            id="bid-corridor"
-            value={corridorCode}
-            invalid={Boolean(errors.corridorCode)}
-            onChange={(e) => setCorridorCode(e.target.value)}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Corridor"
+              htmlFor="bid-corridor"
+              required
+              error={touched.corridorCode ? errors.corridorCode : null}
+              errorId="bid-corridor-error"
+              className="sm:col-span-2"
+            >
+              <SelectInput
+                id="bid-corridor"
+                value={corridorCode}
+                aria-describedby={
+                  touched.corridorCode && errors.corridorCode ? 'bid-corridor-error' : undefined
+                }
+                invalid={Boolean(touched.corridorCode && errors.corridorCode)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setCorridorCode(v);
+                  setTouched((t) => ({ ...t, corridorCode: true }));
+                  setServerError(null);
+                  setConfirmDiscard(false);
+                  setErrors(validateBid({ corridorCode: v }));
+                }}
+              >
+                <option value="">Select a corridor on the board…</option>
+                {corridors.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.code} · {c.origin_city} → {c.dest_city}
+                  </option>
+                ))}
+              </SelectInput>
+            </Field>
+
+            <Field
+              label="Seats offered"
+              htmlFor="bid-seats"
+              required
+              error={touched.offeredSeats ? errors.offeredSeats : null}
+              errorId="bid-seats-error"
+            >
+              <TextInput
+                id="bid-seats"
+                type="number"
+                inputMode="numeric"
+                min={10}
+                max={400}
+                value={Number.isFinite(offeredSeats) ? offeredSeats : ''}
+                className="tnum"
+                aria-describedby={
+                  touched.offeredSeats && errors.offeredSeats ? 'bid-seats-error' : undefined
+                }
+                invalid={Boolean(touched.offeredSeats && errors.offeredSeats)}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setOfferedSeats(v);
+                  setTouched((t) => ({ ...t, offeredSeats: true }));
+                  setServerError(null);
+                  setErrors(validateBid({ offeredSeats: v }));
+                }}
+                onBlur={() => {
+                  setTouched((t) => ({ ...t, offeredSeats: true }));
+                  setErrors(validateBid());
+                }}
+              />
+            </Field>
+
+            <Field
+              label="Hold window (hours)"
+              htmlFor="bid-hold"
+              required
+              error={touched.holdWindowHours ? errors.holdWindowHours : null}
+              errorId="bid-hold-error"
+            >
+              <TextInput
+                id="bid-hold"
+                type="number"
+                inputMode="numeric"
+                min={6}
+                max={336}
+                value={Number.isFinite(holdWindowHours) ? holdWindowHours : ''}
+                className="tnum"
+                aria-describedby={
+                  touched.holdWindowHours && errors.holdWindowHours ? 'bid-hold-error' : undefined
+                }
+                invalid={Boolean(touched.holdWindowHours && errors.holdWindowHours)}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setHoldWindowHours(v);
+                  setTouched((t) => ({ ...t, holdWindowHours: true }));
+                  setServerError(null);
+                  setErrors(validateBid({ holdWindowHours: v }));
+                }}
+                onBlur={() => {
+                  setTouched((t) => ({ ...t, holdWindowHours: true }));
+                  setErrors(validateBid());
+                }}
+              />
+            </Field>
+          </div>
+        </FormSection>
+
+        <FormSection
+          step="02"
+          title="Net group pricing"
+          description="Set the carrier net fare per seat; platform fee is calculated separately."
+        >
+          <Field
+            label="Net group fare per seat"
+            htmlFor="bid-fare"
+            required
+            error={touched.netGroupFare ? errors.netGroupFare : null}
+            errorId="bid-fare-error"
           >
-            <option value="">Select a corridor on the board…</option>
-            {corridors.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.code} · {c.origin_city} → {c.dest_city}
-              </option>
-            ))}
-          </SelectInput>
-        </Field>
-
-        <Field label="Seats offered" htmlFor="bid-seats" required error={errors.offeredSeats}>
-          <TextInput
-            id="bid-seats"
-            type="number"
-            inputMode="numeric"
-            min={10}
-            max={400}
-            value={Number.isFinite(offeredSeats) ? offeredSeats : ''}
-            className="tnum"
-            invalid={Boolean(errors.offeredSeats)}
-            onChange={(e) => setOfferedSeats(Number(e.target.value))}
-          />
-        </Field>
-
-        <Field label="Net group fare per seat" htmlFor="bid-fare" required error={errors.netGroupFare}>
-          <TextInput
-            id="bid-fare"
-            type="number"
-            inputMode="numeric"
-            min={100}
-            step={50}
-            value={Number.isFinite(netGroupFare) ? netGroupFare : ''}
-            className="tnum"
-            invalid={Boolean(errors.netGroupFare)}
-            onChange={(e) => setNetGroupFare(Number(e.target.value))}
-          />
-        </Field>
-
-        <Field label="Hold window (hours)" htmlFor="bid-hold" required error={errors.holdWindowHours}>
-          <TextInput
-            id="bid-hold"
-            type="number"
-            inputMode="numeric"
-            min={6}
-            max={336}
-            value={Number.isFinite(holdWindowHours) ? holdWindowHours : ''}
-            className="tnum"
-            invalid={Boolean(errors.holdWindowHours)}
-            onChange={(e) => setHoldWindowHours(Number(e.target.value))}
-          />
-        </Field>
-
-        <Field
-          label="Baggage & terms"
-          htmlFor="bid-baggage"
-          hint="one line"
-        >
-          <TextInput
-            id="bid-baggage"
-            value={baggageTerms}
-            placeholder="25 kg + free name entry to T-72h"
-            onChange={(e) => setBaggageTerms(e.target.value)}
-          />
-        </Field>
-
-        <Field label="Notes for the desk" htmlFor="bid-notes" className="sm:col-span-2">
-          <TextArea
-            id="bid-notes"
-            value={notes}
-            rows={3}
-            placeholder="EMD schedule, counter-offer conditions, standby coach…"
-            onChange={(e) => setNotes(e.target.value)}
-          />
-        </Field>
-
-        <div className="sm:col-span-2">
-          <Divider label="what this bid produces" />
-          <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <MiniCell label="Net fare" value={rupees(netGroupFare)} />
-            <MiniCell label={`Fee ${pct(feePct, 1)}`} value={rupees(fee)} tone="clay" />
-            <MiniCell label="Landed" value={rupees(landed)} tone="marigold" />
-            <MiniCell
-              label="Block value"
-              value={compactRupees(landed * (Number.isFinite(offeredSeats) ? offeredSeats : 0))}
+            <TextInput
+              id="bid-fare"
+              type="number"
+              inputMode="numeric"
+              min={100}
+              step={50}
+              value={Number.isFinite(netGroupFare) ? netGroupFare : ''}
+              className="tnum"
+              aria-describedby={
+                touched.netGroupFare && errors.netGroupFare ? 'bid-fare-error' : undefined
+              }
+              invalid={Boolean(touched.netGroupFare && errors.netGroupFare)}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setNetGroupFare(v);
+                setTouched((t) => ({ ...t, netGroupFare: true }));
+                setServerError(null);
+                setErrors(validateBid({ netGroupFare: v }));
+              }}
+              onBlur={() => {
+                setTouched((t) => ({ ...t, netGroupFare: true }));
+                setErrors(validateBid());
+              }}
             />
-          </dl>
-        </div>
+          </Field>
+
+          <div>
+            <Divider label="what this bid produces" />
+            <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <MiniCell label="Net fare" value={rupees(netGroupFare)} />
+              <MiniCell label={`Fee ${pct(feePct, 1)}`} value={rupees(fee)} tone="clay" />
+              <MiniCell label="Landed" value={rupees(landed)} tone="marigold" />
+              <MiniCell
+                label="Block value"
+                value={compactRupees(landed * (Number.isFinite(offeredSeats) ? offeredSeats : 0))}
+              />
+            </dl>
+          </div>
+        </FormSection>
+
+        <Disclosure
+          label="Optional · Baggage terms & desk notes"
+          summary={baggageTerms.trim() || notes.trim() ? 'Added' : 'Standard allowance'}
+        >
+          <div className="grid gap-4">
+            <Field label="Baggage & terms" htmlFor="bid-baggage" hint="one line">
+              <TextInput
+                id="bid-baggage"
+                value={baggageTerms}
+                placeholder="25 kg + free name entry to T-72h"
+                onChange={(e) => {
+                  setBaggageTerms(e.target.value);
+                  setConfirmDiscard(false);
+                }}
+              />
+            </Field>
+
+            <Field label="Notes for the desk" htmlFor="bid-notes">
+              <TextArea
+                id="bid-notes"
+                value={notes}
+                rows={3}
+                placeholder="EMD schedule, counter-offer conditions, standby coach…"
+                onChange={(e) => {
+                  setNotes(e.target.value);
+                  setConfirmDiscard(false);
+                }}
+              />
+            </Field>
+          </div>
+        </Disclosure>
 
         <button type="submit" className="sr-only" tabIndex={-1} aria-hidden="true">
           Submit bid
