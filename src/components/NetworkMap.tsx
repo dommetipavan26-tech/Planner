@@ -277,7 +277,7 @@ export function NetworkMap({
           Routing diagram only. Arc weight tracks pledged seats against the carrier allotment, not
           distance or price. Node chips below are keyboard-reachable.
         </p>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {nodes
             .slice()
             .sort((a, b) => a.code.localeCompare(b.code))
@@ -291,7 +291,7 @@ export function NetworkMap({
                 onBlur={() => onFocusNode(null)}
                 aria-pressed={hovered === node.code}
                 className={
-                  'micro rounded-pill border px-2 py-1 transition-colors duration-200 ' +
+                  'micro inline-flex min-h-11 items-center rounded-pill border px-3 py-2 transition-colors duration-200 ' +
                   (hovered === node.code
                     ? 'border-accent/60 bg-accent-tint text-accent-deep'
                     : 'border-rule bg-raised text-ink-muted hover:border-rule-strong hover:text-ink-soft')
@@ -339,7 +339,7 @@ export function CorridorRail({ corridors }: { corridors: Corridor[] }) {
         <Link
           key={c.id}
           to={corridorPath(c.code)}
-          className="group inline-flex items-center gap-2 rounded-pill border border-rule bg-raised px-3 py-1.5 transition-colors duration-200 hover:border-accent/50 hover:bg-sunken"
+          className="group inline-flex min-h-11 items-center gap-2 rounded-pill border border-rule bg-raised px-3.5 py-2 transition-colors duration-200 hover:border-accent/50 hover:bg-sunken"
         >
           <span className="micro text-ink-muted group-hover:text-accent-deep">{c.code}</span>
           <span className="tnum text-[11.5px] text-ink-faint">

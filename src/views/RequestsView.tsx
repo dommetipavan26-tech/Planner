@@ -7,14 +7,18 @@ import type { Corridor, TravelMode } from '../lib/types';
 import {
   Button,
   Chip,
+  Disclosure,
   Divider,
   EmptyState,
   Eyebrow,
   Field,
+  FormAlert,
+  FormSection,
   Panel,
   Reveal,
   Segmented,
   SelectInput,
+  Spinner,
   TextInput,
   cn,
 } from '../components/ui';
@@ -84,6 +88,8 @@ export function RequestsView({
   const [requesterName, setRequesterName] = useState('');
   const [groupSize, setGroupSize] = useState(12);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const stats = useMemo(() => {
@@ -126,17 +132,28 @@ export function RequestsView({
       .slice(0, 3);
   }, [corridors, originCity, destCity]);
 
-  const validate = (): FormErrors => {
+  const validate = (overrides?: Partial<{
+    originCity: string;
+    destCity: string;
+    travelWindow: string;
+    requesterName: string;
+    groupSize: number;
+  }>): FormErrors => {
+    const o = overrides?.originCity ?? originCity;
+    const d = overrides?.destCity ?? destCity;
+    const w = overrides?.travelWindow ?? travelWindow;
+    const n = overrides?.requesterName ?? requesterName;
+    const g = overrides?.groupSize ?? groupSize;
     const found: FormErrors = {};
-    if (originCity.trim().length < 3) found.originCity = 'Which city does the group leave from?';
-    if (destCity.trim().length < 3) found.destCity = 'Where is the group going?';
-    if (travelWindow.trim().length < 4)
+    if (o.trim().length < 3) found.originCity = 'Which city does the group leave from?';
+    if (d.trim().length < 3) found.destCity = 'Where is the group going?';
+    if (w.trim().length < 4)
       found.travelWindow = 'A date or window, e.g. “12 Jan 2027 · night”.';
-    if (requesterName.trim().length < 3)
+    if (n.trim().length < 3)
       found.requesterName = 'A name or the group’s name, so the desk can reply.';
-    if (!Number.isFinite(groupSize) || groupSize < 5 || groupSize > 200)
+    if (!Number.isFinite(g) || g < 5 || g > 200)
       found.groupSize = 'Group size between 5 and 200 travellers.';
-    if (originCity.trim() && destCity.trim() && originCity.trim() === destCity.trim())
+    if (o.trim() && d.trim() && o.trim().toLowerCase() === d.trim().toLowerCase())
       found.destCity = 'Origin and destination are the same city.';
     return found;
   };
@@ -144,6 +161,14 @@ export function RequestsView({
   const submit = async () => {
     const found = validate();
     setErrors(found);
+    setTouched({
+      originCity: true,
+      destCity: true,
+      travelWindow: true,
+      requesterName: true,
+      groupSize: true,
+    });
+    setSubmitError(null);
     const firstInvalid = (
       [
         ['originCity', 'req-origin'],
@@ -176,6 +201,8 @@ export function RequestsView({
       setTravelWindow('');
       setRequesterName('');
       setErrors({});
+      setTouched({});
+      setSubmitError(null);
       if (result.simulated) {
         onToast('Request kept on this device only — it did not reach Postgres', 'info');
       } else if (result.duplicate) {
@@ -186,7 +213,9 @@ export function RequestsView({
         onToast('Request published to the corridor board', 'success');
       }
     } else {
-      onToast(result.error ?? 'The ledger rejected that request.', result.throttled ? 'info' : 'error');
+      const msg = result.error ?? 'The ledger rejected that request.';
+      setSubmitError(msg);
+      onToast(msg, result.throttled ? 'info' : 'error');
     }
   };
 
@@ -211,6 +240,24 @@ export function RequestsView({
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 py-10 sm:px-6 lg:py-14">
+      <nav aria-label="Breadcrumb" className="mb-3">
+        <ol className="flex items-center gap-2 text-[12px] text-ink-faint">
+          <li>
+            <Link
+              to="/"
+              className="inline-flex min-h-11 items-center px-1 transition-colors duration-200 hover:text-ink-soft"
+            >
+              Corridors
+            </Link>
+          </li>
+          <li aria-hidden="true">/</li>
+          <li>
+            <span className="micro text-ink-muted" aria-current="page">
+              Corridor requests
+            </span>
+          </li>
+        </ol>
+      </nav>
       <header className="flex flex-col gap-5 border-b border-rule pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex max-w-2xl flex-col gap-2.5">
           <Eyebrow>Demand side · the board is built from this</Eyebrow>
@@ -266,8 +313,8 @@ export function RequestsView({
               action={
                 query || modeFilter !== 'all' ? (
                   <Button
-                    size="sm"
-                    variant="secondary"
+                    size="md"
+                    variant="primary"
                     onClick={() => {
                       setQuery('');
                       setModeFilter('all');
@@ -275,7 +322,15 @@ export function RequestsView({
                   >
                     Clear filters
                   </Button>
-                ) : undefined
+                ) : (
+                  <Button
+                    size="md"
+                    variant="primary"
+                    onClick={() => document.getElementById('req-origin')?.focus()}
+                  >
+                    File the first request
+                  </Button>
+                )
               }
             />
           ) : (
@@ -287,6 +342,7 @@ export function RequestsView({
                       type="button"
                       onClick={() => void vote(request.id)}
                       disabled={voting === request.id}
+                      aria-busy={voting === request.id || undefined}
                       aria-label={`Upvote the ${request.origin_city} to ${request.dest_city} request, currently ${request.upvotes} votes`}
                       className={cn(
                         'flex h-full min-h-[4.5rem] w-14 shrink-0 flex-col items-center justify-center gap-1 rounded-card border transition-colors duration-200',
@@ -295,19 +351,25 @@ export function RequestsView({
                           : 'border-rule bg-raised text-ink-muted hover:border-accent/50 hover:bg-accent-tint hover:text-accent-deep',
                       )}
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-                        <path
-                          d="M12 5.5 18.5 12H15v6.5H9V12H5.5Z"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.4"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                      {voting === request.id ? (
+                        <Spinner size={14} />
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M12 5.5 18.5 12H15v6.5H9V12H5.5Z"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.4"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      )}
                       <span className="tnum text-[15px] font-medium leading-none text-ink">
                         {request.upvotes}
                       </span>{' '}
-                      <span className="micro text-[9px] text-ink-faint">votes</span>
+                      <span className="micro text-[9px] text-ink-faint">
+                        {voting === request.id ? 'saving' : 'votes'}
+                      </span>
                     </button>
 
                     <div className="flex min-w-0 flex-1 flex-col gap-2.5">
@@ -369,42 +431,49 @@ export function RequestsView({
                 Three triggers, one honest answer
               </h2>
             </div>
-            <ol className="grid list-none gap-3 sm:grid-cols-3">
-              {[
-                {
-                  n: '01',
-                  title: '12 upvotes',
-                  body: 'Twelve independent travellers on the same city pair and window is enough for the desk to open a conversation with a carrier.',
-                },
-                {
-                  n: '02',
-                  title: 'One group of 20+',
-                  body: 'A single association, hostel wing or company group of twenty or more can trigger a block on its own — that is already a viable allotment.',
-                },
-                {
-                  n: '03',
-                  title: 'Spare allotment exists',
-                  body: 'If a carrier already has uncommitted group inventory on the route for that window, we contract it even with a thin request list.',
-                },
-              ].map((item) => (
-                <li
-                  key={item.n}
-                  className="flex flex-col gap-2 rounded-card border border-rule bg-surface px-4 py-4"
-                >
-                  <span className="tnum display text-[22px] leading-none text-ink-faint">
-                    {item.n}
-                  </span>
-                  <span className="text-[13px] text-ink">{item.title}</span>
-                  <span className="text-[12px] leading-relaxed text-ink-muted">{item.body}</span>
-                </li>
-              ))}
-            </ol>
-            <p className="flex items-start gap-2 text-[11.5px] leading-relaxed text-ink-faint">
-              <IconCheck size={13} className="mt-px shrink-0 text-jade-deep" />
-              Every request gets an answer, including the refusals. If a corridor cannot be contracted —
-              no carrier with spare allotment, or a window inside a schedule freeze — the request is
-              closed with the reason recorded on it rather than left to decay on a list.
-            </p>
+            <Disclosure
+              label="See contracting thresholds & review policy"
+              summary="12 upvotes or 20+ group seats"
+            >
+              <div className="flex flex-col gap-4">
+                <ol className="grid list-none gap-3 sm:grid-cols-3">
+                  {[
+                    {
+                      n: '01',
+                      title: '12 upvotes',
+                      body: 'Twelve independent travellers on the same city pair and window is enough for the desk to open a conversation with a carrier.',
+                    },
+                    {
+                      n: '02',
+                      title: 'One group of 20+',
+                      body: 'A single association, hostel wing or company group of twenty or more can trigger a block on its own — that is already a viable allotment.',
+                    },
+                    {
+                      n: '03',
+                      title: 'Spare allotment exists',
+                      body: 'If a carrier already has uncommitted group inventory on the route for that window, we contract it even with a thin request list.',
+                    },
+                  ].map((item) => (
+                    <li
+                      key={item.n}
+                      className="flex flex-col gap-2 rounded-card border border-rule bg-surface px-4 py-4"
+                    >
+                      <span className="tnum display text-[22px] leading-none text-ink-faint">
+                        {item.n}
+                      </span>
+                      <span className="text-[13px] text-ink">{item.title}</span>
+                      <span className="text-[12px] leading-relaxed text-ink-muted">{item.body}</span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="flex items-start gap-2 text-[11.5px] leading-relaxed text-ink-faint">
+                  <IconCheck size={13} className="mt-px shrink-0 text-jade-deep" />
+                  Every request gets an answer, including the refusals. If a corridor cannot be contracted —
+                  no carrier with spare allotment, or a window inside a schedule freeze — the request is
+                  closed with the reason recorded on it rather than left to decay on a list.
+                </p>
+              </div>
+            </Disclosure>
           </section>
         </div>
 
@@ -430,131 +499,217 @@ export function RequestsView({
                 void submit();
               }}
             >
-              <Field label="Leaving from" htmlFor="req-origin" required error={errors.originCity}>
-                <TextInput
-                  id="req-origin"
-                  list="utsav-cities"
-                  value={originCity}
-                  placeholder="Vijayawada (Amaravati)"
-                  invalid={Boolean(errors.originCity)}
-                  onChange={(e) => setOriginCity(e.target.value)}
-                />
-              </Field>
-              <datalist id="utsav-cities">
-                {CITY_HINTS.map((city) => (
-                  <option key={city} value={city} />
-                ))}
-              </datalist>
+              <FormAlert message={submitError} />
 
-              <Field label="Going to" htmlFor="req-dest" required error={errors.destCity}>
-                <TextInput
-                  id="req-dest"
-                  list="utsav-cities"
-                  value={destCity}
-                  placeholder="New Delhi"
-                  invalid={Boolean(errors.destCity)}
-                  onChange={(e) => setDestCity(e.target.value)}
-                />
-              </Field>
-
-              {matches.length > 0 ? (
-                <div className="rounded-card border border-jade/30 bg-jade-tint px-3 py-2.5">
-                  <p className="micro text-jade-deep">already on the board</p>
-                  <ul className="mt-2 flex list-none flex-col gap-1.5">
-                    {matches.map((c) => (
-                      <li key={c.id}>
-                        <Link
-                          to={corridorPath(c.code)}
-                          className="flex items-center justify-between gap-2 text-[11.5px] text-ink-soft transition-colors duration-200 hover:text-ink"
-                        >
-                          <span className="truncate">
-                            {c.origin_code}→{c.dest_code} · {c.departure_date}
-                          </span>
-                          <span className="tnum shrink-0 text-accent-deep">
-                            {rupees(c.tier1_fare)}
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    type="button"
-                    onClick={() => matches[0] && onHold(matches[0])}
-                    className="mt-2.5 inline-flex items-center gap-1.5 text-[11.5px] text-jade-deep underline underline-offset-2 hover:decoration-2"
-                  >
-                    Hold seats on {matches[0]?.code} instead <IconArrow size={11} />
-                  </button>
-                </div>
-              ) : null}
-
-              <Field label="Festival or window" htmlFor="req-festival">
-                <SelectInput
-                  id="req-festival"
-                  value={festival}
-                  onChange={(e) => setFestival(e.target.value)}
+              <FormSection step="01" title="Route & travel window">
+                <Field
+                  label="Leaving from"
+                  htmlFor="req-origin"
+                  required
+                  error={touched.originCity ? errors.originCity : null}
+                  errorId="req-origin-error"
                 >
-                  {FESTIVALS.map((f) => (
-                    <option key={f} value={f}>
-                      {f}
-                    </option>
+                  <TextInput
+                    id="req-origin"
+                    list="utsav-cities"
+                    value={originCity}
+                    placeholder="Vijayawada (Amaravati)"
+                    aria-describedby={touched.originCity && errors.originCity ? 'req-origin-error' : undefined}
+                    invalid={Boolean(touched.originCity && errors.originCity)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setOriginCity(v);
+                      setSubmitError(null);
+                      if (touched.originCity) setErrors(validate({ originCity: v }));
+                    }}
+                    onBlur={() => {
+                      setTouched((t) => ({ ...t, originCity: true }));
+                      setErrors(validate());
+                    }}
+                  />
+                </Field>
+                <datalist id="utsav-cities">
+                  {CITY_HINTS.map((city) => (
+                    <option key={city} value={city} />
                   ))}
-                </SelectInput>
-              </Field>
+                </datalist>
 
-              <Field label="Travel window" htmlFor="req-window" required error={errors.travelWindow}>
-                <TextInput
-                  id="req-window"
-                  value={travelWindow}
-                  placeholder="12 Jan 2027 · night departure"
-                  invalid={Boolean(errors.travelWindow)}
-                  onChange={(e) => setTravelWindow(e.target.value)}
-                />
-              </Field>
+                <Field
+                  label="Going to"
+                  htmlFor="req-dest"
+                  required
+                  error={touched.destCity ? errors.destCity : null}
+                  errorId="req-dest-error"
+                >
+                  <TextInput
+                    id="req-dest"
+                    list="utsav-cities"
+                    value={destCity}
+                    placeholder="New Delhi"
+                    aria-describedby={touched.destCity && errors.destCity ? 'req-dest-error' : undefined}
+                    invalid={Boolean(touched.destCity && errors.destCity)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setDestCity(v);
+                      setSubmitError(null);
+                      if (touched.destCity) setErrors(validate({ destCity: v }));
+                    }}
+                    onBlur={() => {
+                      setTouched((t) => ({ ...t, destCity: true }));
+                      setErrors(validate());
+                    }}
+                  />
+                </Field>
 
-              <div className="flex flex-col gap-1.5">
-                <span className="micro text-ink-muted">Preferred mode</span>
-                <Segmented
-                  label="Preferred travel mode"
-                  value={mode}
-                  onChange={setMode}
-                  options={[
-                    { value: 'bus', label: 'Coach', icon: <IconBus size={13} /> },
-                    { value: 'flight', label: 'Air', icon: <IconPlane size={13} /> },
-                  ]}
-                />
-              </div>
+                {matches.length > 0 ? (
+                  <div className="rounded-card border border-jade/30 bg-jade-tint px-3 py-2.5">
+                    <p className="micro text-jade-deep">already on the board</p>
+                    <ul className="mt-2 flex list-none flex-col gap-1.5">
+                      {matches.map((c) => (
+                        <li key={c.id}>
+                          <Link
+                            to={corridorPath(c.code)}
+                            className="flex min-h-11 items-center justify-between gap-2 text-[11.5px] text-ink-soft transition-colors duration-200 hover:text-ink"
+                          >
+                            <span className="truncate">
+                              {c.origin_code}→{c.dest_code} · {c.departure_date}
+                            </span>
+                            <span className="tnum shrink-0 text-accent-deep">
+                              {rupees(c.tier1_fare)}
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      type="button"
+                      onClick={() => matches[0] && onHold(matches[0])}
+                      className="mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-pill px-3 text-[12px] font-medium text-jade-deep underline underline-offset-2 hover:decoration-2"
+                    >
+                      Hold seats on {matches[0]?.code} instead <IconArrow size={11} />
+                    </button>
+                  </div>
+                ) : null}
 
-              <Divider />
+                <Field
+                  label="Travel window"
+                  htmlFor="req-window"
+                  required
+                  error={touched.travelWindow ? errors.travelWindow : null}
+                  errorId="req-window-error"
+                >
+                  <TextInput
+                    id="req-window"
+                    value={travelWindow}
+                    placeholder="12 Jan 2027 · night departure"
+                    aria-describedby={touched.travelWindow && errors.travelWindow ? 'req-window-error' : undefined}
+                    invalid={Boolean(touched.travelWindow && errors.travelWindow)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setTravelWindow(v);
+                      setSubmitError(null);
+                      if (touched.travelWindow) setErrors(validate({ travelWindow: v }));
+                    }}
+                    onBlur={() => {
+                      setTouched((t) => ({ ...t, travelWindow: true }));
+                      setErrors(validate());
+                    }}
+                  />
+                </Field>
+              </FormSection>
 
-              <Field label="Your name or group" htmlFor="req-name" required error={errors.requesterName}>
-                <TextInput
-                  id="req-name"
-                  value={requesterName}
-                  placeholder="OMR IT Telugu Sangham"
-                  invalid={Boolean(errors.requesterName)}
-                  onChange={(e) => setRequesterName(e.target.value)}
-                />
-              </Field>
+              <FormSection step="02" title="Your group">
+                <Field
+                  label="Your name or group"
+                  htmlFor="req-name"
+                  required
+                  error={touched.requesterName ? errors.requesterName : null}
+                  errorId="req-name-error"
+                >
+                  <TextInput
+                    id="req-name"
+                    value={requesterName}
+                    placeholder="OMR IT Telugu Sangham"
+                    aria-describedby={touched.requesterName && errors.requesterName ? 'req-name-error' : undefined}
+                    invalid={Boolean(touched.requesterName && errors.requesterName)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setRequesterName(v);
+                      setSubmitError(null);
+                      if (touched.requesterName) setErrors(validate({ requesterName: v }));
+                    }}
+                    onBlur={() => {
+                      setTouched((t) => ({ ...t, requesterName: true }));
+                      setErrors(validate());
+                    }}
+                  />
+                </Field>
 
-              <Field
-                label="Group size"
-                htmlFor="req-size"
-                required
-                error={errors.groupSize}
-                hint="travellers, not seats"
+                <Field
+                  label="Group size"
+                  htmlFor="req-size"
+                  required
+                  error={touched.groupSize ? errors.groupSize : null}
+                  errorId="req-size-error"
+                  hint="travellers, not seats"
+                >
+                  <TextInput
+                    id="req-size"
+                    type="number"
+                    inputMode="numeric"
+                    min={5}
+                    max={200}
+                    value={Number.isFinite(groupSize) ? groupSize : ''}
+                    className="tnum"
+                    aria-describedby={touched.groupSize && errors.groupSize ? 'req-size-error' : undefined}
+                    invalid={Boolean(touched.groupSize && errors.groupSize)}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setGroupSize(v);
+                      setSubmitError(null);
+                      if (touched.groupSize) setErrors(validate({ groupSize: v }));
+                    }}
+                    onBlur={() => {
+                      setTouched((t) => ({ ...t, groupSize: true }));
+                      setErrors(validate());
+                    }}
+                  />
+                </Field>
+              </FormSection>
+
+              <Disclosure
+                label="Optional · Festival & mode"
+                summary={`${festival} · ${mode === 'bus' ? 'Coach' : 'Air'}`}
               >
-                <TextInput
-                  id="req-size"
-                  type="number"
-                  inputMode="numeric"
-                  min={5}
-                  max={200}
-                  value={Number.isFinite(groupSize) ? groupSize : ''}
-                  className="tnum"
-                  invalid={Boolean(errors.groupSize)}
-                  onChange={(e) => setGroupSize(Number(e.target.value))}
-                />
-              </Field>
+                <div className="flex flex-col gap-3.5">
+                  <Field label="Festival or window" htmlFor="req-festival">
+                    <SelectInput
+                      id="req-festival"
+                      value={festival}
+                      onChange={(e) => setFestival(e.target.value)}
+                    >
+                      {FESTIVALS.map((f) => (
+                        <option key={f} value={f}>
+                          {f}
+                        </option>
+                      ))}
+                    </SelectInput>
+                  </Field>
+
+                  <div className="flex flex-col gap-1.5">
+                    <span className="micro text-ink-muted">Preferred mode</span>
+                    <Segmented
+                      label="Preferred travel mode"
+                      value={mode}
+                      onChange={setMode}
+                      options={[
+                        { value: 'bus', label: 'Coach', icon: <IconBus size={13} /> },
+                        { value: 'flight', label: 'Air', icon: <IconPlane size={13} /> },
+                      ]}
+                    />
+                  </div>
+                </div>
+              </Disclosure>
 
               <Button
                 type="submit"
@@ -564,7 +719,7 @@ export function RequestsView({
                 loading={submitting}
                 icon={<IconArrow size={14} />}
               >
-                Publish request
+                {submitting ? 'Publishing request…' : 'Publish request'}
               </Button>
               <p className="text-[11px] leading-snug text-ink-faint">
                 Written to <span className="font-mono">utsav_corridor_requests</span> with one upvote

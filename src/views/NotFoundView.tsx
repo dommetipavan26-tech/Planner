@@ -26,7 +26,7 @@ export function NotFoundView({ corridors }: { corridors: Corridor[] }) {
         action={
           <Link
             to="/"
-            className="inline-flex h-10 items-center gap-2 rounded-pill bg-accent px-5 text-[13px] font-medium text-on-accent transition-colors duration-200 hover:bg-accent-bright"
+            className="inline-flex h-11 items-center gap-2 rounded-pill bg-accent px-5 text-[13px] font-medium text-on-accent transition-colors duration-200 hover:bg-accent-bright"
           >
             Back to the board <IconArrow size={13} />
           </Link>
@@ -41,7 +41,7 @@ export function NotFoundView({ corridors }: { corridors: Corridor[] }) {
               <li key={c.id}>
                 <Link
                   to={corridorPath(c.code)}
-                  className="flex items-center justify-between gap-3 rounded-card border border-rule bg-raised px-3 py-2 transition-colors duration-200 hover:border-accent/50"
+                  className="flex min-h-11 items-center justify-between gap-3 rounded-card border border-rule bg-raised px-3.5 py-2.5 transition-colors duration-200 hover:border-accent/50"
                 >
                   <span className="flex min-w-0 flex-col">
                     <span className="micro text-ink">{c.code}</span>

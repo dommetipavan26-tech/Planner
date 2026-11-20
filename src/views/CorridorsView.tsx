@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import type { Ledger } from '../hooks/useLedger';
+import { Link } from '../lib/router';
 import { useCoarseNow } from '../hooks/useClock';
 import { useAnimatedNumber } from '../hooks/useAnimatedNumber';
 import {
@@ -20,6 +21,7 @@ import {
   Button,
   Chip,
   ClockStamp,
+  Disclosure,
   EmptyState,
   Eyebrow,
   Reveal,
@@ -66,10 +68,12 @@ export function CorridorsView({
   ledger,
   onHold,
   onWatch,
+  watchingId,
 }: {
   ledger: Ledger;
   onHold: (corridor: Corridor) => void;
   onWatch: (corridor: Corridor) => void;
+  watchingId?: string | null;
 }) {
   const now = useCoarseNow();
   const [query, setQuery] = useState('');
@@ -186,14 +190,21 @@ export function CorridorsView({
                 body={
                   filtersActive
                     ? 'Try a different city, carrier code or festival — or clear the filters to see the whole board.'
-                    : 'The board is empty right now. New festival blocks are contracted as carriers release allotments.'
+                    : 'No festival corridors are open right now. Request a route and our carrier desk will contract a block.'
                 }
                 action={
                   filtersActive ? (
-                    <Button size="sm" variant="secondary" onClick={clearFilters}>
+                    <Button size="md" variant="primary" onClick={clearFilters}>
                       Clear filters
                     </Button>
-                  ) : undefined
+                  ) : (
+                    <Link
+                      to="/requests"
+                      className="inline-flex h-11 items-center gap-2 rounded-pill bg-accent px-5 text-[13px] font-medium text-on-accent transition-colors duration-200 hover:bg-accent-bright"
+                    >
+                      Request a corridor <IconArrow size={13} />
+                    </Link>
+                  )
                 }
               />
             </div>
@@ -204,6 +215,7 @@ export function CorridorsView({
                   <CorridorCard
                     corridor={corridor}
                     watched={isWatched(corridor.id)}
+                    watchingBusy={watchingId === corridor.id}
                     onWatch={onWatch}
                     onHold={isClosed(corridor, now) || isFull(corridor) ? undefined : onHold}
                   />
@@ -404,86 +416,97 @@ function FilterBar({
   onClear: () => void;
   filtersActive: boolean;
 }) {
+  const sortLabel = SORTS.find((s) => s.value === sort)?.label ?? 'Departure date';
+
   return (
-    <div className="flex flex-col gap-3 rounded-card border border-rule bg-surface/70 p-3 lg:flex-row lg:items-center">
-      <div className="relative min-w-0 flex-1">
-        <IconSearch
-          size={14}
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint"
-        />
-        <TextInput
-          type="search"
-          value={query}
-          onChange={(e) => onQuery(e.target.value)}
-          placeholder="Search city, station code, carrier or festival"
-          aria-label="Search corridors"
-          className="pl-9 pr-9"
-        />
-        {query ? (
-          <button
-            type="button"
-            onClick={() => onQuery('')}
-            aria-label="Clear search"
-            className="absolute right-2.5 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-pill text-ink-faint transition-colors duration-200 hover:bg-sunken hover:text-ink"
-          >
-            <IconClose size={12} />
-          </button>
-        ) : null}
+    <div className="flex flex-col gap-3 rounded-card border border-rule bg-surface/70 p-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="relative min-w-0 flex-1">
+          <IconSearch
+            size={14}
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint"
+          />
+          <TextInput
+            type="search"
+            value={query}
+            onChange={(e) => onQuery(e.target.value)}
+            placeholder="Search city, station code, carrier or festival"
+            aria-label="Search corridors"
+            className="pl-9 pr-12"
+          />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => onQuery('')}
+              aria-label="Clear search"
+              className="absolute right-0 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-pill text-ink-faint transition-colors duration-200 hover:bg-sunken hover:text-ink"
+            >
+              <IconClose size={14} />
+            </button>
+          ) : null}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Segmented
+            label="Travel mode"
+            value={mode}
+            onChange={onMode}
+            options={[
+              { value: 'all', label: 'All' },
+              { value: 'flight', label: 'Air' },
+              { value: 'bus', label: 'Coach' },
+            ]}
+          />
+
+          <p className="tnum micro shrink-0 text-ink-faint lg:border-l lg:border-rule lg:pl-3">
+            {count} of {total} shown
+          </p>
+
+          {filtersActive ? (
+            <Button size="sm" variant="quiet" onClick={onClear}>
+              Clear filters
+            </Button>
+          ) : null}
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Segmented
-          label="Travel mode"
-          value={mode}
-          onChange={onMode}
-          options={[
-            { value: 'all', label: 'All' },
-            { value: 'flight', label: 'Air' },
-            { value: 'bus', label: 'Coach' },
-          ]}
-        />
-        <label className="sr-only" htmlFor="board-sort">
-          Sort corridors by
-        </label>
-        <SelectInput
-          id="board-sort"
-          value={sort}
-          onChange={(e) => onSort(e.target.value as SortKey)}
-          className="w-auto min-w-[9.5rem]"
-        >
-          {SORTS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </SelectInput>
-        <button
-          type="button"
-          onClick={() => onHideClosed(!hideClosed)}
-          aria-pressed={hideClosed}
-          className={cn(
-            'h-10 rounded-pill border px-3 text-[12.5px] transition-colors duration-200',
-            hideClosed
-              ? 'border-accent/50 bg-accent-tint text-accent-deep'
-              : 'border-rule text-ink-muted hover:border-rule-strong hover:text-ink-soft',
-          )}
-        >
-          Hide closed
-        </button>
-      </div>
-
-      <p className="tnum micro shrink-0 text-ink-faint lg:border-l lg:border-rule lg:pl-3">
-        {count} of {total} shown
-        {filtersActive ? (
+      <Disclosure
+        label="Sort & availability filters"
+        summary={`${sortLabel}${hideClosed ? ' · open blocks only' : ''}`}
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label className="micro text-ink-muted" htmlFor="board-sort">
+              Sort by
+            </label>
+            <SelectInput
+              id="board-sort"
+              value={sort}
+              onChange={(e) => onSort(e.target.value as SortKey)}
+              className="w-auto min-w-[10.5rem]"
+            >
+              {SORTS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectInput>
+          </div>
           <button
             type="button"
-            onClick={onClear}
-            className="ml-2 normal-case tracking-normal text-accent-deep underline underline-offset-2 hover:decoration-2"
+            onClick={() => onHideClosed(!hideClosed)}
+            aria-pressed={hideClosed}
+            className={cn(
+              'min-h-11 rounded-pill border px-4 text-[12.5px] transition-colors duration-200',
+              hideClosed
+                ? 'border-accent/50 bg-accent-tint text-accent-deep'
+                : 'border-rule text-ink-muted hover:border-rule-strong hover:text-ink-soft',
+            )}
           >
-            clear
+            {hideClosed ? 'Showing open only' : 'Hide closed blocks'}
           </button>
-        ) : null}
-      </p>
+        </div>
+      </Disclosure>
     </div>
   );
 }
@@ -544,7 +567,6 @@ function CompareTable({
 
 function LatestHolds({ ledger }: { ledger: Ledger }) {
   const rows = ledger.roster.slice(0, 8);
-  if (rows.length === 0) return null;
 
   const corridorFor = (id: string) => ledger.corridors.find((c) => c.id === id);
 
@@ -554,41 +576,57 @@ function LatestHolds({ ledger }: { ledger: Ledger }) {
       title="Latest holds"
       lede="The most recent pledges written to Postgres, newest first. Names are shown as the lead passenger entered them; phone numbers are never displayed."
     >
-      <ul className="grid list-none gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {rows.map((pledge, i) => {
-          const corridor = corridorFor(pledge.corridor_id);
-          return (
-            <Reveal key={pledge.id} as="li" delay={Math.min(i, 5) * 40}>
-              <div className="flex h-full flex-col gap-2.5 rounded-card border border-rule bg-surface px-4 py-3.5 transition-colors duration-300 hover:border-rule-strong">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="micro text-ink-faint">{pledge.booking_ref}</span>
-                  <Chip tone={pledge.status === 'allotment_confirmed' ? 'jade' : 'marigold'}>
-                    {pledge.status === 'allotment_confirmed' ? 'confirmed' : 'escrow'}
-                  </Chip>
+      {rows.length === 0 ? (
+        <EmptyState
+          icon={<IconUsers size={22} />}
+          title="No holds posted yet"
+          body="Be the first traveller to reserve seats on an open corridor. No card is charged until Tier I confirms."
+          action={
+            <a
+              href="#board"
+              className="inline-flex h-11 items-center gap-2 rounded-pill bg-accent px-5 text-[13px] font-medium text-on-accent transition-colors duration-200 hover:bg-accent-bright"
+            >
+              Browse open corridors <IconArrow size={13} />
+            </a>
+          }
+        />
+      ) : (
+        <ul className="grid list-none gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {rows.map((pledge, i) => {
+            const corridor = corridorFor(pledge.corridor_id);
+            return (
+              <Reveal key={pledge.id} as="li" delay={Math.min(i, 5) * 40}>
+                <div className="flex h-full flex-col gap-2.5 rounded-card border border-rule bg-surface px-4 py-3.5 transition-colors duration-300 hover:border-rule-strong">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="micro text-ink-faint">{pledge.booking_ref}</span>
+                    <Chip tone={pledge.status === 'allotment_confirmed' ? 'jade' : 'marigold'}>
+                      {pledge.status === 'allotment_confirmed' ? 'confirmed' : 'escrow'}
+                    </Chip>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="tnum text-[17px] font-medium text-ink">{pledge.seats}</span>
+                    <span className="text-[12px] text-ink-muted">
+                      seat{pledge.seats === 1 ? '' : 's'} ·{' '}
+                      {corridor ? corridor.code : 'corridor removed'}
+                    </span>
+                  </div>
+                  <p className="truncate text-[12px] text-ink-soft">{pledge.passenger_name}</p>
+                  <p className="truncate text-[11px] text-ink-faint">{pledge.passenger_cohort}</p>
+                  <div className="mt-auto flex items-baseline justify-between gap-2 border-t border-rule-soft pt-2.5">
+                    <span className="tnum text-[12.5px] text-accent-deep">
+                      {rupees(pledge.locked_unit_fare)}
+                      <span className="text-ink-faint"> /seat net</span>
+                    </span>
+                    <span className="tnum micro text-ink-faint">
+                      {formatDate(pledge.created_at)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="tnum text-[17px] font-medium text-ink">{pledge.seats}</span>
-                  <span className="text-[12px] text-ink-muted">
-                    seat{pledge.seats === 1 ? '' : 's'} ·{' '}
-                    {corridor ? corridor.code : 'corridor removed'}
-                  </span>
-                </div>
-                <p className="truncate text-[12px] text-ink-soft">{pledge.passenger_name}</p>
-                <p className="truncate text-[11px] text-ink-faint">{pledge.passenger_cohort}</p>
-                <div className="mt-auto flex items-baseline justify-between gap-2 border-t border-rule-soft pt-2.5">
-                  <span className="tnum text-[12.5px] text-accent-deep">
-                    {rupees(pledge.locked_unit_fare)}
-                    <span className="text-ink-faint"> /seat net</span>
-                  </span>
-                  <span className="tnum micro text-ink-faint">
-                    {formatDate(pledge.created_at)}
-                  </span>
-                </div>
-              </div>
-            </Reveal>
-          );
-        })}
-      </ul>
+              </Reveal>
+            );
+          })}
+        </ul>
+      )}
       <p className="mt-4 text-[11.5px] text-ink-faint">
         Ledger read at <ClockStamp className="text-ink-muted" /> IST · pledges are device-scoped for
         this prototype, so your own holds appear under <em className="not-italic text-ink-soft">My trips</em>.

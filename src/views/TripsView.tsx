@@ -26,6 +26,8 @@ import {
   Panel,
   Reveal,
   Segmented,
+  Skeleton,
+  Spinner,
   cn,
 } from '../components/ui';
 import { statusLabel, statusTone } from '../components/CorridorCard';
@@ -34,6 +36,7 @@ import {
   IconBell,
   IconBellOff,
   IconBus,
+  IconCheck,
   IconClock,
   IconPin,
   IconPlane,
@@ -46,15 +49,18 @@ type Tab = 'pledges' | 'watching';
 export function TripsView({
   ledger,
   onWatch,
+  watchingId,
   onToast,
 }: {
   ledger: Ledger;
   onWatch: (corridor: Corridor) => void;
+  watchingId?: string | null;
   onToast: (message: string, tone?: 'success' | 'error' | 'info') => void;
 }) {
   const now = useCoarseNow();
   const mounted = useMounted();
   const [tab, setTab] = useState<Tab>('pledges');
+  const [copiedRef, setCopiedRef] = useState<string | null>(null);
 
   const corridorFor = useMemo(() => {
     const map = new Map(ledger.corridors.map((c) => [c.id, c]));
@@ -83,14 +89,36 @@ export function TripsView({
   const copyRef = async (ref: string) => {
     try {
       await navigator.clipboard.writeText(ref);
+      setCopiedRef(ref);
+      window.setTimeout(() => setCopiedRef((curr) => (curr === ref ? null : curr)), 2200);
       onToast(`${ref} copied`, 'success');
     } catch {
       onToast(`Reference is ${ref}`, 'info');
     }
   };
 
+  const loadingTrips = ledger.status === 'connecting';
+
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 py-10 sm:px-6 lg:py-14">
+      <nav aria-label="Breadcrumb" className="mb-3">
+        <ol className="flex items-center gap-2 text-[12px] text-ink-faint">
+          <li>
+            <Link
+              to="/"
+              className="inline-flex min-h-11 items-center px-1 transition-colors duration-200 hover:text-ink-soft"
+            >
+              Corridors
+            </Link>
+          </li>
+          <li aria-hidden="true">/</li>
+          <li>
+            <span className="micro text-ink-muted" aria-current="page">
+              My trips
+            </span>
+          </li>
+        </ol>
+      </nav>
       <header className="flex flex-col gap-5 border-b border-rule pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex flex-col gap-2">
           <Eyebrow>Device-scoped · no account needed</Eyebrow>
@@ -176,10 +204,17 @@ export function TripsView({
                             <button
                               type="button"
                               onClick={() => void copyRef(pledge.booking_ref)}
-                              className="tnum micro rounded-pill border border-rule px-2 py-1 text-ink-muted transition-colors duration-200 hover:border-rule-strong hover:text-ink"
+                              className="tnum micro inline-flex min-h-11 items-center gap-1.5 rounded-pill border border-rule px-3.5 py-2 text-ink-muted transition-colors duration-200 hover:border-rule-strong hover:text-ink"
                               title="Copy booking reference"
                             >
-                              {pledge.booking_ref}
+                              {copiedRef === pledge.booking_ref ? (
+                                <>
+                                  <IconCheck size={12} className="text-jade-deep" />
+                                  Copied
+                                </>
+                              ) : (
+                                pledge.booking_ref
+                              )}
                             </button>
                           </div>
                         </div>
@@ -295,12 +330,13 @@ export function TripsView({
                               <>This block has passed its lock deadline.</>
                             )}
                           </p>
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             {corridor ? (
                               <>
                                 <Button
                                   size="sm"
                                   variant="quiet"
+                                  loading={watchingId === corridor.id}
                                   onClick={() => onWatch(corridor)}
                                   icon={
                                     ledger.isWatched(corridor.id) ? (
@@ -310,11 +346,15 @@ export function TripsView({
                                     )
                                   }
                                 >
-                                  {ledger.isWatched(corridor.id) ? 'Watching' : 'Watch'}
+                                  {watchingId === corridor.id
+                                    ? 'Updating…'
+                                    : ledger.isWatched(corridor.id)
+                                      ? 'Watching'
+                                      : 'Watch'}
                                 </Button>
                                 <Link
                                   to={corridorPath(corridor.code)}
-                                  className="inline-flex h-8 items-center gap-1.5 rounded-pill border border-rule px-3 text-[12.5px] text-ink-soft transition-colors duration-200 hover:border-rule-strong hover:text-ink"
+                                  className="inline-flex h-11 items-center gap-1.5 rounded-pill border border-rule px-4 text-[12.5px] text-ink-soft transition-colors duration-200 hover:border-rule-strong hover:text-ink"
                                 >
                                   Corridor <IconArrow size={12} />
                                 </Link>
@@ -334,6 +374,14 @@ export function TripsView({
                 released without a refund cycle, because no money moved.
               </p>
             </>
+          ) : loadingTrips ? (
+            <div className="flex flex-col gap-4" aria-busy="true">
+              <p className="text-[12.5px] text-ink-muted" role="status">
+                Reading your pledges from the ledger…
+              </p>
+              <Skeleton className="h-28 w-full" />
+              <Skeleton className="h-44 w-full" />
+            </div>
           ) : (
             <EmptyState
               icon={<IconTicket size={22} />}
@@ -343,7 +391,7 @@ export function TripsView({
               action={
                 <Link
                   to="/"
-                  className="inline-flex h-9 items-center gap-2 rounded-pill bg-accent px-4 text-[12.5px] font-medium text-on-accent transition-colors duration-200 hover:bg-accent-bright"
+                  className="inline-flex h-11 items-center gap-2 rounded-pill bg-accent px-5 text-[13px] font-medium text-on-accent transition-colors duration-200 hover:bg-accent-bright"
                 >
                   Browse live corridors <IconArrow size={13} />
                 </Link>
@@ -353,7 +401,17 @@ export function TripsView({
         </div>
       ) : (
         <div className="mt-8 flex flex-col gap-5">
-          {watched.length === 0 ? (
+          {watched.length === 0 && loadingTrips ? (
+            <div className="flex flex-col gap-4" aria-busy="true">
+              <p className="text-[12.5px] text-ink-muted" role="status">
+                Reading your watched corridors from the ledger…
+              </p>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <Skeleton className="h-44 w-full" />
+                <Skeleton className="h-44 w-full" />
+              </div>
+            </div>
+          ) : watched.length === 0 ? (
             <EmptyState
               icon={<IconBell size={22} />}
               as="h2"
@@ -362,7 +420,7 @@ export function TripsView({
               action={
                 <Link
                   to="/"
-                  className="inline-flex h-9 items-center gap-2 rounded-pill border border-rule-strong px-4 text-[12.5px] text-ink-soft transition-colors duration-200 hover:text-ink"
+                  className="inline-flex h-11 items-center gap-2 rounded-pill bg-accent px-5 text-[13px] font-medium text-on-accent transition-colors duration-200 hover:bg-accent-bright"
                 >
                   Find a corridor <IconArrow size={13} />
                 </Link>
@@ -403,11 +461,11 @@ export function TripsView({
                           </>
                         )}
                       </p>
-                      <div className="mt-auto flex gap-2 pt-1">
+                      <div className="mt-auto flex gap-2.5 pt-1">
                         <Link
                           to={corridorPath(corridor.code)}
                           className={cn(
-                            'inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-pill border border-rule text-[12px] text-ink-soft',
+                            'inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-pill border border-rule px-4 text-[12.5px] text-ink-soft',
                             'transition-colors duration-200 hover:border-rule-strong hover:text-ink',
                           )}
                         >
@@ -416,11 +474,17 @@ export function TripsView({
                         <button
                           type="button"
                           onClick={() => onWatch(corridor)}
-                          className="grid h-8 w-8 place-items-center rounded-pill border border-accent/40 bg-accent-tint text-accent-deep transition-colors duration-200 hover:bg-accent-tint-strong"
+                          disabled={watchingId === corridor.id}
+                          aria-busy={watchingId === corridor.id || undefined}
+                          className="grid h-11 w-11 place-items-center rounded-pill border border-accent/40 bg-accent-tint text-accent-deep transition-colors duration-200 hover:bg-accent-tint-strong disabled:opacity-60"
                           aria-label={`Stop watching ${corridor.code}`}
                           title="Stop watching"
                         >
-                          <IconBellOff size={13} />
+                          {watchingId === corridor.id ? (
+                            <Spinner size={14} />
+                          ) : (
+                            <IconBellOff size={14} />
+                          )}
                         </button>
                       </div>
                     </Panel>

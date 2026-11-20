@@ -6,7 +6,7 @@ import { formatClockMs } from '../lib/format';
 import type { LedgerEvent } from '../hooks/useLedger';
 import type { LedgerStatus } from '../lib/types';
 import { Chip, cn } from './ui';
-import { IconRefresh, IconTicket } from './icons';
+import { IconRefresh } from './icons';
 
 const NAV = [
   { href: '/', label: 'Corridors' },
@@ -83,17 +83,37 @@ function StatusPill({
         disabled={busy || status === 'connecting'}
         aria-label="Reload ledger from Postgres"
         title="Reload ledger"
-        className="grid h-7 w-7 place-items-center rounded-pill border border-rule text-ink-muted transition-colors duration-200 hover:border-rule-strong hover:text-ink disabled:opacity-40"
+        className="grid h-11 w-11 place-items-center rounded-pill border border-edge text-ink-muted transition-colors duration-200 hover:border-ink-soft hover:text-ink disabled:opacity-40"
       >
-        <IconRefresh size={13} className={cn(busy && 'animate-spin')} />
+        <IconRefresh size={14} className={cn(busy && 'animate-spin')} />
       </button>
     </div>
   );
 }
 
-function EventTicker({ events }: { events: LedgerEvent[] }) {
+function EventTicker({ events, status }: { events: LedgerEvent[]; status: LedgerStatus }) {
   const latest = events[0];
-  if (!latest) return null;
+  if (!latest) {
+    const idleText =
+      status === 'ready'
+        ? 'Live ledger connected — tier moves, bids and new pledges stream here'
+        : status === 'connecting'
+          ? 'Connecting to Postgres ledger…'
+          : 'Offline snapshot active — figures reflect the last build';
+    return (
+      <aside
+        aria-label="Ledger status"
+        className="overflow-hidden border-b border-rule-soft bg-surface/70"
+      >
+        <div className="mx-auto flex max-w-[1400px] items-center gap-2.5 px-4 py-2 sm:px-6">
+          <span className="micro shrink-0 text-ink-faint">ledger</span>
+          <p className="truncate text-[11.5px] text-ink-muted" aria-live="polite">
+            {idleText}
+          </p>
+        </div>
+      </aside>
+    );
+  }
   const toneClass =
     latest.tone === 'tier'
       ? 'text-accent-deep'
@@ -103,8 +123,11 @@ function EventTicker({ events }: { events: LedgerEvent[] }) {
           ? 'text-lagoon-deep'
           : 'text-ink-muted';
   return (
-    <div className="overflow-hidden border-b border-rule-soft bg-surface/70">
-      <div className="mx-auto flex max-w-[1400px] items-center gap-2.5 px-4 py-1.5 sm:px-6">
+    <aside
+      aria-label="Ledger status"
+      className="overflow-hidden border-b border-rule-soft bg-surface/70"
+    >
+      <div className="mx-auto flex max-w-[1400px] items-center gap-2.5 px-4 py-2 sm:px-6">
         <span className="micro shrink-0 text-ink-faint">ledger</span>
         <p
           key={latest.id}
@@ -117,7 +140,7 @@ function EventTicker({ events }: { events: LedgerEvent[] }) {
           {formatClockMs(latest.at)}
         </span>
       </div>
-    </div>
+    </aside>
   );
 }
 
@@ -166,86 +189,84 @@ export function AppShell({
             : 'border-transparent bg-page/60 backdrop-blur-md',
         )}
       >
-        <div className="mx-auto flex max-w-[1400px] items-center gap-4 px-4 py-2.5 sm:px-6">
+        <div className="mx-auto flex max-w-[1400px] items-center gap-4 px-4 py-2 sm:px-6">
           {/* No aria-label: the accessible name is the wordmark itself, so the
               name and the visible text cannot drift apart — the check that
               guards sighted/AT agreement passes by construction. The sr-only
               "home" is hidden from the visible-text side of that comparison and
               gives screen-reader users the destination the sighted wordmark
               implies. */}
-          <Link to="/" className="shrink-0">
+          <Link to="/" className="inline-flex min-h-11 shrink-0 items-center">
             <Wordmark />
             <span className="sr-only"> home</span>
           </Link>
 
-          <nav aria-label="Primary" className="hidden flex-1 items-center justify-center gap-1 md:flex">
-            {NAV.map((item) => (
+          <nav aria-label="Primary" className="hidden flex-1 items-center justify-center gap-2 md:flex">
+            {NAV.map((item) => {
+              const savedCount = item.href === '/trips' ? tripCount + watchCount : 0;
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
+                  className={cn(
+                    'relative inline-flex min-h-11 items-center rounded-pill px-3.5 py-2 text-[13px] transition-colors duration-200',
+                    isActive(item.href) ? 'text-ink font-medium' : 'text-ink-muted hover:text-ink-soft',
+                  )}
+                >
+                  {item.label}
+                  {savedCount > 0 ? (
+                    <span className="tnum ml-1.5 rounded-pill bg-sunken px-1.5 py-0.5 text-[10px] text-accent-deep">
+                      {savedCount}
+                    </span>
+                  ) : null}
+                  {isActive(item.href) ? (
+                    <span
+                      className="absolute inset-x-3.5 -bottom-[8px] h-0.5 rounded-pill bg-accent-deep"
+                      aria-hidden="true"
+                    />
+                  ) : null}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="ml-auto flex items-center gap-2 md:ml-0">
+            <StatusPill status={status} onReload={onReload} />
+          </div>
+        </div>
+
+        {/* Mobile nav: fixed 4-column grid so primary destinations stay spatially
+            anchored across every screen without hidden horizontal scrolling */}
+        <nav
+          aria-label="Primary mobile"
+          className="grid grid-cols-4 gap-1.5 px-4 pb-2.5 md:hidden"
+        >
+          {NAV.map((item) => {
+            const savedCount = item.href === '/trips' ? tripCount + watchCount : 0;
+            return (
               <Link
                 key={item.href}
                 to={item.href}
                 aria-current={isActive(item.href) ? 'page' : undefined}
                 className={cn(
-                  'relative rounded-pill px-3 py-1.5 text-[13px] transition-colors duration-200',
-                  isActive(item.href) ? 'text-ink' : 'text-ink-muted hover:text-ink-soft',
+                  'inline-flex min-h-11 items-center justify-center gap-1 rounded-pill border px-2 py-2 text-center text-[12px] transition-colors duration-200',
+                  isActive(item.href)
+                    ? 'border-accent/50 bg-accent-tint font-medium text-accent-deep'
+                    : 'border-rule text-ink-muted hover:text-ink-soft',
                 )}
               >
-                {item.label}
-                {item.href === '/trips' && tripCount > 0 ? (
-                  <span className="tnum ml-1.5 rounded-pill bg-sunken px-1.5 py-0.5 text-[10px] text-accent-deep">
-                    {tripCount}
-                  </span>
-                ) : null}
-                {isActive(item.href) ? (
-                  <span
-                    className="absolute inset-x-3 -bottom-[9px] h-px bg-accent"
-                    aria-hidden="true"
-                  />
+                <span className="truncate">{item.label}</span>
+                {savedCount > 0 ? (
+                  <span className="tnum text-[10.5px] text-ink-faint">{savedCount}</span>
                 ) : null}
               </Link>
-            ))}
-          </nav>
-
-          <div className="ml-auto flex items-center gap-2 md:ml-0">
-            <Link
-              to="/trips"
-              className="hidden items-center gap-1.5 rounded-pill border border-rule px-2.5 py-1.5 text-[12px] text-ink-muted transition-colors duration-200 hover:border-rule-strong hover:text-ink sm:inline-flex"
-              title="Watched corridors and your pledges"
-            >
-              <IconTicket size={13} />
-              <span className="tnum">{watchCount}</span>
-              <span className="micro text-ink-faint">watched</span>
-            </Link>
-            <StatusPill status={status} onReload={onReload} />
-          </div>
-        </div>
-
-        {/* Mobile nav: a scrollable rail rather than a hidden hamburger */}
-        <nav
-          aria-label="Primary mobile"
-          className="flex gap-1 overflow-x-auto px-4 pb-2.5 [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden"
-        >
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              aria-current={isActive(item.href) ? 'page' : undefined}
-              className={cn(
-                'shrink-0 rounded-pill border px-3 py-1.5 text-[12.5px] transition-colors duration-200',
-                isActive(item.href)
-                  ? 'border-accent/50 bg-accent-tint text-accent-deep'
-                  : 'border-rule text-ink-muted',
-              )}
-            >
-              {item.label}
-              {item.href === '/trips' && tripCount > 0 ? (
-                <span className="tnum ml-1.5 text-ink-faint">{tripCount}</span>
-              ) : null}
-            </Link>
-          ))}
+            );
+          })}
         </nav>
       </header>
 
-      <EventTicker events={events} />
+      <EventTicker events={events} status={status} />
 
       <main id="main" className="flex-1">
         {children}
@@ -325,12 +346,12 @@ function FooterCol({
   return (
     <div className="flex flex-col gap-2">
       <span className="micro text-ink-faint">{title}</span>
-      <ul className="flex flex-col gap-1.5">
+      <ul className="flex flex-col gap-0.5">
         {links.map((link) => (
           <li key={link.href + link.label}>
             <Link
               to={link.href}
-              className="text-[12.5px] text-ink-muted transition-colors duration-200 hover:text-ink"
+              className="inline-flex min-h-11 items-center text-[12.5px] text-ink-muted transition-colors duration-200 hover:text-ink"
             >
               {link.label}
             </Link>
