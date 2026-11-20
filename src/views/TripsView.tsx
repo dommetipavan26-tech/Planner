@@ -196,8 +196,8 @@ export function TripsView({
                 {mine.map((pledge, i) => {
                   const corridor = corridorFor(pledge.corridor_id);
                   return (
-                    <Reveal key={pledge.id} as="li" delay={Math.min(i, 4) * 50}>
-                      <article className="card-lift overflow-hidden rounded-card border border-rule bg-surface shadow-panel">
+                    <Reveal key={pledge.id} as="li" variant="scale" delay={Math.min(i, 4) * 50}>
+                      <article className="card-lift overflow-hidden rounded-2xl border border-rule bg-surface shadow-panel">
                         <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-4">
                           <div className="flex items-center gap-3">
                             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-pill border border-accent/40 bg-accent-tint text-[13px] font-medium text-accent-deep">
@@ -236,7 +236,9 @@ export function TripsView({
                           </div>
                         </div>
 
-                        <div className="perforation h-px w-full" aria-hidden="true" />
+                        <div className="ticket-notch h-px w-full" aria-hidden="true">
+                          <span className="perforation block h-px w-full" />
+                        </div>
 
                         <div className="grid gap-5 px-5 py-4 lg:grid-cols-[1.3fr_1fr]">
                           {corridor ? (

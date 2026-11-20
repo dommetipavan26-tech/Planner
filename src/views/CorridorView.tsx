@@ -147,7 +147,7 @@ export function CorridorView({
       </nav>
 
       {/* Route header */}
-      <header className="relative overflow-hidden rounded-card border border-rule bg-surface shadow-panel">
+      <header className="startup-rise startup-1 relative overflow-hidden rounded-2xl border border-rule bg-surface shadow-panel">
         <div className="glow-accent pointer-events-none absolute inset-0 opacity-70" aria-hidden="true" />
         <div className="relative flex flex-col gap-6 p-5 sm:p-7">
           {/* The visible title of this page is the pair of oversized endpoint
@@ -663,14 +663,17 @@ function Detail({
   // dt + dd. The icon lives inside the dt it decorates, because a <dl> may hold
   // nothing that is not a term, a description, or a div wrapping those.
   return (
-    <div className="bg-surface px-4 py-3.5">
-      <dt className="micro flex items-center gap-1.5 text-ink-faint">
-        <span className="shrink-0" aria-hidden="true">
+    <div className="bg-surface px-4 py-3.5 transition-colors duration-200 hover:bg-raised">
+      <dt className="micro flex items-center gap-2 text-ink-faint">
+        <span
+          className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-sunken text-accent-deep"
+          aria-hidden="true"
+        >
           {icon}
         </span>
         {label}
       </dt>
-      <dd className="mt-1 text-[12.5px] leading-snug text-ink-soft">{value}</dd>
+      <dd className="mt-1.5 pl-8 text-[12.5px] leading-snug text-ink-soft">{value}</dd>
     </div>
   );
 }

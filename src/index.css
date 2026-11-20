@@ -448,6 +448,19 @@
         transparent 60%
       );
   }
+  [data-theme='dark'] .glow-accent {
+    background:
+      radial-gradient(
+        58rem 30rem at 78% -8%,
+        color-mix(in srgb, var(--color-accent) 15%, transparent),
+        transparent 62%
+      ),
+      radial-gradient(
+        44rem 26rem at 8% 12%,
+        color-mix(in srgb, var(--color-lagoon) 16%, transparent),
+        transparent 62%
+      );
+  }
 
   /* Graph paper behind the hero. On the dark identity this was a survey grid;
      on paper it is timetable stock, which is closer to what the board actually
@@ -603,6 +616,55 @@
   .hero-parallax-fast {
     transform: translate3d(0, calc(var(--hero-scroll, 0) * 48px), 0);
     will-change: transform;
+  }
+
+  /* Subtle light sweep on primary CTAs */
+  .btn-shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-shine::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: linear-gradient(
+      115deg,
+      transparent 28%,
+      color-mix(in srgb, var(--color-raised) 36%, transparent) 50%,
+      transparent 72%
+    );
+    transform: translateX(-115%);
+    transition: transform 0.65s var(--ease-out-expo);
+  }
+  @media (hover: hover) {
+    .btn-shine:not(:disabled):hover::after {
+      transform: translateX(115%);
+    }
+  }
+
+  /* Tactile semi-circular cutout along boarding-pass perforation seams */
+  .ticket-notch {
+    position: relative;
+  }
+  .ticket-notch::before,
+  .ticket-notch::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background-color: var(--color-page);
+    border: 1px solid var(--color-rule);
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+  .ticket-notch::before {
+    left: -7px;
+  }
+  .ticket-notch::after {
+    right: -7px;
   }
 }
 
@@ -846,5 +908,8 @@ html.js .reveal[data-variant='right']:not([data-shown='true']) {
   .card-lift:hover,
   .group:hover .stat-badge {
     transform: none !important;
+  }
+  .btn-shine::after {
+    display: none;
   }
 }

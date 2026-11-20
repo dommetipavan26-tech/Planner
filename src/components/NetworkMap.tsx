@@ -18,9 +18,9 @@ const PAD_BOTTOM = 34;
 
 /* SVG presentation attributes do not resolve var(), so chart ink is set as an
    inline style against the palette instead of restating hex values here. */
-const AIR_STOP = { stopColor: 'var(--color-marigold)' } as const;
-const ROAD_STOP = { stopColor: 'var(--color-lagoon)' } as const;
-const HALO_STOP = { stopColor: 'var(--color-ivory)' } as const;
+const AIR_STOP = { stopColor: 'var(--color-accent)' } as const;
+const ROAD_STOP = { stopColor: 'var(--color-lagoon-deep)' } as const;
+const HALO_STOP = { stopColor: 'var(--color-accent)' } as const;
 
 const LON_MIN = 74;
 const LON_MAX = 86;
@@ -113,7 +113,7 @@ export function NetworkMap({
 
   return (
     <figure className={className}>
-      <div className="relative overflow-hidden rounded-card border border-rule bg-surface">
+      <div className="relative overflow-hidden rounded-2xl border border-rule bg-surface shadow-panel">
         <svg
           viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
           className="block h-auto w-full"
