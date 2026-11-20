@@ -100,7 +100,7 @@ function CorridorCardBase({ corridor, watched, watchingBusy, onWatch, onHold, ho
   return (
     <article
       className={cn(
-        'group relative flex h-full flex-col overflow-hidden rounded-card border bg-surface shadow-panel',
+        'group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-surface shadow-panel',
         closed ? 'border-rule opacity-[0.72]' : 'card-lift border-rule',
       )}
     >
@@ -108,8 +108,8 @@ function CorridorCardBase({ corridor, watched, watchingBusy, onWatch, onHold, ho
       <header className="flex items-start justify-between gap-3 border-b border-rule-soft px-4 pt-3.5 pb-3">
         <div className="flex min-w-0 flex-col gap-1.5">
           <div className="flex items-center gap-2">
-            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-pill bg-sunken text-ink-soft transition-transform duration-300 ease-out-expo group-hover:scale-105">
-              <ModeIcon mode={corridor.mode} size={12} />
+            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-sunken text-ink-soft transition-transform duration-300 ease-out-expo group-hover:scale-105">
+              <ModeIcon mode={corridor.mode} size={13} />
             </span>
             <span className="micro truncate text-ink">{corridor.code}</span>
             <span className="micro shrink-0 text-ink-faint">{corridor.service_number}</span>
@@ -132,11 +132,11 @@ function CorridorCardBase({ corridor, watched, watchingBusy, onWatch, onHold, ho
         <div className="flex flex-1 flex-col items-center justify-center gap-1 px-1 pt-1">
           <span className="micro text-ink-faint">{corridor.duration_label.split('·')[0]?.trim()}</span>
           <span className="relative flex w-full items-center" aria-hidden="true">
-            <span className="h-px flex-1 bg-rule-strongest" />
-            <span className="mx-1 text-ink-muted">
-              <IconArrow size={13} />
+            <span className="h-px flex-1 border-t border-dashed border-rule-strongest" />
+            <span className="mx-1.5 grid h-6 w-6 place-items-center rounded-pill border border-rule bg-raised text-accent-deep transition-transform duration-300 ease-out-expo group-hover:translate-x-0.5">
+              <IconArrow size={12} />
             </span>
-            <span className="h-px flex-1 bg-rule-strongest" />
+            <span className="h-px flex-1 border-t border-dashed border-rule-strongest" />
           </span>
           <span className="micro text-ink-faint">
             {corridor.mode === 'bus' ? 'by road' : 'non-stop'}
@@ -239,8 +239,13 @@ function CorridorCardBase({ corridor, watched, watchingBusy, onWatch, onHold, ho
         </Disclosure>
       </div>
 
+      {/* Boarding-pass tear seam */}
+      <div className="ticket-notch mt-auto h-px w-full" aria-hidden="true">
+        <span className="perforation block h-px w-full opacity-75" />
+      </div>
+
       {/* Actions */}
-      <footer className="mt-auto flex items-center gap-2.5 border-t border-rule-soft px-4 py-3">
+      <footer className="flex items-center gap-2.5 px-4 py-3">
         <Link
           to={corridorPath(corridor.code)}
           className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-pill border border-rule text-[12.5px] text-ink-soft transition-colors duration-200 hover:border-rule-strong hover:text-ink"

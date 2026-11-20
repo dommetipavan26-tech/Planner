@@ -100,12 +100,12 @@ export function TierLadder({
             key={tier.id}
             aria-current={isProjected ? 'true' : undefined}
             className={cn(
-              'relative flex flex-col gap-2 rounded-card border px-3 py-2.5 transition-colors duration-300 ease-out-expo',
+              'card-lift relative flex flex-col gap-2 rounded-xl border px-3.5 py-3',
               isProjected
-                ? 'border-accent/55 bg-accent-tint/60'
+                ? 'border-accent/65 bg-accent-tint shadow-panel'
                 : reached
                   ? 'border-rule-strong bg-raised'
-                  : 'border-rule bg-surface/60',
+                  : 'border-rule bg-surface',
             )}
           >
             <div className="flex items-center justify-between gap-2">

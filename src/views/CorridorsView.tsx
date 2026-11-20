@@ -325,14 +325,14 @@ function Hero({
           <div className="startup-rise startup-3 flex flex-wrap items-center gap-3">
             <a
               href="#board"
-              className="inline-flex h-11 items-center gap-2 rounded-pill bg-accent px-5 text-[13.5px] font-medium text-on-accent shadow-accent-lift transition-colors duration-200 hover:bg-accent-bright"
+              className="btn-shine inline-flex h-11 items-center gap-2 rounded-pill bg-accent px-5 text-[13.5px] font-medium text-on-accent shadow-accent-lift transition-[background-color,transform,box-shadow] duration-200 hover:-translate-y-px hover:bg-accent-bright"
             >
               See the live board
               <IconArrow size={14} />
             </a>
             <a
               href="#how"
-              className="inline-flex h-11 items-center gap-2 rounded-pill border border-rule-strong px-5 text-[13.5px] text-ink-soft transition-colors duration-200 hover:border-rule-strongest hover:text-ink"
+              className="inline-flex h-11 items-center gap-2 rounded-pill border border-rule-strong px-5 text-[13.5px] text-ink-soft transition-colors duration-200 hover:border-rule-strongest hover:bg-raised hover:text-ink"
             >
               How a pledge works
             </a>
@@ -347,7 +347,7 @@ function Hero({
 
         <div className="startup-rise startup-5 flex flex-col gap-4">
           <NetworkMap corridors={corridors} />
-          <div className="rounded-card border border-rule bg-surface/80 p-4">
+          <div className="rounded-2xl border border-rule bg-surface p-4 shadow-panel">
             <Eyebrow>Busiest right now</Eyebrow>
             <div className="mt-3">
               <CorridorRail corridors={corridors} />

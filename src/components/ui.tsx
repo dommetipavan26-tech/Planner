@@ -97,11 +97,11 @@ type ButtonSize = 'sm' | 'md' | 'lg';
 const BUTTON_BASE =
   'relative inline-flex items-center justify-center gap-2 rounded-pill font-medium tracking-tight ' +
   'transition-[background-color,color,border-color,transform,box-shadow] duration-200 ease-out-expo ' +
-  'select-none disabled:cursor-not-allowed disabled:opacity-45 active:translate-y-px whitespace-nowrap';
+  'select-none disabled:cursor-not-allowed disabled:opacity-45 active:translate-y-px active:scale-[0.985] whitespace-nowrap';
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary:
-    'bg-accent text-on-accent hover:bg-accent-bright shadow-accent',
+    'btn-shine bg-accent text-on-accent hover:bg-accent-bright shadow-accent hover:-translate-y-px hover:shadow-accent-lift',
   secondary:
     'bg-sunken text-ink border border-edge hover:bg-hover hover:border-edge',
   ghost: 'text-ink-soft hover:text-ink hover:bg-raised border border-transparent',
@@ -853,8 +853,15 @@ export function EmptyState({
   as?: 'h1' | 'h2' | 'h3';
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-card border border-dashed border-rule-strong bg-surface/40 px-6 py-12 text-center">
-      {icon ? <span className="text-ink-faint">{icon}</span> : null}
+    <div className="flex flex-col items-center gap-3.5 rounded-2xl border border-dashed border-rule-strong bg-surface px-6 py-12 text-center shadow-panel">
+      {icon ? (
+        <span
+          aria-hidden="true"
+          className="grid h-12 w-12 place-items-center rounded-2xl border border-rule bg-raised text-accent-deep shadow-panel"
+        >
+          {icon}
+        </span>
+      ) : null}
       <div className="flex flex-col gap-1.5">
         <Heading className="display text-[22px] text-ink">{title}</Heading>
         <p className="mx-auto max-w-sm text-[13px] leading-relaxed text-ink-muted">{body}</p>
