@@ -569,7 +569,7 @@ export function CorridorView({
                   <li key={c.id}>
                     <Link
                       to={corridorPath(c.code)}
-                      className="flex items-center justify-between gap-3 rounded-card border border-rule bg-raised px-3 py-2 transition-colors duration-200 hover:border-rule-strong"
+                      className="card-lift flex items-center justify-between gap-3 rounded-card border border-rule bg-raised px-3 py-2"
                     >
                       <span className="flex flex-col">
                         <span className="micro text-ink">{c.code}</span>

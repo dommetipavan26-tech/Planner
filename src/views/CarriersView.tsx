@@ -19,6 +19,7 @@ import {
   Segmented,
   SelectInput,
   Sheet,
+  StatsCard,
   TextArea,
   TextInput,
   cn,
@@ -32,6 +33,7 @@ import {
   IconLuggage,
   IconSearch,
   IconShield,
+  IconTicket,
   IconUsers,
 } from '../components/icons';
 
@@ -176,27 +178,48 @@ export function CarriersView({
         </div>
       </header>
 
-      <dl className="mt-8 grid gap-px overflow-hidden rounded-card border border-rule bg-rule-strong sm:grid-cols-2 lg:grid-cols-5">
-        <StatCell label="Bids logged" value={String(bids.length)} note={`${stats.carriers} carrier desks`} />
-        <StatCell label="Seats offered" value={number(stats.seats)} note="across all live blocks" />
-        <StatCell
-          label="Weighted net fare"
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <StatsCard
+          title="Bids logged"
+          value={String(bids.length)}
+          change={`${stats.carriers} carrier desks`}
+          changeTone="lagoon"
+          gradient="lagoon"
+          icon={<IconHandshake size={20} />}
+        />
+        <StatsCard
+          title="Seats offered"
+          value={number(stats.seats)}
+          change="across all live blocks"
+          changeTone="neutral"
+          gradient="ink"
+          icon={<IconUsers size={20} />}
+        />
+        <StatsCard
+          title="Weighted net fare"
           value={rupees(stats.weightedFare)}
-          note="seat-weighted, all bids"
-          tone="marigold"
+          change="seat-weighted, all bids"
+          changeTone="marigold"
+          gradient="marigold"
+          icon={<IconTicket size={20} />}
         />
-        <StatCell
-          label="Mean hold window"
+        <StatsCard
+          title="Mean hold window"
           value={`${Math.round(stats.hold)} h`}
-          note="before the allotment lapses"
+          change="before allotment lapses"
+          changeTone="clay"
+          gradient="clay"
+          icon={<IconClock size={20} />}
         />
-        <StatCell
-          label="Status"
+        <StatsCard
+          title="Accepted bids"
           value={`${stats.accepted} accepted`}
-          note={`${stats.review} under review · ${stats.countered} countered`}
-          tone="jade"
+          change={`${stats.review} review · ${stats.countered} countered`}
+          changeTone="jade"
+          gradient="jade"
+          icon={<IconCheck size={20} />}
         />
-      </dl>
+      </div>
 
       <div className="mt-8 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <Segmented
@@ -495,33 +518,6 @@ export function CarriersView({
 }
 
 /* ------------------------------------------------------------------- pieces */
-
-function StatCell({
-  label,
-  value,
-  note,
-  tone,
-}: {
-  label: string;
-  value: string;
-  note: string;
-  tone?: 'jade' | 'marigold';
-}) {
-  return (
-    <div className="flex flex-col gap-1 bg-surface px-4 py-4">
-      <dt className="micro text-ink-faint">{label}</dt>
-      <dd
-        className={cn(
-          'tnum text-[22px] leading-none font-medium',
-          tone === 'jade' ? 'text-jade-deep' : tone === 'marigold' ? 'text-accent-deep' : 'text-ink',
-        )}
-      >
-        {value}
-      </dd>
-      <dd className="text-[11px] leading-snug text-ink-faint">{note}</dd>
-    </div>
-  );
-}
 
 function MiniCell({
   label,

@@ -54,18 +54,21 @@ const STEPS = [
     title: 'A carrier contracts a block',
     body: 'We negotiate a fixed seat allotment for one festival departure — 42 berths on a coach, 60 seats in an aircraft cabin — at a rate the carrier will only honour at volume. The contract reference, the hold window and the baggage terms are published on the corridor.',
     icon: IconHandshake,
+    badge: 'stat-badge-lagoon',
   },
   {
     n: '02',
     title: 'Travellers pledge into it',
     body: 'A pledge reserves your seat in the cohort and records the most you were willing to pay. It costs nothing today: no card is charged, no ticket is issued, and names can be swapped free until 72 hours before departure.',
     icon: IconUsers,
+    badge: 'stat-badge-marigold',
   },
   {
     n: '03',
     title: 'The slab reprices everyone',
     body: 'The instant the cohort crosses a threshold, the contracted rate for that slab applies to every pledged seat — including the ones that joined first. That is the whole trick: the discount is a property of the group, not of who booked earliest.',
     icon: IconCheck,
+    badge: 'stat-badge-jade',
   },
 ] as const;
 
@@ -77,17 +80,22 @@ export function HowItWorks() {
       title="Three steps, and one of them is free"
       lede="This is not a queue and not a lottery. It is a volume commitment split across the people who need it, with the price break written into the carrier contract."
     >
-      <ol className="grid gap-px overflow-hidden rounded-card border border-rule bg-rule-strong md:grid-cols-3">
+      <ol className="grid list-none gap-4 md:grid-cols-3">
         {STEPS.map((step, i) => (
           <Reveal
             key={step.n}
             as="li"
             delay={i * 70}
-            className="flex h-full flex-col gap-3 bg-surface px-5 py-6"
+            className="glass-card group flex h-full flex-col gap-3 rounded-2xl p-5"
           >
             <div className="flex items-center justify-between">
               <span className="tnum display text-[26px] leading-none text-ink-faint">{step.n}</span>
-              <step.icon size={17} className="text-accent-deep" />
+              <span
+                aria-hidden="true"
+                className={cn('stat-badge grid h-10 w-10 place-items-center rounded-xl', step.badge)}
+              >
+                <step.icon size={18} />
+              </span>
             </div>
             <h3 className="display text-[20px] leading-tight text-ink">{step.title}</h3>
             <p className="text-[12.5px] leading-relaxed text-ink-muted">{step.body}</p>
@@ -248,7 +256,7 @@ function MiniStat({
 }) {
   const colour = tone === 'jade' ? 'text-jade-deep' : tone === 'ember' ? 'text-ember-deep' : 'text-accent-deep';
   return (
-    <div className="flex flex-col gap-1 rounded-card border border-rule bg-surface px-3 py-2.5">
+    <div className="glass-card flex flex-col gap-1 rounded-xl px-3.5 py-3">
       <span className="micro text-ink-faint">{label}</span>
       <span className={cn('tnum text-[19px] leading-none font-medium', colour)}>{value}</span>
       <span className="text-[10.5px] text-ink-faint">{note}</span>
@@ -447,10 +455,10 @@ export function RefundRule({ corridor }: { corridor: Corridor | undefined }) {
         ) : null
       }
     >
-      <div className="grid gap-px overflow-hidden rounded-card border border-rule bg-rule-strong sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         {items.map((item, i) => (
           <Reveal key={item.title} delay={i * 60}>
-            <div className="flex h-full flex-col gap-2 bg-surface px-5 py-5">
+            <div className="glass-card flex h-full flex-col gap-2 rounded-2xl p-5">
               <div className="flex items-center gap-2">
                 <span
                   className={cn(

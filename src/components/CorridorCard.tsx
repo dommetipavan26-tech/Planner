@@ -101,15 +101,14 @@ function CorridorCardBase({ corridor, watched, watchingBusy, onWatch, onHold, ho
     <article
       className={cn(
         'group relative flex h-full flex-col overflow-hidden rounded-card border bg-surface shadow-panel',
-        'transition-[border-color,transform,box-shadow] duration-300 ease-out-expo',
-        closed ? 'border-rule opacity-[0.72]' : 'border-rule hover:border-rule-strong hover:shadow-lift',
+        closed ? 'border-rule opacity-[0.72]' : 'card-lift border-rule',
       )}
     >
       {/* Header strip */}
       <header className="flex items-start justify-between gap-3 border-b border-rule-soft px-4 pt-3.5 pb-3">
         <div className="flex min-w-0 flex-col gap-1.5">
           <div className="flex items-center gap-2">
-            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-pill bg-sunken text-ink-soft">
+            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-pill bg-sunken text-ink-soft transition-transform duration-300 ease-out-expo group-hover:scale-105">
               <ModeIcon mode={corridor.mode} size={12} />
             </span>
             <span className="micro truncate text-ink">{corridor.code}</span>

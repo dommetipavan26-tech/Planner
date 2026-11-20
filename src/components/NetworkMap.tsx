@@ -339,7 +339,7 @@ export function CorridorRail({ corridors }: { corridors: Corridor[] }) {
         <Link
           key={c.id}
           to={corridorPath(c.code)}
-          className="group inline-flex min-h-11 items-center gap-2 rounded-pill border border-rule bg-raised px-3.5 py-2 transition-colors duration-200 hover:border-accent/50 hover:bg-sunken"
+          className="card-lift group inline-flex min-h-11 items-center gap-2 rounded-pill border border-rule bg-raised px-3.5 py-2 hover:border-accent/50 hover:bg-sunken"
         >
           <span className="micro text-ink-muted group-hover:text-accent-deep">{c.code}</span>
           <span className="tnum text-[11.5px] text-ink-faint">

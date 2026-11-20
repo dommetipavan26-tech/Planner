@@ -27,6 +27,8 @@ import {
   Reveal,
   Segmented,
   SelectInput,
+  StatsCard,
+  type StatsGradient,
   TextInput,
   cn,
 } from '../components/ui';
@@ -38,9 +40,12 @@ import {
   IconClose,
   IconGauge,
   IconGrid,
+  IconRoute,
   IconSearch,
   IconShield,
+  IconSpark,
   IconTable,
+  IconTicket,
   IconUsers,
 } from '../components/icons';
 
@@ -342,47 +347,79 @@ function StatsBar({ totals }: { totals: Ledger['totals'] }) {
   const fill = useAnimatedNumber(totals.fillRate);
   const gmv = useAnimatedNumber(totals.gmv);
 
-  const stats = [
-    { label: 'Corridors live', value: number(totals.corridors), note: `${totals.tierLocked} past Tier I` },
+  const stats: Array<{
+    title: string;
+    value: string;
+    change: string;
+    changeTone: 'jade' | 'marigold' | 'lagoon' | 'clay' | 'neutral';
+    gradient: StatsGradient;
+    icon: ReactNode;
+  }> = [
     {
-      label: 'Seats pledged',
+      title: 'Corridors live',
+      value: number(totals.corridors),
+      change: `${totals.tierLocked} past Tier I`,
+      changeTone: 'lagoon',
+      gradient: 'lagoon',
+      icon: <IconRoute size={20} />,
+    },
+    {
+      title: 'Seats pledged',
       value: number(Math.round(pledged)),
-      note: `of ${number(totals.seatsAllotted)} contracted`,
+      change: `of ${number(totals.seatsAllotted)} contracted`,
+      changeTone: 'marigold',
+      gradient: 'marigold',
+      icon: <IconUsers size={20} />,
     },
-    { label: 'Cohort fill', value: pct(Math.round(fill)), note: 'across all blocks' },
     {
-      label: 'Traveller saving',
+      title: 'Cohort fill',
+      value: pct(Math.round(fill)),
+      change: 'across all blocks',
+      changeTone: 'neutral',
+      gradient: 'ink',
+      icon: <IconGauge size={20} />,
+    },
+    {
+      title: 'Traveller saving',
       value: compactRupees(Math.round(saved)),
-      note: 'vs published surge fares',
-      tone: 'jade' as const,
+      change: 'vs published surge fares',
+      changeTone: 'jade',
+      gradient: 'jade',
+      icon: <IconSpark size={20} />,
     },
-    { label: 'Booking value', value: compactRupees(Math.round(gmv)), note: 'at current slabs' },
     {
-      label: 'Platform fee',
+      title: 'Booking value',
+      value: compactRupees(Math.round(gmv)),
+      change: 'at current slabs',
+      changeTone: 'neutral',
+      gradient: 'ink',
+      icon: <IconTicket size={20} />,
+    },
+    {
+      title: 'Platform fee',
       value: compactRupees(Math.round(totals.fees)),
-      note: 'retained only on confirmed blocks',
-      tone: 'clay' as const,
+      change: 'retained on confirmed blocks',
+      changeTone: 'clay',
+      gradient: 'clay',
+      icon: <IconShield size={20} />,
     },
   ];
 
   return (
     <Reveal>
-      <dl className="grid gap-px overflow-hidden rounded-card border border-rule bg-rule-strong sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map((stat) => (
-          <div key={stat.label} className="flex flex-col gap-1 bg-surface px-4 py-4">
-            <dt className="micro text-ink-faint">{stat.label}</dt>
-            <dd
-              className={cn(
-                'tnum text-[24px] leading-none font-medium',
-                stat.tone === 'jade' ? 'text-jade-deep' : stat.tone === 'clay' ? 'text-clay-deep' : 'text-ink',
-              )}
-            >
-              {stat.value}
-            </dd>
-            <dd className="text-[11px] text-ink-faint">{stat.note}</dd>
-          </div>
+          <StatsCard
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            change={stat.change}
+            changeTone={stat.changeTone}
+            icon={stat.icon}
+            gradient={stat.gradient}
+          />
         ))}
-      </dl>
+      </div>
     </Reveal>
   );
 }
@@ -596,7 +633,7 @@ function LatestHolds({ ledger }: { ledger: Ledger }) {
             const corridor = corridorFor(pledge.corridor_id);
             return (
               <Reveal key={pledge.id} as="li" delay={Math.min(i, 5) * 40}>
-                <div className="flex h-full flex-col gap-2.5 rounded-card border border-rule bg-surface px-4 py-3.5 transition-colors duration-300 hover:border-rule-strong">
+                <div className="card-lift flex h-full flex-col gap-2.5 rounded-card border border-rule bg-surface px-4 py-3.5 shadow-panel">
                   <div className="flex items-start justify-between gap-2">
                     <span className="micro text-ink-faint">{pledge.booking_ref}</span>
                     <Chip tone={pledge.status === 'allotment_confirmed' ? 'jade' : 'marigold'}>
