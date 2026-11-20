@@ -19,6 +19,7 @@ import {
   Segmented,
   SelectInput,
   Spinner,
+  StatsCard,
   TextInput,
   cn,
 } from '../components/ui';
@@ -29,7 +30,9 @@ import {
   IconClock,
   IconPin,
   IconPlane,
+  IconRoute,
   IconSearch,
+  IconSpark,
   IconUsers,
 } from '../components/icons';
 
@@ -258,7 +261,7 @@ export function RequestsView({
           </li>
         </ol>
       </nav>
-      <header className="flex flex-col gap-5 border-b border-rule pb-6 lg:flex-row lg:items-end lg:justify-between">
+      <header className="flex flex-col gap-5 border-b border-rule pb-6">
         <div className="flex max-w-2xl flex-col gap-2.5">
           <Eyebrow>Demand side · the board is built from this</Eyebrow>
           <h1 className="display text-[clamp(2rem,4.6vw,3.25rem)] text-ink">Corridor requests</h1>
@@ -268,12 +271,34 @@ export function RequestsView({
             Requests are public, upvotable, and answered either way.
           </p>
         </div>
-        <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-card border border-rule bg-rule-strong">
-          <MiniStat label="Requests" value={String(requests.length)} />
-          <MiniStat label="Group seats" value={number(stats.seats)} />
-          <MiniStat label="Upvotes" value={number(stats.votes)} />
-        </dl>
       </header>
+
+      <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <StatsCard
+          title="Requests"
+          value={String(requests.length)}
+          change={`${stats.pairs} distinct city pairs`}
+          changeTone="lagoon"
+          gradient="lagoon"
+          icon={<IconRoute size={20} />}
+        />
+        <StatsCard
+          title="Group seats"
+          value={number(stats.seats)}
+          change="travellers represented"
+          changeTone="marigold"
+          gradient="marigold"
+          icon={<IconUsers size={20} />}
+        />
+        <StatsCard
+          title="Upvotes"
+          value={number(stats.votes)}
+          change={stats.top !== '—' ? `top ask: ${stats.top}` : 'backed by travellers'}
+          changeTone="jade"
+          gradient="jade"
+          icon={<IconSpark size={20} />}
+        />
+      </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10">
         <div className="flex min-w-0 flex-col gap-5">
@@ -737,15 +762,6 @@ export function RequestsView({
           </Panel>
         </aside>
       </div>
-    </div>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-1 bg-surface px-4 py-3">
-      <dt className="micro text-ink-faint">{label}</dt>
-      <dd className="tnum text-[19px] leading-none font-medium text-ink">{value}</dd>
     </div>
   );
 }

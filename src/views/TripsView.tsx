@@ -28,6 +28,7 @@ import {
   Segmented,
   Skeleton,
   Spinner,
+  StatsCard,
   cn,
 } from '../components/ui';
 import { statusLabel, statusTone } from '../components/CorridorCard';
@@ -40,6 +41,8 @@ import {
   IconClock,
   IconPin,
   IconPlane,
+  IconShield,
+  IconSpark,
   IconTicket,
   IconUsers,
 } from '../components/icons';
@@ -154,33 +157,47 @@ export function TripsView({
         <div className="mt-8 flex flex-col gap-6">
           {mine.length > 0 ? (
             <>
-              <dl className="grid gap-px overflow-hidden rounded-card border border-rule bg-rule-strong sm:grid-cols-2 lg:grid-cols-4">
-                <SummaryCell label="Seats held" value={String(summary.seats)} note={`across ${mine.length} pledge${mine.length === 1 ? '' : 's'}`} />
-                <SummaryCell
-                  label="Payable at lock"
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <StatsCard
+                  title="Seats held"
+                  value={String(summary.seats)}
+                  change={`across ${mine.length} pledge${mine.length === 1 ? '' : 's'}`}
+                  changeTone="lagoon"
+                  gradient="lagoon"
+                  icon={<IconTicket size={20} />}
+                />
+                <StatsCard
+                  title="Payable at lock"
                   value={compactRupees(summary.payable)}
-                  note="captured only if the block confirms"
-                  tone="marigold"
+                  change="captured if block confirms"
+                  changeTone="marigold"
+                  gradient="marigold"
+                  icon={<IconPlane size={20} />}
                 />
-                <SummaryCell
-                  label="Saving vs surge"
+                <StatsCard
+                  title="Saving vs surge"
                   value={compactRupees(summary.saving)}
-                  note="at the slab your corridor reached"
-                  tone="jade"
+                  change="at current corridor slab"
+                  changeTone="jade"
+                  gradient="jade"
+                  icon={<IconSpark size={20} />}
                 />
-                <SummaryCell
-                  label="Status"
+                <StatsCard
+                  title="Status"
                   value={`${summary.confirmed} confirmed`}
-                  note={`${summary.escrow} still in escrow hold`}
+                  change={`${summary.escrow} still in escrow hold`}
+                  changeTone="neutral"
+                  gradient="ink"
+                  icon={<IconShield size={20} />}
                 />
-              </dl>
+              </div>
 
               <ul className="flex list-none flex-col gap-4">
                 {mine.map((pledge, i) => {
                   const corridor = corridorFor(pledge.corridor_id);
                   return (
                     <Reveal key={pledge.id} as="li" delay={Math.min(i, 4) * 50}>
-                      <article className="overflow-hidden rounded-card border border-rule bg-surface shadow-panel transition-colors duration-300 hover:border-rule-strong">
+                      <article className="card-lift overflow-hidden rounded-card border border-rule bg-surface shadow-panel">
                         <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-4">
                           <div className="flex items-center gap-3">
                             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-pill border border-accent/40 bg-accent-tint text-[13px] font-medium text-accent-deep">
@@ -505,33 +522,6 @@ export function TripsView({
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-function SummaryCell({
-  label,
-  value,
-  note,
-  tone,
-}: {
-  label: string;
-  value: string;
-  note: string;
-  tone?: 'jade' | 'marigold';
-}) {
-  return (
-    <div className="flex flex-col gap-1 bg-surface px-4 py-4">
-      <dt className="micro text-ink-faint">{label}</dt>
-      <dd
-        className={cn(
-          'tnum text-[24px] leading-none font-medium',
-          tone === 'jade' ? 'text-jade-deep' : tone === 'marigold' ? 'text-accent-deep' : 'text-ink',
-        )}
-      >
-        {value}
-      </dd>
-      <dd className="text-[11px] text-ink-faint">{note}</dd>
     </div>
   );
 }

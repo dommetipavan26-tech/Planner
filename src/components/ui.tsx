@@ -13,7 +13,16 @@ import {
 import { countdown, formatClockMs } from '../lib/format';
 import { useIsoLayoutEffect } from '../lib/useIsoLayoutEffect';
 import { useNow } from '../hooks/useClock';
-import { IconAlert, IconCheck, IconChevron, IconClose, IconMinus, IconPlus, IconRefresh } from './icons';
+import {
+  IconAlert,
+  IconArrowUpRight,
+  IconCheck,
+  IconChevron,
+  IconClose,
+  IconMinus,
+  IconPlus,
+  IconRefresh,
+} from './icons';
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
@@ -179,9 +188,8 @@ export function Panel({
   return (
     <Tag
       className={cn(
-        'rounded-card border border-rule bg-surface/85 shadow-panel',
-        hover &&
-          'transition-[border-color,background-color,transform] duration-300 ease-out-expo hover:border-rule-strong hover:bg-raised',
+        'rounded-card border border-rule bg-surface shadow-panel',
+        hover && 'card-lift hover:bg-raised',
         className,
       )}
     >
@@ -654,6 +662,87 @@ export function Stat({
         {value}
       </span>
       {sub ? <span className="text-[11.5px] leading-snug text-ink-muted">{sub}</span> : null}
+    </div>
+  );
+}
+
+export type StatsGradient = 'marigold' | 'jade' | 'lagoon' | 'clay' | 'ink';
+
+const STATS_BADGE_CLASSES: Record<StatsGradient, string> = {
+  marigold: 'stat-badge-marigold',
+  jade: 'stat-badge-jade',
+  lagoon: 'stat-badge-lagoon',
+  clay: 'stat-badge-clay',
+  ink: 'stat-badge-ink',
+};
+
+const STATS_CHANGE_TONES: Record<'jade' | 'marigold' | 'lagoon' | 'clay' | 'neutral', string> = {
+  jade: 'text-jade-deep',
+  marigold: 'text-accent-deep',
+  lagoon: 'text-lagoon-deep',
+  clay: 'text-clay-deep',
+  neutral: 'text-ink-muted',
+};
+
+/**
+ * Elevated glass-paper KPI card with -5px hover lift, diagonal trend cue,
+ * and a gradient-backed icon tile that scales on card hover.
+ */
+export function StatsCard({
+  title,
+  value,
+  change,
+  changeTone = 'jade',
+  showTrendArrow = true,
+  icon,
+  gradient = 'marigold',
+  className,
+}: {
+  title: string;
+  value: ReactNode;
+  change?: ReactNode;
+  changeTone?: 'jade' | 'marigold' | 'lagoon' | 'clay' | 'neutral';
+  showTrendArrow?: boolean;
+  icon: ReactNode;
+  gradient?: StatsGradient;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'glass-card group flex items-center justify-between gap-4 rounded-2xl p-5',
+        className,
+      )}
+    >
+      <dl className="flex min-w-0 flex-col gap-1">
+        <dt className="micro truncate text-ink-muted">{title}</dt>
+        <dd className="tnum display text-[26px] leading-tight font-bold text-ink">{value}</dd>
+        {change ? (
+          <dd
+            className={cn(
+              'flex items-center gap-1 text-[12px] font-medium',
+              STATS_CHANGE_TONES[changeTone],
+            )}
+          >
+            {showTrendArrow ? (
+              <IconArrowUpRight
+                size={14}
+                className="shrink-0 transition-transform duration-300 ease-out-expo group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              />
+            ) : null}
+            <span className="truncate">{change}</span>
+          </dd>
+        ) : null}
+      </dl>
+      <div
+        aria-hidden="true"
+        className={cn(
+          'stat-badge grid h-12 w-12 shrink-0 place-items-center rounded-xl',
+          STATS_BADGE_CLASSES[gradient],
+        )}
+      >
+        {icon}
+      </div>
     </div>
   );
 }
