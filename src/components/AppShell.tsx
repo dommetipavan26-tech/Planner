@@ -6,7 +6,7 @@ import { formatClockMs } from '../lib/format';
 import type { LedgerEvent } from '../hooks/useLedger';
 import type { LedgerStatus } from '../lib/types';
 import { Chip, cn } from './ui';
-import { IconRefresh } from './icons';
+import { IconArrowUp, IconMoon, IconRefresh, IconSun } from './icons';
 
 const NAV = [
   { href: '/', label: 'Corridors' },
@@ -22,7 +22,7 @@ export function Wordmark({ compact = false }: { compact?: boolean }) {
         <circle cx="12" cy="12" r="11" className="stroke-rule-strong" strokeWidth="1" fill="none" />
         <path
           d="M4.6 15.4c3.1-5.6 8-8.6 14.2-9.1"
-          className="stroke-accent-deep"
+          className="animate-arc-draw stroke-accent-deep"
           strokeWidth="1.4"
           strokeLinecap="round"
           fill="none"
@@ -41,6 +41,69 @@ export function Wordmark({ compact = false }: { compact?: boolean }) {
         )}
       </span>
     </span>
+  );
+}
+
+function ThemeToggle() {
+  // Always start 'light' so SSR HTML and initial client hydration match;
+  // useEffect syncs immediately from the pre-paint <html data-theme> attribute.
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    const attr = document.documentElement.getAttribute('data-theme');
+    if (attr === 'dark' || attr === 'light') {
+      setTheme(attr);
+    }
+  }, []);
+
+  useEffect(() => {
+    const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (!meta) return;
+    const bg = getComputedStyle(document.documentElement).getPropertyValue('--color-page').trim();
+    if (bg) meta.content = bg;
+  }, [theme]);
+
+  const toggle = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    document.documentElement.setAttribute('data-theme', next);
+    try {
+      localStorage.setItem('utsavair:theme', next);
+    } catch {
+      /* storage unavailable */
+    }
+  };
+
+  const isDark = theme === 'dark';
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-pressed={isDark}
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      className="relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-pill border border-edge bg-surface text-ink-soft transition-[border-color,background-color,color,transform] duration-200 hover:border-ink-soft hover:bg-raised hover:text-ink active:scale-95"
+    >
+      <span
+        className={cn(
+          'absolute grid place-items-center transition-[opacity,transform] duration-300 ease-out-expo',
+          isDark ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0',
+        )}
+        aria-hidden="true"
+      >
+        <IconSun size={16} />
+      </span>
+      <span
+        className={cn(
+          'absolute grid place-items-center transition-[opacity,transform] duration-300 ease-out-expo',
+          isDark ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100',
+        )}
+        aria-hidden="true"
+      >
+        <IconMoon size={16} />
+      </span>
+    </button>
   );
 }
 
@@ -161,13 +224,36 @@ export function AppShell({
 }) {
   const { route, path } = useRouter();
   const [scrolled, setScrolled] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [showTop, setShowTop] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const y = window.scrollY;
+      setScrolled(y > 8);
+      setShowTop(y > 480);
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress(max > 0 ? Math.min(1, Math.max(0, y / max)) : 0);
+    };
+    const onScroll = () => {
+      if (!raf) raf = window.requestAnimationFrame(update);
+    };
+    update();
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => {
+      if (raf) window.cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
   }, []);
+
+  const scrollToTop = () => {
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+  };
 
   const isActive = (href: string) =>
     href === '/' ? route.name === 'corridors' || route.name === 'corridor' : path.startsWith(href);
@@ -183,10 +269,10 @@ export function AppShell({
 
       <header
         className={cn(
-          'sticky top-0 z-60 border-b transition-[background-color,border-color,backdrop-filter] duration-300',
+          'startup-bar sticky top-0 z-60 border-b transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300',
           scrolled
-            ? 'border-rule bg-page/85 backdrop-blur-xl'
-            : 'border-transparent bg-page/60 backdrop-blur-md',
+            ? 'border-rule bg-page/90 shadow-panel backdrop-blur-xl'
+            : 'border-transparent bg-page/75 backdrop-blur-md',
         )}
       >
         <div className="mx-auto flex max-w-[1400px] items-center gap-4 px-4 py-2 sm:px-6">
@@ -233,6 +319,7 @@ export function AppShell({
 
           <div className="ml-auto flex items-center gap-2 md:ml-0">
             <StatusPill status={status} onReload={onReload} />
+            <ThemeToggle />
           </div>
         </div>
 
@@ -264,6 +351,17 @@ export function AppShell({
             );
           })}
         </nav>
+
+        {/* Scroll progress hairline along the bottom edge of the sticky header */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] overflow-hidden bg-transparent"
+        >
+          <div
+            className="h-full w-full origin-left bg-accent-deep transition-transform duration-150 ease-out"
+            style={{ transform: `scaleX(${scrollProgress})` }}
+          />
+        </div>
       </header>
 
       <EventTicker events={events} status={status} />
@@ -271,6 +369,26 @@ export function AppShell({
       <main id="main" className="flex-1">
         {children}
       </main>
+
+      <aside
+        aria-label="Page scroll control"
+        className={cn(
+          'pointer-events-none fixed bottom-5 left-4 z-50 transition-[opacity,transform] duration-300 ease-out-expo sm:left-6',
+          showTop ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0',
+        )}
+      >
+        <button
+          type="button"
+          onClick={scrollToTop}
+          tabIndex={showTop ? 0 : -1}
+          aria-hidden={!showTop}
+          aria-label="Scroll to top"
+          title="Back to top"
+          className="pointer-events-auto grid h-11 w-11 place-items-center rounded-pill border border-edge bg-raised text-ink shadow-lift transition-[border-color,background-color,transform] duration-200 hover:-translate-y-0.5 hover:border-ink-soft hover:bg-surface"
+        >
+          <IconArrowUp size={16} />
+        </button>
+      </aside>
 
       <Footer />
     </div>

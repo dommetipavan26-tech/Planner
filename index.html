@@ -8,6 +8,18 @@
       // a traveller whose connection never delivers the bundle — can read the
       // page. React hydrates #root, not <html>, so this never mismatches.
       document.documentElement.classList.add('js');
+      try {
+        var savedTheme = localStorage.getItem('utsavair:theme');
+        var prefersDark =
+          window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var initialTheme =
+          savedTheme === 'dark' || savedTheme === 'light'
+            ? savedTheme
+            : prefersDark
+              ? 'dark'
+              : 'light';
+        document.documentElement.setAttribute('data-theme', initialTheme);
+      } catch (e) {}
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta property="og:type" content="website" />
@@ -31,7 +43,7 @@
     />
     <!--/utsavair:meta-->
     <meta name="theme-color" content="#F6F4EF" />
-    <meta name="color-scheme" content="light" />
+    <meta name="color-scheme" content="light dark" />
 
     <!-- Installable, not offline. There is deliberately no service worker: a
          cache in front of this ledger would be able to serve a stale seat count
@@ -65,6 +77,11 @@
         background: #f6f4ef; /* --color-page */
         color: #14181f; /* --color-ink */
       }
+      html[data-theme='dark'],
+      html[data-theme='dark'] body {
+        background: #0a0d12;
+        color: #f3f1eb;
+      }
       #boot {
         position: fixed;
         inset: 0;
@@ -76,6 +93,9 @@
         letter-spacing: 0.16em;
         text-transform: uppercase;
         color: #5b6370; /* --color-ink-faint */
+      }
+      html[data-theme='dark'] #boot {
+        color: #9ca6b6;
       }
       #boot span {
         width: 5px;

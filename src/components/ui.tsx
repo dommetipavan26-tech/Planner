@@ -38,11 +38,13 @@ export function Reveal({
   delay = 0,
   className,
   as: Tag = 'div',
+  variant = 'rise',
 }: {
   children: ReactNode;
   delay?: number;
   className?: string;
   as?: 'div' | 'section' | 'li' | 'article';
+  variant?: 'rise' | 'scale' | 'left' | 'right';
 }) {
   const ref = useRef<HTMLElement | null>(null);
   const [shown, setShown] = useState(false);
@@ -76,6 +78,7 @@ export function Reveal({
     <Component
       ref={setRef}
       data-shown={shown}
+      data-variant={variant}
       className={cn('reveal', className)}
       style={delay ? { transitionDelay: `${delay}ms` } : undefined}
     >
@@ -795,7 +798,10 @@ export function Meter({
         aria-label={label ?? 'Seats pledged against allotment'}
       >
         <div
-          className={cn('h-full rounded-pill transition-[width] duration-500 ease-out-expo', barTone)}
+          className={cn(
+            'animate-meter h-full rounded-pill transition-[width] duration-500 ease-out-expo',
+            barTone,
+          )}
           style={{ width: `${ratio}%` }}
         />
       </div>

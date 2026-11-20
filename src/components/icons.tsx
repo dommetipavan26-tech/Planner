@@ -225,3 +225,23 @@ export const IconMenu = (p: IconProps) => (
     <path d="M4 7h16M4 12h16M4 17h16" />
   </Base>
 );
+
+export const IconSun = (p: IconProps) => (
+  <Base {...p}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2.5v2.2M12 19.3v2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" />
+  </Base>
+);
+
+export const IconMoon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M20.4 14.5A8.4 8.4 0 0 1 9.5 3.6a8.5 8.5 0 1 0 10.9 10.9Z" />
+  </Base>
+);
+
+export const IconArrowUp = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M12 19V5" />
+    <path d="m6 11 6-6 6 6" />
+  </Base>
+);

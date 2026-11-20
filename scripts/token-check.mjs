@@ -153,8 +153,37 @@ function contrast(a, b) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+function extractBlock(source, header) {
+  const idx = source.indexOf(header);
+  if (idx === -1) return '';
+  const open = source.indexOf('{', idx);
+  if (open === -1) return '';
+  let depth = 0;
+  for (let i = open; i < source.length; i += 1) {
+    if (source[i] === '{') depth += 1;
+    else if (source[i] === '}') {
+      depth -= 1;
+      if (depth === 0) return source.slice(open + 1, i);
+    }
+  }
+  return '';
+}
+
+function parseColorTokens(block) {
+  return new Map([...block.matchAll(/--color-([a-z0-9-]+):\s*(#[0-9a-f]{6})/g)].map((m) => [m[1], m[2]]));
+}
+
 const css = readFileSync(CSS, 'utf8');
-const colors = new Map([...css.matchAll(/--color-([a-z0-9-]+):\s*(#[0-9a-f]{6})/g)].map((m) => [m[1], m[2]]));
+const lightBlock = extractBlock(css, '@theme');
+const darkBlock = extractBlock(css, "[data-theme='dark']");
+const colors = parseColorTokens(lightBlock || css);
+const darkOverrides = parseColorTokens(darkBlock);
+const themes = darkOverrides.size > 0
+  ? [
+      { name: 'light', map: colors },
+      { name: 'dark', map: new Map([...colors, ...darkOverrides]) },
+    ]
+  : [{ name: 'light', map: colors }];
 const shadows = new Set([...css.matchAll(/--shadow-([a-z0-9-]+):/g)].map((m) => m[1]));
 const radii = new Set([...css.matchAll(/--radius-([a-z0-9-]+):/g)].map((m) => m[1]));
 const customClasses = new Set([...css.matchAll(/^\s*\.([a-z][a-z0-9-]*)/gm)].map((m) => m[1]));
@@ -195,23 +224,25 @@ for (const file of files) {
     const bg = (cls.match(/(?:^|\s)bg-([a-z0-9-]+?)(?:\/\d+)?(?=\s|$)/) || [])[1];
     const fg = (cls.match(/(?:^|\s)text-([a-z0-9-]+?)(?:\/\d+)?(?=\s|$)/) || [])[1];
     if (!bg || !fg) continue;
-    const bgPaint = colors.get(bg) || KEYWORD_PAINTS[bg];
-    const fgPaint = colors.get(fg) || KEYWORD_PAINTS[fg];
-    if (!bgPaint || !fgPaint) continue;
-    pairs += 1;
-    const ratio = contrast(fgPaint, bgPaint);
-    if (ratio < AA) {
-      fail(
-        `${where} pairs \`bg-${bg}\` with \`text-${fg}\` at ${ratio.toFixed(2)}:1 (AA needs ${AA}:1)`,
-      );
-    }
-    // Meaningful graphics need 3:1 against what sits behind them, not 4.5:1.
-    for (const paint of cls.matchAll(/(?:^|\s)(fill|stroke)-([a-z0-9-]+?)(?:\/\d+)?(?=\s|$)/g)) {
-      const paintHex = colors.get(paint[2]) || KEYWORD_PAINTS[paint[2]];
-      if (!paintHex) continue;
-      const graphic = contrast(paintHex, bgPaint);
-      if (graphic < 3) {
-        fail(`${where} paints \`${paint[1]}-${paint[2]}\` on \`bg-${bg}\` at ${graphic.toFixed(2)}:1 (AA non-text needs 3:1)`);
+    for (const theme of themes) {
+      const bgPaint = theme.map.get(bg) || KEYWORD_PAINTS[bg];
+      const fgPaint = theme.map.get(fg) || KEYWORD_PAINTS[fg];
+      if (!bgPaint || !fgPaint) continue;
+      if (theme.name === 'light') pairs += 1;
+      const ratio = contrast(fgPaint, bgPaint);
+      if (ratio < AA) {
+        fail(
+          `[${theme.name}] ${where} pairs \`bg-${bg}\` with \`text-${fg}\` at ${ratio.toFixed(2)}:1 (AA needs ${AA}:1)`,
+        );
+      }
+      // Meaningful graphics need 3:1 against what sits behind them, not 4.5:1.
+      for (const paint of cls.matchAll(/(?:^|\s)(fill|stroke)-([a-z0-9-]+?)(?:\/\d+)?(?=\s|$)/g)) {
+        const paintHex = theme.map.get(paint[2]) || KEYWORD_PAINTS[paint[2]];
+        if (!paintHex) continue;
+        const graphic = contrast(paintHex, bgPaint);
+        if (graphic < 3) {
+          fail(`[${theme.name}] ${where} paints \`${paint[1]}-${paint[2]}\` on \`bg-${bg}\` at ${graphic.toFixed(2)}:1 (AA non-text needs 3:1)`);
+        }
       }
     }
   }
@@ -219,25 +250,27 @@ for (const file of files) {
 
 /* --- 3. component boundaries and graphics clear the non-text minimum ------- */
 let boundaries = 0;
-for (const { token, role, on } of BOUNDARIES) {
-  const hex = colors.get(token);
-  if (!hex) {
-    fail(`--color-${token} is declared a boundary token here but is not defined in src/index.css`);
-    continue;
-  }
-  boundaries += 1;
-  for (const surface of on) {
-    const behind = colors.get(surface);
-    if (!behind) {
-      fail(`surface \`${surface}\` is not defined in src/index.css`);
+for (const theme of themes) {
+  for (const { token, role, on } of BOUNDARIES) {
+    const hex = theme.map.get(token);
+    if (!hex) {
+      fail(`[${theme.name}] --color-${token} is declared a boundary token here but is not defined in src/index.css`);
       continue;
     }
-    const ratio = contrast(hex, behind);
-    if (ratio < NON_TEXT) {
-      fail(
-        `--color-${token} (${role}) is ${ratio.toFixed(2)}:1 against \`${surface}\`; ` +
-          `a boundary a reader has to see needs ${NON_TEXT}:1`,
-      );
+    if (theme.name === 'light') boundaries += 1;
+    for (const surface of on) {
+      const behind = theme.map.get(surface);
+      if (!behind) {
+        fail(`[${theme.name}] surface \`${surface}\` is not defined in src/index.css`);
+        continue;
+      }
+      const ratio = contrast(hex, behind);
+      if (ratio < NON_TEXT) {
+        fail(
+          `[${theme.name}] --color-${token} (${role}) is ${ratio.toFixed(2)}:1 against \`${surface}\`; ` +
+            `a boundary a reader has to see needs ${NON_TEXT}:1`,
+        );
+      }
     }
   }
 }
@@ -253,38 +286,26 @@ for (const file of files) {
     if (!foregrounds.has(token)) foregrounds.set(token, where);
   }
 }
-for (const [token, where] of foregrounds) {
-  for (const surface of TEXT_SURFACES) {
-    const behind = colors.get(surface);
-    if (!behind) continue;
-    const ratio = contrast(colors.get(token), behind);
-    if (ratio < AA) {
-      fail(
-        `${where} sets \`text-${token}\`, which is ${ratio.toFixed(2)}:1 against \`${surface}\` ` +
-          `(AA needs ${AA}:1). As a foreground this token is decoration, not a label.`,
-      );
-      break; // one report per token is enough to find it
+for (const theme of themes) {
+  for (const [token, where] of foregrounds) {
+    // `on-accent` is paired exclusively with `bg-accent` / `bg-jade` fills (checked above).
+    if (theme.name === 'dark' && token === 'on-accent') continue;
+    for (const surface of TEXT_SURFACES) {
+      const behind = theme.map.get(surface);
+      if (!behind) continue;
+      const ratio = contrast(theme.map.get(token), behind);
+      if (ratio < AA) {
+        fail(
+          `[${theme.name}] ${where} sets \`text-${token}\`, which is ${ratio.toFixed(2)}:1 against \`${surface}\` ` +
+            `(AA needs ${AA}:1). As a foreground this token is decoration, not a label.`,
+        );
+        break; // one report per token is enough to find it
+      }
     }
   }
 }
 
 /* --- 5. two states of one thing have to be distinguishable ------------------ */
-/* Where the source chooses between two backgrounds — a filled seat against an
-   empty one, a cell that reached its threshold against one that did not — the two
-   are the visual encoding of a *state*, so WCAG 1.4.11 asks for 3:1 between them.
-   A translucent side cannot be measured at all: its contrast depends on whatever
-   ends up behind it, so an opacity modifier on a state fill is refused outright
-   rather than guessed at.
-
-   A ternary whose condition is an equality test is not a state, it is a choice
-   between categories — `tone === 'jade' ? 'bg-jade' : ...` picks a hue for a
-   series, and two series are not two states of one thing. Those are skipped here
-   and covered instead by BOUNDARIES above, which holds every hue used as a
-   graphic to 3:1 against the panels it can sit on. The condition is recovered by
-   cutting backwards to the nearest `? : , ( ;`, which is a heuristic: it is right
-   for every ternary in this repository, including the nested chains, and if it
-   ever misreads one the failure it produces is a false alarm rather than a
-   missed defect. */
 let states = 0;
 for (const file of files) {
   const where = relative(ROOT, file);
@@ -293,11 +314,10 @@ for (const file of files) {
     /\?\s*(['"`])bg-([a-z0-9-]+)(\/[0-9]+)?\1\s*:\s*(['"`])bg-([a-z0-9-]+)(\/[0-9]+)?\4/g;
   for (const match of source.matchAll(pattern)) {
     const [, , onState, onAlpha, , offState, offAlpha] = match;
-    const paint = (name) => colors.get(name) || KEYWORD_PAINTS[name];
-    if (!paint(onState) || !paint(offState)) continue;
+    if (!(colors.get(onState) || KEYWORD_PAINTS[onState]) || !(colors.get(offState) || KEYWORD_PAINTS[offState])) {
+      continue;
+    }
 
-    // Recover this ternary's own condition: cut backwards to the nearest thing
-    // that could have ended the previous expression.
     const before = source.slice(Math.max(0, match.index - 120), match.index);
     const condition = before.split(/[?:,;(]/).pop() ?? '';
     if (/[!=]==/.test(condition)) continue; // a choice between categories
@@ -311,12 +331,15 @@ for (const file of files) {
       );
       continue;
     }
-    const ratio = contrast(paint(onState), paint(offState));
-    if (ratio < NON_TEXT) {
-      fail(
-        `${where} encodes a state as \`bg-${onState}\` against \`bg-${offState}\` at ` +
-          `${ratio.toFixed(2)}:1 (AA non-text needs ${NON_TEXT}:1)`,
-      );
+    for (const theme of themes) {
+      const paint = (name) => theme.map.get(name) || KEYWORD_PAINTS[name];
+      const ratio = contrast(paint(onState), paint(offState));
+      if (ratio < NON_TEXT) {
+        fail(
+          `[${theme.name}] ${where} encodes a state as \`bg-${onState}\` against \`bg-${offState}\` at ` +
+            `${ratio.toFixed(2)}:1 (AA non-text needs ${NON_TEXT}:1)`,
+        );
+      }
     }
   }
 }
@@ -325,7 +348,7 @@ if (process.exitCode) {
   console.error('\ntoken gate failed');
 } else {
   console.log(
-    `token gate: ${files.length} files, ${utilities} palette utilities resolve, ` +
+    `token gate (${themes.map((t) => t.name).join(' + ')}): ${files.length} files, ${utilities} palette utilities resolve, ` +
       `${pairs} background/foreground pairs clear ${AA}:1, ` +
       `${boundaries} boundary tokens clear ${NON_TEXT}:1 against the panels they sit on, ` +
       `${states} state pairs distinguishable, ${foregrounds.size} foreground tokens legible ` +
