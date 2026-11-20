@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Ledger } from '../hooks/useLedger';
 import { Link } from '../lib/router';
 import { useCoarseNow } from '../hooks/useClock';
@@ -216,7 +216,7 @@ export function CorridorsView({
           ) : view === 'grid' ? (
             <ul className="mt-6 grid list-none gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {filtered.map((corridor, i) => (
-                <Reveal key={corridor.id} as="li" delay={Math.min(i, 6) * 45}>
+                <Reveal key={corridor.id} as="li" variant="scale" delay={Math.min(i, 6) * 55}>
                   <CorridorCard
                     corridor={corridor}
                     watched={isWatched(corridor.id)}
@@ -255,6 +255,29 @@ function Hero({
   corridors: Corridor[];
   now: number;
 }) {
+  const heroRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const node = heroRef.current;
+    if (!node) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    let raf = 0;
+    const sync = () => {
+      raf = 0;
+      const ratio = Math.min(1, Math.max(0, window.scrollY / 520));
+      node.style.setProperty('--hero-scroll', ratio.toFixed(3));
+    };
+    const onScroll = () => {
+      if (!raf) raf = window.requestAnimationFrame(sync);
+    };
+    sync();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      if (raf) window.cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, []);
+
   const airFee = feeSpan(corridors.filter((c) => c.mode === 'flight').map((c) => c.platform_fee_pct));
   const coachFee = feeSpan(corridors.filter((c) => c.mode === 'bus').map((c) => c.platform_fee_pct));
   const feeCopy =
@@ -265,13 +288,19 @@ function Hero({
         : 'Platform fee disclosed on every figure';
 
   return (
-    <section className="relative overflow-hidden border-b border-rule">
-      <div className="glow-accent pointer-events-none absolute inset-0" aria-hidden="true" />
-      <div className="grid-veil pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden="true" />
+    <section ref={heroRef} className="relative overflow-hidden border-b border-rule">
+      <div
+        className="glow-accent hero-parallax-slow pointer-events-none absolute inset-0"
+        aria-hidden="true"
+      />
+      <div
+        className="grid-veil hero-parallax-fast pointer-events-none absolute inset-0 opacity-[0.35]"
+        aria-hidden="true"
+      />
 
       <div className="relative mx-auto grid w-full max-w-[1400px] gap-10 px-4 pt-12 pb-14 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:pt-16 lg:pb-20">
         <div className="flex flex-col gap-6">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="startup-rise startup-1 flex flex-wrap items-center gap-2">
             <Chip tone="marigold" dot>
               Sankranti 2027 corridor desk
             </Chip>
@@ -282,18 +311,18 @@ function Hero({
             ) : null}
           </div>
 
-          <h1 className="display text-[clamp(2.5rem,6.2vw,4.75rem)] text-ink">
+          <h1 className="startup-rise startup-2 display text-[clamp(2.5rem,6.2vw,4.75rem)] text-ink">
             The festival surge is <em className="text-accent-deep">negotiable</em> — if enough of you ask
             at once.
           </h1>
 
-          <p className="max-w-xl text-[14.5px] leading-relaxed text-ink-soft">
+          <p className="startup-rise startup-3 max-w-xl text-[14.5px] leading-relaxed text-ink-soft">
             Carriers contract a block of seats for one departure. Travellers pledge into it. The moment
             a threshold clears, every pledged seat reprices down — including the ones that joined
             first. No card is charged until the block confirms.
           </p>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="startup-rise startup-3 flex flex-wrap items-center gap-3">
             <a
               href="#board"
               className="inline-flex h-11 items-center gap-2 rounded-pill bg-accent px-5 text-[13.5px] font-medium text-on-accent shadow-accent-lift transition-colors duration-200 hover:bg-accent-bright"
@@ -309,14 +338,14 @@ function Hero({
             </a>
           </div>
 
-          <ul className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <ul className="startup-rise startup-4 flex flex-wrap items-center gap-x-5 gap-y-2">
             <TrustItem icon={<IconShield size={13} />} text="Nothing is charged until the block confirms" />
             <TrustItem icon={<IconGauge size={13} />} text={feeCopy} />
             <TrustItem icon={<IconUsers size={13} />} text={`${number(totals.seatsAllotted)} seats under contract`} />
           </ul>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="startup-rise startup-5 flex flex-col gap-4">
           <NetworkMap corridors={corridors} />
           <div className="rounded-card border border-rule bg-surface/80 p-4">
             <Eyebrow>Busiest right now</Eyebrow>
@@ -406,7 +435,7 @@ function StatsBar({ totals }: { totals: Ledger['totals'] }) {
   ];
 
   return (
-    <Reveal>
+    <Reveal variant="scale">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map((stat) => (
           <StatsCard

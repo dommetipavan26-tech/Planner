@@ -162,6 +162,82 @@
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* ==========================================================================
+   Dark theme — airside night palette (toggled via [data-theme='dark'])
+   ==========================================================================
+   Every foreground token clears 4.5:1 against all twelve text-bearing dark
+   surfaces (including ember-tint-strong and accent-tint-strong), and every
+   boundary/graphic token clears 3:1 against the dark control ramp.
+   ========================================================================== */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-page: #0a0d12;
+  --color-surface: #10141c;
+  --color-raised: #161b25;
+  --color-sunken: #1b212d;
+  --color-hover: #1f2634;
+  --color-press: #262e3e;
+
+  --color-ink: #f3f1eb;
+  --color-ink-soft: #d4d7de;
+  --color-ink-muted: #b0b7c4;
+  --color-ink-faint: #9ca6b6;
+
+  --color-rule: #242b38;
+  --color-rule-soft: #1b212c;
+  --color-rule-strong: #353f52;
+  --color-rule-strongest: #4b576e;
+  --color-edge: #7a8599;
+
+  --color-accent: #e8a33d;
+  --color-accent-bright: #f2b657;
+  --color-accent-deep: #f4be66;
+  --color-accent-ink: #f8cf88;
+  --color-accent-tint: #2a2010;
+  --color-accent-tint-strong: #362814;
+  --color-accent-line: #5c431c;
+  --color-on-accent: #1b1305;
+
+  --color-jade: #38a873;
+  --color-jade-deep: #6bd49e;
+  --color-jade-tint: #10261c;
+  --color-jade-line: #1e4d37;
+
+  --color-ember: #c74e34;
+  --color-ember-deep: #f28b77;
+  --color-ember-tint: #2b1512;
+  --color-ember-tint-strong: #381b17;
+  --color-ember-line: #5b2922;
+
+  --color-lagoon: #3278a8;
+  --color-lagoon-deep: #74b9e6;
+  --color-lagoon-tint: #112230;
+  --color-lagoon-line: #21445c;
+
+  --color-clay: #a6643d;
+  --color-clay-deep: #e3a078;
+  --color-clay-tint: #281b13;
+  --color-clay-tint-strong: #342318;
+  --color-clay-line: #533624;
+
+  --shadow-panel:
+    0 1px 2px color-mix(in srgb, black 40%, transparent),
+    0 12px 28px -16px color-mix(in srgb, black 68%, transparent);
+  --shadow-lift:
+    0 2px 6px color-mix(in srgb, black 45%, transparent),
+    0 26px 52px -22px color-mix(in srgb, black 78%, transparent);
+  --shadow-glass:
+    inset 0 1px 0 0 color-mix(in srgb, var(--color-ink) 9%, transparent),
+    0 2px 6px color-mix(in srgb, black 42%, transparent),
+    0 14px 32px -18px color-mix(in srgb, black 72%, transparent);
+  --shadow-glass-lift:
+    inset 0 1px 0 0 color-mix(in srgb, var(--color-ink) 16%, transparent),
+    0 6px 14px -2px color-mix(in srgb, black 50%, transparent),
+    0 28px 50px -18px color-mix(in srgb, black 82%, transparent);
+  --shadow-tab-inset: 0 1px 0 0 color-mix(in srgb, var(--color-ink) 10%, transparent) inset;
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
@@ -502,6 +578,32 @@
     background-image: linear-gradient(135deg, var(--color-ink-soft), var(--color-ink));
     color: var(--color-raised);
   }
+  [data-theme='dark'] .stat-badge-jade {
+    background-image: linear-gradient(135deg, var(--color-jade-deep), var(--color-jade));
+    color: var(--color-on-accent);
+  }
+  [data-theme='dark'] .stat-badge-lagoon {
+    background-image: linear-gradient(135deg, var(--color-lagoon-deep), var(--color-lagoon));
+    color: var(--color-on-accent);
+  }
+  [data-theme='dark'] .stat-badge-clay {
+    background-image: linear-gradient(135deg, var(--color-clay-deep), var(--color-clay));
+    color: var(--color-on-accent);
+  }
+  [data-theme='dark'] .stat-badge-ink {
+    background-image: linear-gradient(135deg, var(--color-press), var(--color-sunken));
+    color: var(--color-ink);
+  }
+
+  /* Scroll-driven subtle hero depth */
+  .hero-parallax-slow {
+    transform: translate3d(0, calc(var(--hero-scroll, 0) * 28px), 0);
+    will-change: transform;
+  }
+  .hero-parallax-fast {
+    transform: translate3d(0, calc(var(--hero-scroll, 0) * 48px), 0);
+    will-change: transform;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -515,6 +617,46 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes utsav-startup {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes utsav-bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes utsav-meter-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes utsav-arc-draw {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
   }
 }
 
@@ -587,6 +729,37 @@
   animation: utsav-sweep 2.2s var(--ease-out-expo) infinite;
 }
 
+/* Startup choreography — active once html.js is set before first paint */
+html.js .startup-bar {
+  animation: utsav-bar-in 0.48s var(--ease-out-expo) both;
+}
+html.js .startup-rise {
+  animation: utsav-startup 0.62s var(--ease-out-expo) both;
+}
+html.js .startup-1 {
+  animation-delay: 0ms;
+}
+html.js .startup-2 {
+  animation-delay: 70ms;
+}
+html.js .startup-3 {
+  animation-delay: 140ms;
+}
+html.js .startup-4 {
+  animation-delay: 210ms;
+}
+html.js .startup-5 {
+  animation-delay: 160ms;
+}
+html.js .animate-meter {
+  transform-origin: left center;
+  animation: utsav-meter-fill 0.8s var(--ease-out-expo) both;
+}
+html.js .animate-arc-draw {
+  stroke-dasharray: 24;
+  animation: utsav-arc-draw 0.85s var(--ease-out-expo) 0.1s both;
+}
+
 /* Scroll reveals.
    The hidden state is applied only once JavaScript has announced itself, via the
    `js` class that index.html sets on <html> before first paint. That ordering is
@@ -595,8 +768,8 @@
    arrives. Without the class the content is simply there. */
 .reveal {
   transition:
-    opacity 0.6s var(--ease-out-expo),
-    transform 0.6s var(--ease-out-expo);
+    opacity 0.65s var(--ease-out-expo),
+    transform 0.65s var(--ease-out-expo);
 }
 .reveal[data-shown='true'] {
   opacity: 1;
@@ -604,8 +777,20 @@
 }
 html.js .reveal:not([data-shown='true']) {
   opacity: 0;
-  transform: translateY(14px);
+  transform: translateY(16px);
   will-change: opacity, transform;
+}
+html.js .reveal[data-variant='scale']:not([data-shown='true']) {
+  opacity: 0;
+  transform: translateY(12px) scale(0.975);
+}
+html.js .reveal[data-variant='left']:not([data-shown='true']) {
+  opacity: 0;
+  transform: translateX(-18px);
+}
+html.js .reveal[data-variant='right']:not([data-shown='true']) {
+  opacity: 0;
+  transform: translateX(18px);
 }
 
 /* Scrollbars */
@@ -643,9 +828,17 @@ html.js .reveal:not([data-shown='true']) {
     scroll-behavior: auto !important;
   }
   .reveal,
-  html.js .reveal:not([data-shown='true']) {
+  html.js .reveal:not([data-shown='true']),
+  html.js .reveal[data-variant='scale']:not([data-shown='true']),
+  html.js .reveal[data-variant='left']:not([data-shown='true']),
+  html.js .reveal[data-variant='right']:not([data-shown='true']) {
     opacity: 1;
     transform: none;
+    will-change: auto;
+  }
+  .hero-parallax-slow,
+  .hero-parallax-fast {
+    transform: none !important;
     will-change: auto;
   }
   .glass-card:hover,
